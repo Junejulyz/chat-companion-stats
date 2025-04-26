@@ -784,27 +784,31 @@ jQuery(async () => {
   }
 
   function getUserAvatar() {
-    // 从角色选择界面获取用户头像
-    const userAvatarContainer = document.querySelector('.avatar-container[data-avatar-id="user-default.png"]');
-    if (userAvatarContainer) {
-      const avatar = userAvatarContainer.querySelector('img');
-      if (avatar) {
-        return avatar.src;
-      }
-    }
-    
-    // 备用方法：从聊天消息中获取用户头像
+    // Priority 1: Try to get avatar from current chat messages
     const messages = document.querySelectorAll('#chat .mes');
     for (const msg of messages) {
       const isUser = msg.getAttribute('is_user') === 'true';
       if (isUser) {
         const avatar = msg.querySelector('.avatar img');
-        if (avatar) {
+        if (avatar && avatar.src) {
+          console.log("getUserAvatar: Found avatar in chat message.");
           return avatar.src;
         }
       }
     }
-    return null;
+
+    // Priority 2 (Fallback): Try to get avatar from persona selection
+    const userAvatarContainer = document.querySelector('.avatar-container[data-avatar-id="user-default.png"]');
+    if (userAvatarContainer) {
+      const avatar = userAvatarContainer.querySelector('img');
+      if (avatar && avatar.src) {
+        console.log("getUserAvatar: Found avatar in persona selection.");
+        return avatar.src;
+      }
+    }
+    
+    console.log("getUserAvatar: Could not find user avatar.");
+    return null; // Return null if not found in either place
   }
 
   async function generateShareImage() {
