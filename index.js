@@ -1023,33 +1023,43 @@ jQuery(async () => {
         ctx.restore();
       }
     }
-    
-    // 绘制两个头像（用户头像在左边，角色头像在右边）
-    const leftX = canvas.width / 2 - spacing / 2 - avatarWidth;
-    const rightX = canvas.width / 2 + spacing / 2;
-    drawAvatar(userAvatar, leftX, false);
-    drawAvatar(characterAvatar, rightX, true);
-    
-    // 绘制虚线连接
-    const lineY = avatarY + avatarHeight / 2;
-    const lineStartX = leftX + avatarWidth + 20; // Doubled spacing
-    const lineEndX = rightX - 20; // Doubled spacing
 
-    // 绘制渐变虚线
-    const lineGradient = ctx.createLinearGradient(lineStartX, lineY, lineEndX, lineY);
-    lineGradient.addColorStop(0, '#3b82f6');
-    lineGradient.addColorStop(1, '#8b5cf6');
-    ctx.beginPath();
-    ctx.strokeStyle = lineGradient;
-    ctx.lineWidth = 4; // Doubled
-    ctx.setLineDash([10, 6]); // Doubled dash pattern
-    ctx.moveTo(lineStartX, lineY);
-    ctx.lineTo(lineEndX, lineY);
-    ctx.stroke();
-    ctx.setLineDash([]);
-    
-    // 绘制锁符号
-    drawChainSymbol(canvas.width / 2, lineY);
+    const showUserAvatar = $("#ccs-share-user-avatar").is(":checked");
+
+    if (showUserAvatar) {
+        // Draw both avatars with spacing
+        const leftX = canvas.width / 2 - spacing / 2 - avatarWidth;
+        const rightX = canvas.width / 2 + spacing / 2;
+        drawAvatar(userAvatar, leftX, false);
+        drawAvatar(characterAvatar, rightX, true);
+        
+        // Draw connecting line and symbol
+        const lineY = avatarY + avatarHeight / 2;
+        const lineStartX = leftX + avatarWidth + 20; // Doubled spacing
+        const lineEndX = rightX - 20; // Doubled spacing
+
+        // Draw gradient dashed line
+        const lineGradient = ctx.createLinearGradient(lineStartX, lineY, lineEndX, lineY);
+        lineGradient.addColorStop(0, '#3b82f6');
+        lineGradient.addColorStop(1, '#8b5cf6');
+        ctx.beginPath();
+        ctx.strokeStyle = lineGradient;
+        ctx.lineWidth = 4; // Doubled
+        ctx.setLineDash([10, 6]); // Doubled dash pattern
+        ctx.moveTo(lineStartX, lineY);
+        ctx.lineTo(lineEndX, lineY);
+        ctx.stroke();
+        ctx.setLineDash([]);
+        
+        // Draw chain symbol
+        drawChainSymbol(canvas.width / 2, lineY);
+    } else {
+        // Draw only character avatar, centered
+        const centerX = canvas.width / 2;
+        const charAvatarX = centerX - avatarWidth / 2;
+        drawAvatar(characterAvatar, charAvatarX, true);
+        // Skip user avatar, line, and symbol
+    }
     
     // 设置文本样式
     ctx.textAlign = 'center';
