@@ -1,0 +1,66 @@
+<div class="example-extension-settings">
+  <div class="inline-drawer">
+    <div class="inline-drawer-toggle inline-drawer-header">
+      <b>羁绊助手</b>
+      <div class="inline-drawer-icon fa-solid fa-circle-chevron-down down"></div>
+    </div>
+    <div class="inline-drawer-content">
+      <div class="example-extension_block">
+        <div class="ccs-stats-container">
+            <div class="ccs-stat-item">
+                <span class="ccs-stat-label">角色：</span>
+                <span class="ccs-stat-value" id="ccs-character">未知</span>
+            </div>
+            <div class="ccs-stat-item ccs-share-option">
+                <input type="checkbox" id="ccs-share-start" checked>
+                <label for="ccs-share-start" class="ccs-stat-label">初遇：</label>
+                <span class="ccs-stat-value" id="ccs-start">尚未互动</span>
+            </div>
+            <div class="ccs-stat-item ccs-share-option">
+                <input type="checkbox" id="ccs-share-messages" checked>
+                <label for="ccs-share-messages" class="ccs-stat-label">对话：</label>
+                <span class="ccs-stat-value" id="ccs-messages">0</span>
+                <span class="ccs-stat-label">条</span>
+            </div>
+            <div class="ccs-stat-item ccs-share-option">
+                <input type="checkbox" id="ccs-share-words" unchecked>
+                <label for="ccs-share-words" class="ccs-stat-label">字数：</label>
+                <span class="ccs-stat-value" id="ccs-words">0</span>
+                <span class="ccs-stat-label">字</span>
+            </div>
+            <div class="ccs-stat-item ccs-share-option">
+                <input type="checkbox" id="ccs-share-days" checked>
+                <label for="ccs-share-days" class="ccs-stat-label">相伴：</label>
+                <span class="ccs-stat-value" id="ccs-days">0</span>
+                <span class="ccs-stat-label">天</span>
+            </div>
+            <div class="ccs-stat-item ccs-share-option">
+                <input type="checkbox" id="ccs-share-size" checked> <!-- New checkbox -->
+                <label for="ccs-share-size" class="ccs-stat-label">回忆大小：</label> <!-- Changed label again -->
+                <span class="ccs-stat-value" id="ccs-total-size">--</span> <!-- New value span -->
+            </div>
+            <div class="ccs-tip" id="ccs-tip" style="display: none;">
+                <span class="ccs-tip-icon">💡</span>
+                <span class="ccs-tip-text">字数是根据当前对话和历史记录估算的，误差较大，仅供参考。</span>
+            </div>
+        </div>
+        <div class="flex-container">
+          <input id="ccs-refresh" type="button" class="menu_button" value="刷新" />
+          <input id="ccs-share" type="button" class="menu_button" value="分享" />
+        </div>
+        <!-- 用于生成分享图片的隐藏canvas -->
+        <canvas id="ccs-canvas" style="display: none;"></canvas>
+      </div>
+    </div>
+  </div>
+  <!-- 预览模态框 -->
+  <div id="ccs-preview-modal">
+    <div>
+      <div id="ccs-preview-container"></div>
+      <div class="button-container">
+        <input id="ccs-download" type="button" class="menu_button" value="保存图片" />
+        <input id="ccs-cancel" type="button" class="menu_button" value="取消" />
+      </div>
+    </div>
+  </div>
+</div>

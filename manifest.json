@@ -1,0 +1,12 @@
+{
+    "display_name": "羁绊助手",
+    "loading_order": 12,
+    "requires": [],
+    "optional": [],
+    "js": "index.js",
+    "css": "styles.css",
+    "author": "Junezz&AI",
+    "version": "1.0.0",
+    "description": "记录你与角色的聊天楼数、字数与陪伴天数",
+    "homePage": "https://github.com/Junejulyz/chat-companion-stats.git"
+}
