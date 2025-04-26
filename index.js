@@ -592,9 +592,18 @@ jQuery(async () => {
         totalSizeBytes: totalSizeBytesRaw // Include raw bytes in final log
       });
 
-      // Final check: If total messages across all files is <= 1, treat as no interaction
-      if (totalMessagesFromChats <= 1) {
-          console.log(`总消息数 (${totalMessagesFromChats}) <= 1，重置统计数据为“尚未互动”状态。`);
+      // Additional check: If multiple files exist, are they all minimal (<=1 message)?
+      let allFilesAreMinimal = false;
+      if (chats && chats.length > 1) {
+          allFilesAreMinimal = chats.every(chat => (chat.chat_items || 0) <= 1);
+          if (allFilesAreMinimal) {
+              console.log(`检测到多个聊天文件，但每个文件消息数都 <= 1。`);
+          }
+      }
+
+      // Final check: Treat as no interaction if total messages <= 1 OR if all files are minimal
+      if (totalMessagesFromChats <= 1 || allFilesAreMinimal) {
+          console.log(`总消息数 (${totalMessagesFromChats}) <= 1 或所有文件消息数均 <= 1，重置统计数据为“尚未互动”状态。`);
           return {
               messageCount: 0,
               wordCount: 0,
