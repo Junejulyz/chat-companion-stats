@@ -588,9 +588,23 @@ jQuery(async () => {
         totalMessages: totalMessagesFromChats,
         estimatedWords,
         earliestTime: (earliestTime && !isNaN(earliestTime.getTime())) ? earliestTime.toISOString() : null,
-        totalDurationSeconds
+        totalDurationSeconds,
+        totalSizeBytes: totalSizeBytesRaw // Include raw bytes in final log
       });
 
+      // Final check: If total messages across all files is <= 1, treat as no interaction
+      if (totalMessagesFromChats <= 1) {
+          console.log(`总消息数 (${totalMessagesFromChats}) <= 1，重置统计数据为“尚未互动”状态。`);
+          return {
+              messageCount: 0,
+              wordCount: 0,
+              firstTime: null,
+              totalDuration: 0,
+              totalSizeBytes: 0 
+          };
+      }
+
+      // Otherwise, return the calculated stats
       return {
         messageCount: totalMessagesFromChats,
         wordCount: estimatedWords,
