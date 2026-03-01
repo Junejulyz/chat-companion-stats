@@ -4,37 +4,24 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>分享卡片实验室 (Share Card Playground)</title>
+    <title>分享卡片实验室 - 现代简约风 (Modern Light Playground)</title>
     <style>
         @import url("https://fontsapi.zeoseven.com/19/main/result.css");
 
-        /* ============================================================
-           这里的 CSS 是你可以实时修改并预览的地方！
-           修改后保存文件并刷新浏览器页面。
-           ============================================================ */
         :root {
-            --primary-teal: #2D5A50;
-            /* 主色调 (页眉/角色名) */
-            --bg-color: #FFFFFF;
-            /* 卡片背景 */
-            --stat-box-bg: #F5F5F5;
-            /* 统计框背景 */
-            --label-color: #666666;
-            /* 标签和单位颜色 */
-            --value-color: #333333;
-            /* 数值颜色 */
+            --bg-color: #F7F9FB;
+            --header-bg: transparent;
+            --content-bg: #EFF2F4;
+            /* Figma: #eff2f4 */
+            --stat-box-bg: #F7F9FB;
+            /* Figma: #f7f9fb */
+            --text-main: #131313;
+            /* Figma: #131313 */
+            --text-muted: #666666;
             --card-width: 663px;
-            --card-height: 784px;
-            --card-border-radius: 32px;
-
-            --avatar-width: 100px;
-            --avatar-height: 150px;
-            --avatar-radius: 16px;
-
-            --stat-box-height: 68px;
-            --stat-box-radius: 8px;
-            --stat-box-gap: 12px;
-
+            --card-height: 730px;
+            --card-border-radius: 16px;
+            /* Figma: 16px */
             --font-main: "LXGW Neo XiHei", "PingFang SC", "Microsoft YaHei", sans-serif;
         }
 
@@ -48,7 +35,6 @@
             font-family: var(--font-main);
         }
 
-        /* 卡片主体 */
         .card {
             width: var(--card-width);
             height: var(--card-height);
@@ -59,111 +45,140 @@
             position: relative;
             display: flex;
             flex-direction: column;
+            padding-bottom: 32px;
+            /* Figma: pb-32 */
         }
 
-        /* 顶部页眉 */
         .header {
-            height: 246px;
-            background-color: var(--primary-teal);
-            position: relative;
+            height: 214px;
+            background-color: transparent;
             display: flex;
-            justify-content: center;
             align-items: center;
+            justify-content: flex-start;
+            padding: 0 40px;
+            position: relative;
         }
 
-        /* 头像区域 */
         .avatars-container {
             display: flex;
             align-items: center;
-            gap: 180px;
-            /* 控制两个头像之间的总跨度 */
+            position: relative;
+            margin-right: 30px;
             z-index: 2;
         }
 
-        .avatar {
-            width: var(--avatar-width);
-            height: var(--avatar-height);
-            background-color: #ddd;
-            border-radius: var(--avatar-radius);
+        /* 头像容器：负责外层 6px 灰色边框 */
+        .avatar-frame {
+            position: relative;
+            width: 124px;
+            /* 100 + 6*2(inner) + 6*2(outer) ? No, user said image+inner is 6px. */
+            height: 124px;
+            background: rgba(220, 221, 220, 1);
+            border-radius: 50%;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+
+        .avatar-frame:first-child {
+            z-index: 2;
+        }
+
+        .avatar-frame:last-child {
+            z-index: 1;
+            margin-left: -52px;
+            /* Overlap adjustment */
+        }
+
+        /* 内层：负责 6px 渐变边框和投影 */
+        .avatar-inner {
+            width: 100px;
+            /* 100 + 6*2 */
+            height: 100px;
+            border-radius: 50%;
+            padding: 6px;
+            /* 渐变边框：上深灰到下黑 */
+            background: linear-gradient(to bottom, #444, #000);
+            /* 阴影：覆盖在外面那层灰色 border 上 */
+            /*box-shadow: 0px 8px 16px rgba(0, 0, 0, 0.4);*/
+            box-shadow: 0 12px 18px 2px rgba(175, 183, 188, 0.80);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+
+        .avatar-inner img {
+            width: 100px;
+            height: 100px;
+            border-radius: 50%;
             object-fit: cover;
+            background-color: #ddd;
         }
 
-        /* 连接线和信封 */
-        .connection {
-            position: absolute;
-            width: 100%;
-            height: 2px;
-            display: flex;
-            justify-content: center;
-            align-items: center;
-        }
-
-        .dashed-line {
-            width: 180px;
-            height: 2px;
-            /* 使用背景渐变来实现可控间隙的虚线 */
-            background-image: linear-gradient(to right, rgba(255, 255, 255, 1) 40%, transparent 40%);
-            background-size: 16px 100%;
-            /* 这里 16px 控制一个 虚线+横跨 的总长度 */
-            background-repeat: repeat-x;
-        }
-
-        .envelope-icon {
-            position: absolute;
-            width: 40px;
-            height: 30px;
-            z-index: 5;
-            display: flex;
-            justify-content: center;
-            align-items: center;
-        }
-
-        .envelope-icon svg {
-            width: 100%;
-            height: 100%;
-            filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.1));
-        }
-
-        /* 下半部分内容 */
-        .content {
-            flex: 1;
-            padding: 40px;
+        .header-text {
             display: flex;
             flex-direction: column;
-            align-items: center;
-            /* 让白色卡片稍微盖在页眉上，形成圆角感 */
-            background: white;
-            z-index: 3;
+            gap: 16px;
+            position: absolute;
+            left: 278px;
+            top: 50%;
+            transform: translateY(-50%);
         }
 
         .char-name {
-            color: var(--primary-teal);
-            font-size: 32px;
+            font-size: 28px;
             font-weight: 300;
-            margin-bottom: 30px;
+            color: var(--text-main);
+        }
+
+        .encounter-info {
+            font-size: 22px;
+            color: var(--text-muted);
+            font-weight: 300;
+        }
+
+        .encounter-info b {
+            font-weight: 700;
+            color: var(--text-main);
+        }
+
+        .content {
+            background-color: var(--content-bg);
+            margin: 0 32px;
+            border-radius: 24px;
+            /* Figma bottom rounded-24 */
+            padding: 40px;
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            width: 519px;
+            align-self: center;
         }
 
         .stats-list {
-            width: 540px;
+            width: 100%;
             display: flex;
             flex-direction: column;
-            gap: var(--stat-box-gap);
+            gap: 32px;
         }
 
         .stat-box {
-            height: var(--stat-box-height);
+            height: 80px;
             background-color: var(--stat-box-bg);
-            border-radius: var(--stat-box-radius);
+            border-radius: 24px;
+            /* Figma rounded-24 */
+            box-shadow: 0px 12px 24px 0px rgba(218, 227, 232, 0.6);
             display: flex;
             justify-content: space-between;
             align-items: center;
-            padding: 0 24px;
+            padding: 0 32px;
+            /* Figma px-32 */
         }
 
         .stat-label {
-            color: var(--label-color);
-            font-size: 20px;
-            font-weight: 300;
+            color: var(--text-muted);
+            font-size: 24px;
+            font-weight: normal;
         }
 
         .stat-value-group {
@@ -173,31 +188,15 @@
         }
 
         .stat-value {
-            color: var(--value-color);
-            font-size: 22px;
+            color: var(--text-main);
+            font-size: 24px;
             font-weight: bold;
         }
 
         .stat-unit {
-            color: var(--label-color);
+            color: var(--text-muted);
             font-size: 20px;
             font-weight: 300;
-        }
-
-        /* 说明提示 */
-        .hint {
-            position: absolute;
-            bottom: -100px;
-            color: #666;
-            text-align: center;
-            width: 800px;
-            line-height: 1.6;
-        }
-
-        code {
-            background: #eee;
-            padding: 2px 4px;
-            border-radius: 4px;
         }
     </style>
 </head>
@@ -205,41 +204,29 @@
 <body>
 
     <div class="card">
-        <!-- 头部 -->
         <div class="header">
-            <div class="connection">
-                <div class="dashed-line"></div>
-                <div class="envelope-icon">
-                    <!-- 使用 SVG 还原设计稿中的信封 -->
-                    <svg viewBox="0 0 40 30" fill="none" xmlns="http://www.w3.org/2000/svg">
-                        <rect width="40" height="30" rx="6" fill="white" />
-                        <path d="M4 6L20 18L36 6" stroke="#2D5A50" stroke-width="2.5" stroke-linecap="round"
-                            stroke-linejoin="round" />
-                    </svg>
+            <div class="avatars-container">
+                <!-- User Avatar Frame -->
+                <div class="avatar-frame">
+                    <div class="avatar-inner">
+                        <img src="https://via.placeholder.com/100" alt="User">
+                    </div>
+                </div>
+                <!-- Character Avatar Frame -->
+                <div class="avatar-frame">
+                    <div class="avatar-inner">
+                        <img src="https://via.placeholder.com/100" alt="Character">
+                    </div>
                 </div>
             </div>
-            <div class="avatars-container">
-                <!-- 这里可以用你喜欢的头像 URL 替换 -->
-                <img class="avatar" src="https://via.placeholder.com/120x160" alt="User">
-                <img class="avatar" src="https://via.placeholder.com/120x160" alt="Character">
+            <div class="header-text">
+                <div class="char-name">角色姓名</div>
+                <div class="encounter-info">初遇于 <b>2025</b> 年 <b>3</b> 月 <b>15</b> 日 <b>18:53</b></div>
             </div>
         </div>
 
-        <!-- 内容块 -->
         <div class="content">
-            <div class="char-name">角色姓名</div>
-
             <div class="stats-list">
-                <div class="stat-box">
-                    <div class="stat-label">初遇时间</div>
-                    <div class="stat-value-group">
-                        <span class="stat-value">2025</span><span class="stat-unit">年</span>
-                        <span class="stat-value">3</span><span class="stat-unit">月</span>
-                        <span class="stat-value">15</span><span class="stat-unit">日</span>
-                        <span class="stat-value">18:53</span>
-                    </div>
-                </div>
-
                 <div class="stat-box">
                     <div class="stat-label">聊天对话</div>
                     <div class="stat-value-group">
@@ -269,14 +256,6 @@
                 </div>
             </div>
         </div>
-    </div>
-
-    <div class="hint">
-        💡 <b>如何实时调整？</b><br>
-        1. 用浏览器（Chrome/Edge）直接打开这个 <code>share_card_playground.html</code> 文件。<br>
-        2. 按下 <code>F12</code> 键。点击左上角的小箭头按钮，然后点击卡片上的任何部分。<br>
-        3. 在右侧的 <b>Styles</b> 面板中直接修改数值（色值、高度、间距等），效果会实时看到。<br>
-        4. 调出你最满意的效果后，把样式截图或者告诉我参数，我来写进最终代码！
     </div>
 
 </body>

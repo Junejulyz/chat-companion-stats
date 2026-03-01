@@ -824,32 +824,45 @@ jQuery(async () => {
 
     // Theme colors
     const isDark = shareStyle === 'dark';
-    const tealColor = isDark ? '#131313' : '#2D5A50';
-    const cardBgColor = isDark ? '#282828' : '#FAFBF7';
-    const statBoxColor = isDark ? 'rgba(255, 255, 255, 0.05)' : 'rgba(52, 107, 100, 0.05)';
-    const statLabelColor = isDark ? '#AAAAAA' : '#666666';
-    const statValueColor = isDark ? '#FFFFFF' : '#333333';
-    const charNameColor = isDark ? '#FFFFFF' : tealColor;
+    const isModern = shareStyle === 'modern';
+
+    const tealColor = isDark ? '#131313' : (isModern ? 'transparent' : '#2D5A50');
+    const cardBgColor = isDark ? '#282828' : (isModern ? '#F7F9FB' : '#FAFBF7');
+    const statBoxColor = isDark ? 'rgba(255, 255, 255, 0.05)' : (isModern ? '#F7F9FB' : 'rgba(52, 107, 100, 0.05)');
+    const statLabelColor = isDark ? '#AAAAAA' : (isModern ? '#666666' : '#666666');
+    const statValueColor = isDark ? '#FFFFFF' : (isModern ? '#131313' : '#333333');
+    const charNameColor = isDark ? '#FFFFFF' : (isModern ? '#131313' : tealColor);
     const dashColor = '#FFFFFF';
 
     // 1. 获取选中的统计项
-    const stats = [
-      { id: 'ccs-share-start', label: '初遇时间', value: $("#ccs-start").text().replace(/点/g, ':').replace(/分/g, '') },
+    const statsItems = [
       { id: 'ccs-share-messages', label: '聊天对话', value: $("#ccs-messages").text(), unit: '条' },
       { id: 'ccs-share-days', label: '相伴天数', value: $("#ccs-days").text(), unit: '天' },
       { id: 'ccs-share-words', label: '聊天字数', value: $("#ccs-words").text(), unit: '字' },
       { id: 'ccs-share-size', label: '回忆大小', value: $("#ccs-total-size").text() }
-    ].filter(s => $(`#${s.id}`).is(":checked"));
+    ];
+
+    // 如果不是现代简约风，则加上初遇时间显示
+    if (!isModern) {
+      statsItems.unshift({ id: 'ccs-share-start', label: '初遇时间', value: $("#ccs-start").text().replace(/点/g, ':').replace(/分/g, '') });
+    }
+
+    const stats = statsItems.filter(s => $(`#${s.id}`).is(":checked") || (isModern && s.id !== 'ccs-share-start'));
 
     // 2. 计算动态高度
-    const headerH = 246 * scaleFactor;
-    const boxH = 68 * scaleFactor;
-    const boxGap = 12 * scaleFactor;
-    const nameAreaH = 100 * scaleFactor; // 角色名区域高度
-    const paddingBottom = 40 * scaleFactor; // 底部留白
+    const headerH = isModern ? 214 * scaleFactor : 246 * scaleFactor;
+    const boxH = 80 * scaleFactor; // Updated from 80px in playground
+    const boxGap = isModern ? 32 * scaleFactor : 12 * scaleFactor;
+    const nameAreaH = isModern ? 0 : 100 * scaleFactor;
+    const paddingBottom = 32 * scaleFactor;
 
     const statsAreaH = stats.length * boxH + (stats.length > 0 ? (stats.length - 1) * boxGap : 0);
-    const dynamicHeight = headerH + nameAreaH + statsAreaH + paddingBottom;
+    const dynamicHeight = isModern ? (headerH + statsAreaH + 64 * scaleFactor) : (headerH + nameAreaH + statsAreaH + paddingBottom);
+
+    // 现代版底色区域
+    const contentAreaMargin = 32 * scaleFactor;
+    const contentAreaW = isModern ? 519 * scaleFactor : (540 * scaleFactor);
+    const contentAreaH = statsAreaH + 80 * scaleFactor; // Padding inside content
 
     canvas.width = width;
     canvas.height = dynamicHeight;
@@ -883,6 +896,13 @@ jQuery(async () => {
     ctx.fillStyle = cardBgColor;
     ctx.fillRect(0, headerH, width, dynamicHeight - headerH);
 
+    if (isModern) {
+      // 现代版圆角灰色背景块
+      const contentX = (width - contentAreaW) / 2;
+      ctx.fillStyle = isDark ? 'rgba(255,255,255,0.05)' : '#EFF2F4';
+      roundRect(contentX, headerH, contentAreaW, contentAreaH, 24 * scaleFactor);
+    }
+
     // 4. 绘制头像
     const avatarUrl = getCharacterAvatar();
     const userAvatarUrl = getUserAvatar();
@@ -915,13 +935,72 @@ jQuery(async () => {
     }
 
     const showUser = $("#ccs-share-user-avatar").is(":checked") && userImg;
-    const avatarW = 100 * scaleFactor;
-    const avatarH = 150 * scaleFactor;
+    const avatarW = (isModern ? 100 : 100) * scaleFactor;
+    const avatarH = (isModern ? 100 : 150) * scaleFactor;
     const centerY = headerH / 2;
     const avatarY = centerY - avatarH / 2;
-    const avatarGap = 180 * scaleFactor;
+    const avatarGap = isModern ? -20 * scaleFactor : 180 * scaleFactor;
 
-    if (showUser) {
+    if (isModern) {
+      // 现代简约风：头像逻辑 (叠加圆)
+      const groupW = avatarW * 2 + avatarGap;
+      const startX = 40 * scaleFactor; // Left padding 40px
+
+      const drawModernAvatar = (img, x, y) => {
+        // Outer frame 6px
+        ctx.fillStyle = 'rgba(220, 221, 220, 1)';
+        ctx.beginPath();
+        ctx.arc(x + avatarW / 2, y + avatarH / 2, (avatarW / 2) + 12 * scaleFactor, 0, Math.PI * 2);
+        ctx.fill();
+
+        // Inner Shadow
+        ctx.save();
+        ctx.shadowColor = 'rgba(175, 183, 188, 0.8)';
+        ctx.shadowBlur = 18 * scaleFactor;
+        ctx.shadowOffsetY = 12 * scaleFactor;
+
+        // Inner Gradient Border (Simplified as solid black/gray for canvas or gradient)
+        const grad = ctx.createLinearGradient(x, y, x, y + avatarH);
+        grad.addColorStop(0, '#444');
+        grad.addColorStop(1, '#000');
+        ctx.fillStyle = grad;
+        ctx.beginPath();
+        ctx.arc(x + avatarW / 2, y + avatarH / 2, (avatarW / 2) + 6 * scaleFactor, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.restore();
+
+        // Image
+        ctx.save();
+        ctx.beginPath();
+        ctx.arc(x + avatarW / 2, y + avatarH / 2, avatarW / 2, 0, Math.PI * 2);
+        ctx.clip();
+        if (img) {
+          ctx.drawImage(img, x, y, avatarW, avatarH);
+        } else {
+          ctx.fillStyle = '#ddd';
+          ctx.fill();
+        }
+        ctx.restore();
+      };
+
+      // Draw Character (Rightmost, lower z-index)
+      drawModernAvatar(charImg, startX + avatarW + avatarGap, avatarY);
+      // Draw User (Leftmost, upper z-index)
+      if (showUser) {
+        drawModernAvatar(userImg, startX, avatarY);
+      } else {
+        // If no user, center character
+        ctx.clearRect(0, 0, width, dynamicHeight); // Reset
+        ctx.fillStyle = cardBgColor; ctx.fillRect(0, 0, width, dynamicHeight);
+        ctx.fillStyle = tealColor; ctx.fillRect(0, 0, width, headerH);
+        if (isModern) {
+          const contentX = (width - contentAreaW) / 2;
+          ctx.fillStyle = isDark ? 'rgba(255,255,255,0.05)' : '#EFF2F4';
+          roundRect(contentX, headerH, contentAreaW, contentAreaH, 24 * scaleFactor);
+        }
+        drawModernAvatar(charImg, (width - avatarW) / 2, avatarY);
+      }
+    } else if (showUser) {
       const leftX = (width - (avatarW * 2 + avatarGap)) / 2;
       const rightX = leftX + avatarW + avatarGap;
 
@@ -970,23 +1049,53 @@ jQuery(async () => {
       drawRoundedAvatar(charImg, (width - avatarW) / 2, avatarY, avatarW, avatarH, 16 * scaleFactor);
     }
 
-    // 5. 绘制角色名
+    // 5. 绘制角色名和初遇时间 (现代版特殊定位)
     const charName = getCurrentCharacterName();
-    const nameY = headerH + 60 * scaleFactor;
-    ctx.textAlign = 'center';
-    ctx.fillStyle = charNameColor;
-    ctx.font = `300 ${34 * scaleFactor}px "LXGW Neo XiHei", "PingFang SC", sans-serif`;
-    ctx.fillText(charName, width / 2, nameY);
+    if (isModern) {
+      const infoX = 278 * scaleFactor;
+      const infoY = centerY;
+      ctx.textAlign = 'left';
+
+      // Name
+      ctx.fillStyle = charNameColor;
+      ctx.font = `300 ${28 * scaleFactor}px "LXGW Neo XiHei", "PingFang SC", sans-serif`;
+      ctx.fillText(charName, infoX, infoY - 8 * scaleFactor);
+
+      // Encounter Info
+      const encounterText = `初遇于 ${$("#ccs-start").text()}`;
+      ctx.fillStyle = statLabelColor;
+      ctx.font = `300 ${22 * scaleFactor}px "LXGW Neo XiHei", "PingFang SC", sans-serif`;
+      ctx.fillText(encounterText, infoX, infoY + 32 * scaleFactor);
+
+    } else {
+      const nameY = headerH + 60 * scaleFactor;
+      ctx.textAlign = 'center';
+      ctx.fillStyle = charNameColor;
+      ctx.font = `300 ${34 * scaleFactor}px "LXGW Neo XiHei", "PingFang SC", sans-serif`;
+      ctx.fillText(charName, width / 2, nameY);
+    }
 
     // 6. 绘制统计项
-    const statsStartY = nameY + 40 * scaleFactor;
-    const boxX = (width - (540 * scaleFactor)) / 2;
-    const boxW = 540 * scaleFactor;
+    const statsStartY = isModern ? (headerH + 40 * scaleFactor) : (headerH + 100 * scaleFactor + 40 * scaleFactor);
+    const boxW = isModern ? 450 * scaleFactor : (540 * scaleFactor); // Figma content width adjusted
+    const boxX = (width - boxW) / 2;
 
     stats.forEach((stat, i) => {
       const cy = statsStartY + i * (boxH + boxGap);
-      ctx.fillStyle = statBoxColor;
-      roundRect(boxX, cy, boxW, boxH, 8 * scaleFactor);
+
+      // Shadow for Modern Style
+      if (isModern) {
+        ctx.save();
+        ctx.shadowColor = 'rgba(218, 227, 232, 0.6)';
+        ctx.shadowBlur = 24 * scaleFactor;
+        ctx.shadowOffsetY = 12 * scaleFactor;
+        ctx.fillStyle = statBoxColor;
+        roundRect(boxX, cy, boxW, boxH, 24 * scaleFactor);
+        ctx.restore();
+      } else {
+        ctx.fillStyle = statBoxColor;
+        roundRect(boxX, cy, boxW, boxH, 8 * scaleFactor);
+      }
 
       // Label
       ctx.textAlign = 'left';
