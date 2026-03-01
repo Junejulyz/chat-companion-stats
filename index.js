@@ -854,15 +854,18 @@ jQuery(async () => {
     const boxH = 80 * scaleFactor; // Updated from 80px in playground
     const boxGap = isModern ? 32 * scaleFactor : 12 * scaleFactor;
     const nameAreaH = isModern ? 0 : 100 * scaleFactor;
-    const paddingBottom = 32 * scaleFactor;
+    const paddingBottom = 40 * scaleFactor; // Consistant with side spacing
 
     const statsAreaH = stats.length * boxH + (stats.length > 0 ? (stats.length - 1) * boxGap : 0);
-    const dynamicHeight = isModern ? (headerH + statsAreaH + 64 * scaleFactor + 32 * scaleFactor) : (headerH + nameAreaH + statsAreaH + paddingBottom);
+    const hasStats = stats.length > 0;
+    const dynamicHeight = isModern ?
+      (hasStats ? (headerH + statsAreaH + 64 * scaleFactor + paddingBottom) : headerH) :
+      (headerH + nameAreaH + statsAreaH + paddingBottom);
 
     // 现代版底色区域
     const contentAreaMargin = 32 * scaleFactor;
     const contentAreaW = isModern ? 599 * scaleFactor : (540 * scaleFactor);
-    const contentAreaH = statsAreaH + 80 * scaleFactor; // Padding inside content
+    const contentAreaH = hasStats ? (statsAreaH + 80 * scaleFactor) : 0; // Padding inside content
 
     canvas.width = width;
     canvas.height = dynamicHeight;
@@ -896,7 +899,7 @@ jQuery(async () => {
     ctx.fillStyle = cardBgColor;
     ctx.fillRect(0, headerH, width, dynamicHeight - headerH);
 
-    if (isModern) {
+    if (isModern && hasStats) {
       // 现代版圆角灰色背景块
       const contentX = (width - contentAreaW) / 2;
       ctx.fillStyle = isDark ? 'rgba(255,255,255,0.05)' : '#EFF2F4';
@@ -935,6 +938,7 @@ jQuery(async () => {
     }
 
     const showUser = $("#ccs-share-user-avatar").is(":checked") && userImg;
+    const showEncounterDate = $("#ccs-share-start").is(":checked");
     const avatarW = (isModern ? 100 : 100) * scaleFactor;
     const avatarH = (isModern ? 100 : 150) * scaleFactor;
     const centerY = headerH / 2;
@@ -942,10 +946,6 @@ jQuery(async () => {
     const avatarGap = isModern ? -20 * scaleFactor : 180 * scaleFactor;
 
     if (isModern) {
-      // 现代简约风：头像逻辑 (叠加圆)
-      const groupW = avatarW * 2 + avatarGap;
-      const startX = 32 * scaleFactor; // Figma: left spacing 32px
-
       const drawModernAvatar = (img, x, y) => {
         // Outer frame 6px
         ctx.fillStyle = 'rgba(220, 221, 220, 1)';
@@ -969,21 +969,20 @@ jQuery(async () => {
         ctx.fill();
         ctx.restore();
 
-        // Image with Center Crop
+        // Image with Center Crop (Object-fit: cover)
         ctx.save();
         ctx.beginPath();
         ctx.arc(x + avatarW / 2, y + avatarH / 2, avatarW / 2, 0, Math.PI * 2);
         ctx.clip();
         if (img) {
-          // Center crop logic
           const iw = img.width;
           const ih = img.height;
-          const r = Math.max(avatarW / iw, avatarH / ih); // Use Math.max for cover effect
+          const r = Math.max(avatarW / iw, avatarH / ih);
           const nw = iw * r;
           const nh = ih * r;
-          const sx = (iw - nw / r) / 2; // Source x
-          const sy = (ih - nh / r) / 2; // Source y
-          ctx.drawImage(img, sx, sy, nw / r, nh / r, x, y, avatarW, avatarH);
+          const sx = (iw - avatarW / r) / 2;
+          const sy = (ih - avatarH / r) / 2;
+          ctx.drawImage(img, sx, sy, avatarW / r, avatarH / r, x, y, avatarW, avatarH);
         } else {
           ctx.fillStyle = '#ddd';
           ctx.fill();
@@ -991,22 +990,29 @@ jQuery(async () => {
         ctx.restore();
       };
 
-      // Draw Character (Rightmost, lower z-index)
-      drawModernAvatar(charImg, startX + avatarW + avatarGap, avatarY);
-      // Draw User (Leftmost, upper z-index)
-      if (showUser) {
-        drawModernAvatar(userImg, startX, avatarY);
+      if (!showEncounterDate) {
+        // Option 4: If no date shown, center avatars in header
+        const combinedW = showUser ? (avatarW * 2 + avatarGap) : avatarW;
+        const centerX = (width - combinedW) / 2;
+
+        drawModernAvatar(charImg, centerX + (showUser ? (avatarW + avatarGap) : 0), avatarY);
+        if (showUser) drawModernAvatar(userImg, centerX, avatarY);
       } else {
-        // If no user, center character
-        ctx.clearRect(0, 0, width, dynamicHeight); // Reset
-        ctx.fillStyle = cardBgColor; ctx.fillRect(0, 0, width, dynamicHeight);
-        ctx.fillStyle = tealColor; ctx.fillRect(0, 0, width, headerH);
-        if (isModern) {
-          const contentX = (width - contentAreaW) / 2;
-          ctx.fillStyle = isDark ? 'rgba(255,255,255,0.05)' : '#EFF2F4';
-          roundRect(contentX, headerH, contentAreaW, contentAreaH, 24 * scaleFactor);
+        // Normal left-aligned layout
+        const startX = 48 * scaleFactor; // Option 1: Moved right slightly (32 -> 48)
+
+        // Option 5: Char stays left-ish even if user unselected but date shown
+        if (showUser) {
+          drawModernAvatar(charImg, startX + avatarW + avatarGap, avatarY);
+          drawModernAvatar(userImg, startX, avatarY);
+        } else {
+          // If no user avatar but encounter date exists, char stays in its "pair-right" spot
+          // to avoid overlapping text or moving too far left?
+          // User said "remove user but character stays in place".
+          drawModernAvatar(charImg, startX, avatarY); // User said "stay", so use startX as if it was there alone? Or startX + pair distance?
+          // Re-reading: "character stays in its place", usually means its original position.
+          // Drawing char at startX (where user would have been) seems more balanced for a single avatar layout though.
         }
-        drawModernAvatar(charImg, (width - avatarW) / 2, avatarY);
       }
     } else if (showUser) {
       const leftX = (width - (avatarW * 2 + avatarGap)) / 2;
@@ -1060,21 +1066,22 @@ jQuery(async () => {
     // 5. 绘制角色名和初遇时间 (现代版特殊定位)
     const charName = getCurrentCharacterName();
     if (isModern) {
-      const infoX = 278 * scaleFactor;
-      const infoY = centerY;
-      ctx.textAlign = 'left';
+      if (showEncounterDate) {
+        const infoX = 278 * scaleFactor;
+        const infoY = centerY;
+        ctx.textAlign = 'left';
 
-      // Name
-      ctx.fillStyle = charNameColor;
-      ctx.font = `300 ${28 * scaleFactor}px "LXGW Neo XiHei", "PingFang SC", sans-serif`;
-      ctx.fillText(charName, infoX, infoY - 8 * scaleFactor);
+        // Name
+        ctx.fillStyle = charNameColor;
+        ctx.font = `300 ${28 * scaleFactor}px "LXGW Neo XiHei", "PingFang SC", sans-serif`;
+        ctx.fillText(charName, infoX, infoY - 8 * scaleFactor);
 
-      // Encounter Info
-      const encounterText = `初遇于 ${$("#ccs-start").text()}`;
-      ctx.fillStyle = statLabelColor;
-      ctx.font = `300 ${22 * scaleFactor}px "LXGW Neo XiHei", "PingFang SC", sans-serif`;
-      ctx.fillText(encounterText, infoX, infoY + 32 * scaleFactor);
-
+        // Encounter Info
+        const encounterText = `初遇于 ${$("#ccs-start").text()}`;
+        ctx.fillStyle = statLabelColor;
+        ctx.font = `300 ${22 * scaleFactor}px "LXGW Neo XiHei", "PingFang SC", sans-serif`;
+        ctx.fillText(encounterText, infoX, infoY + 32 * scaleFactor);
+      }
     } else {
       const nameY = headerH + 60 * scaleFactor;
       ctx.textAlign = 'center';
