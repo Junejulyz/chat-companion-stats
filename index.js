@@ -857,11 +857,11 @@ jQuery(async () => {
     const paddingBottom = 32 * scaleFactor;
 
     const statsAreaH = stats.length * boxH + (stats.length > 0 ? (stats.length - 1) * boxGap : 0);
-    const dynamicHeight = isModern ? (headerH + statsAreaH + 64 * scaleFactor) : (headerH + nameAreaH + statsAreaH + paddingBottom);
+    const dynamicHeight = isModern ? (headerH + statsAreaH + 64 * scaleFactor + 32 * scaleFactor) : (headerH + nameAreaH + statsAreaH + paddingBottom);
 
     // 现代版底色区域
     const contentAreaMargin = 32 * scaleFactor;
-    const contentAreaW = isModern ? 519 * scaleFactor : (540 * scaleFactor);
+    const contentAreaW = isModern ? 599 * scaleFactor : (540 * scaleFactor);
     const contentAreaH = statsAreaH + 80 * scaleFactor; // Padding inside content
 
     canvas.width = width;
@@ -944,7 +944,7 @@ jQuery(async () => {
     if (isModern) {
       // 现代简约风：头像逻辑 (叠加圆)
       const groupW = avatarW * 2 + avatarGap;
-      const startX = 40 * scaleFactor; // Left padding 40px
+      const startX = 32 * scaleFactor; // Figma: left spacing 32px
 
       const drawModernAvatar = (img, x, y) => {
         // Outer frame 6px
@@ -959,7 +959,7 @@ jQuery(async () => {
         ctx.shadowBlur = 18 * scaleFactor;
         ctx.shadowOffsetY = 12 * scaleFactor;
 
-        // Inner Gradient Border (Simplified as solid black/gray for canvas or gradient)
+        // Inner Gradient Border
         const grad = ctx.createLinearGradient(x, y, x, y + avatarH);
         grad.addColorStop(0, '#444');
         grad.addColorStop(1, '#000');
@@ -969,13 +969,21 @@ jQuery(async () => {
         ctx.fill();
         ctx.restore();
 
-        // Image
+        // Image with Center Crop
         ctx.save();
         ctx.beginPath();
         ctx.arc(x + avatarW / 2, y + avatarH / 2, avatarW / 2, 0, Math.PI * 2);
         ctx.clip();
         if (img) {
-          ctx.drawImage(img, x, y, avatarW, avatarH);
+          // Center crop logic
+          const iw = img.width;
+          const ih = img.height;
+          const r = Math.max(avatarW / iw, avatarH / ih); // Use Math.max for cover effect
+          const nw = iw * r;
+          const nh = ih * r;
+          const sx = (iw - nw / r) / 2; // Source x
+          const sy = (ih - nh / r) / 2; // Source y
+          ctx.drawImage(img, sx, sy, nw / r, nh / r, x, y, avatarW, avatarH);
         } else {
           ctx.fillStyle = '#ddd';
           ctx.fill();
@@ -1077,7 +1085,7 @@ jQuery(async () => {
 
     // 6. 绘制统计项
     const statsStartY = isModern ? (headerH + 40 * scaleFactor) : (headerH + 100 * scaleFactor + 40 * scaleFactor);
-    const boxW = isModern ? 450 * scaleFactor : (540 * scaleFactor); // Figma content width adjusted
+    const boxW = isModern ? 519 * scaleFactor : (540 * scaleFactor); // Figma content width 599px minus horizontal margins
     const boxX = (width - boxW) / 2;
 
     stats.forEach((stat, i) => {
