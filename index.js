@@ -12,7 +12,7 @@ jQuery(async () => {
   // 加载自定义字体
   $('head').append(`<style>@import url("https://fontsapi.zeoseven.com/19/main/result.css");</style>`);
 
-  let shareStyle = 'classic';
+  let shareStyle = 'modern-light';
 
   // 加载HTML using dynamic path
   const settingsHtml = await $.get(`${extensionWebPath}/settings.html`);
@@ -1131,10 +1131,12 @@ jQuery(async () => {
     }
   });
 
-  // 添加分享按钮事件处理
   $("#ccs-share").on("click", async function () {
     const $button = $(this);
     if ($button.prop('disabled')) return; // 如果按钮被禁用，直接返回
+
+    // 确保同步当前的样式选择
+    shareStyle = $("#ccs-style-select").val() || 'modern-light';
 
     $button.prop('disabled', true).val('生成中...');
 
