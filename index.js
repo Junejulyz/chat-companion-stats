@@ -892,7 +892,7 @@ jQuery(async () => {
         await document.fonts.ready;
         // Also explicitly load the weights we use most
         await Promise.all([
-          document.fonts.load(`300 32px "LXGW Neo XiHei"`),
+          document.fonts.load(`400 32px "LXGW Neo XiHei"`),
           document.fonts.load(`700 32px "LXGW Neo XiHei"`)
         ]);
       }
@@ -1038,14 +1038,14 @@ jQuery(async () => {
 
         // Name
         ctx.fillStyle = charNameColor;
-        ctx.font = `300 ${31 * scaleFactor}px "LXGW Neo XiHei", "PingFang SC", sans-serif`; // Reduced by 1px
-        ctx.fillText(charName, infoX, infoY - 8 * scaleFactor);
+        ctx.font = `400 ${31 * scaleFactor}px "LXGW Neo XiHei", "PingFang SC", sans-serif`; // Reverted to 400
+        ctx.fillText(charName, infoX, infoY - 12 * scaleFactor); // Moved up slightly
 
         // Encounter Info
         const encounterText = `初遇 ${$("#ccs-start").text()}`;
         ctx.fillStyle = statLabelColor;
-        ctx.font = `300 ${25 * scaleFactor}px "LXGW Neo XiHei", "PingFang SC", sans-serif`; // Reduced by 1px
-        ctx.fillText(encounterText, infoX, infoY + 32 * scaleFactor);
+        ctx.font = `400 ${25 * scaleFactor}px "LXGW Neo XiHei", "PingFang SC", sans-serif`; // Reverted to 400
+        ctx.fillText(encounterText, infoX, infoY + 36 * scaleFactor); // Moved down slightly (+32 -> +36)
       }
     }
 
@@ -1069,7 +1069,7 @@ jQuery(async () => {
       // Label
       ctx.textAlign = 'left';
       ctx.fillStyle = statLabelColor;
-      ctx.font = `300 ${28 * scaleFactor}px "LXGW Neo XiHei", "PingFang SC", sans-serif`; // Weight Light, +4 size
+      ctx.font = `400 ${28 * scaleFactor}px "LXGW Neo XiHei", "PingFang SC", sans-serif`; // Reverted to 400
       ctx.fillText(stat.label, boxX + 32 * scaleFactor, cy + boxH / 2 + 8 * scaleFactor);
 
       // Value & Unit
@@ -1078,7 +1078,7 @@ jQuery(async () => {
 
       if (stat.unit) {
         ctx.fillStyle = statLabelColor;
-        ctx.font = `300 ${24 * scaleFactor}px "LXGW Neo XiHei", "PingFang SC", sans-serif`; // Reduced by 1px (25->24)
+        ctx.font = `400 ${24 * scaleFactor}px "LXGW Neo XiHei", "PingFang SC", sans-serif`; // Reverted to 400
         ctx.fillText(stat.unit, valueX, cy + boxH / 2 + 8 * scaleFactor);
 
         const unitWidth = ctx.measureText(stat.unit).width;
@@ -1092,6 +1092,7 @@ jQuery(async () => {
       }
     });
 
+    ctx.restore(); // Restore from card-level 16px clipping
     return canvas.toDataURL('image/png');
   }
 
