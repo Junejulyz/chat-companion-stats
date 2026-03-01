@@ -818,6 +818,7 @@ jQuery(async () => {
   async function generateShareImage() {
     const canvas = document.getElementById('ccs-canvas');
     const ctx = canvas.getContext('2d');
+    const charName = getCurrentCharacterName();
 
     const scaleFactor = 2;
     const width = 663 * scaleFactor;
