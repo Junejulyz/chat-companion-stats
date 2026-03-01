@@ -845,22 +845,33 @@ jQuery(async () => {
     // 0. 加载 Ins 风格专属资源
     const insAssets = {};
     if (shareStyle === 'ins') {
+      if (DEBUG) console.log('Loading ins assets...');
+      const v = Date.now();
       const assetList = {
-        bg: `${extensionWebPath}/ins_bg.png`,
-        heart: `${extensionWebPath}/ins_heart.png`,
-        comment: `${extensionWebPath}/ins_comment.png`,
-        share: `${extensionWebPath}/ins_share.png`,
-        bookmark: `${extensionWebPath}/ins_bookmark.png`
+        bg: `${extensionWebPath}/ins_bg.png?v=${v}`,
+        heart: `${extensionWebPath}/ins_heart.png?v=${v}`,
+        comment: `${extensionWebPath}/ins_comment.png?v=${v}`,
+        share: `${extensionWebPath}/ins_share.png?v=${v}`,
+        bookmark: `${extensionWebPath}/ins_bookmark.png?v=${v}`
       };
-      const loadImg = (url) => new Promise((resolve) => {
+
+      const loadAssetImg = (url) => new Promise((resolve) => {
         const img = new Image();
-        img.onload = () => resolve(img);
-        img.onerror = () => resolve(null);
+        img.crossOrigin = 'anonymous';
+        const timeout = setTimeout(() => {
+          console.warn(`Asset load timeout: ${url}`);
+          resolve(null);
+        }, 3000);
+        img.onload = () => { clearTimeout(timeout); resolve(img); };
+        img.onerror = () => { clearTimeout(timeout); resolve(null); };
         img.src = url;
       });
+
       await Promise.all(Object.entries(assetList).map(async ([key, url]) => {
-        insAssets[key] = await loadImg(url);
+        insAssets[key] = await loadAssetImg(url);
+        if (DEBUG && !insAssets[key]) console.warn(`Failed to load asset: ${key} (${url})`);
       }));
+      if (DEBUG) console.log('Ins assets loaded status:', Object.keys(insAssets).filter(k => !!insAssets[k]));
     }
 
     // Instagram Icons (SVG Paths - Kept as fallback or reference)
@@ -980,8 +991,12 @@ jQuery(async () => {
       if (!url) return resolve(null);
       const img = new Image();
       img.crossOrigin = 'anonymous';
-      img.onload = () => resolve(img);
-      img.onerror = () => resolve(null);
+      const timeout = setTimeout(() => {
+        console.warn(`Avatar load timeout: ${url}`);
+        resolve(null);
+      }, 5000);
+      img.onload = () => { clearTimeout(timeout); resolve(img); };
+      img.onerror = () => { clearTimeout(timeout); resolve(null); };
       img.src = url;
     });
 
@@ -1361,6 +1376,7 @@ jQuery(async () => {
       }
     } catch (e) {
       console.error('Failed to regenerate preview:', e);
+      alert('生成预览失败: ' + e.message);
     } finally {
       $container.removeClass('loading-preview');
     }
