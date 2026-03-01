@@ -1043,7 +1043,7 @@ jQuery(async () => {
 
     // 6. 绘制统计项
     const statsStartY = isModern ? (headerH + 40 * scaleFactor) : (headerH + 100 * scaleFactor + 40 * scaleFactor);
-    const boxW = 599 * scaleFactor; // Match contentAreaW
+    const boxW = 519 * scaleFactor; // Match contentAreaW
     const boxX = (width - boxW) / 2;
 
     stats.forEach((stat, i) => {
