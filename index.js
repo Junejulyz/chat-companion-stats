@@ -1043,9 +1043,12 @@ jQuery(async () => {
 
         // Encounter Info
         const encounterText = `初遇 ${$("#ccs-start").text()}`;
+        ctx.save();
+        ctx.globalAlpha = 0.7; // 70% opacity per request
         ctx.fillStyle = statLabelColor;
         ctx.font = `400 ${25 * scaleFactor}px "LXGW Neo XiHei", "PingFang SC", sans-serif`; // Reverted to 400
         ctx.fillText(encounterText, infoX, infoY + 36 * scaleFactor); // Moved down slightly (+32 -> +36)
+        ctx.restore();
       }
     }
 
@@ -1077,9 +1080,12 @@ jQuery(async () => {
       const valueX = boxX + boxW - 32 * scaleFactor;
 
       if (stat.unit) {
+        ctx.save();
+        ctx.globalAlpha = 0.7; // 70% opacity for units
         ctx.fillStyle = statLabelColor;
         ctx.font = `400 ${24 * scaleFactor}px "LXGW Neo XiHei", "PingFang SC", sans-serif`; // Reverted to 400
         ctx.fillText(stat.unit, valueX, cy + boxH / 2 + 8 * scaleFactor);
+        ctx.restore();
 
         const unitWidth = ctx.measureText(stat.unit).width;
         ctx.fillStyle = statValueColor;
