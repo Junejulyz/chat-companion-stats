@@ -12,6 +12,13 @@ jQuery(async () => {
   // 加载自定义字体
   $('head').append(`<style>@import url("https://fontsapi.zeoseven.com/19/main/result.css");</style>`);
 
+  // 加载 html2canvas 库
+  if (!window.html2canvas) {
+    const script = document.createElement('script');
+    script.src = "https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js";
+    document.head.appendChild(script);
+  }
+
   let shareStyle = 'classic';
 
   // 加载HTML using dynamic path
@@ -816,23 +823,35 @@ jQuery(async () => {
   }
 
   async function generateShareImage() {
-    const canvas = document.getElementById('ccs-canvas');
-    const ctx = canvas.getContext('2d');
+    const $card = $('#ccs-share-card');
 
-    const scaleFactor = 2;
-    const width = 663 * scaleFactor;
+    // 1. 设置样式主题
+    $card.removeClass('ccs-theme-classic ccs-theme-dark').addClass(`ccs-theme-${shareStyle}`);
 
-    // Theme colors
-    const isDark = shareStyle === 'dark';
-    const tealColor = isDark ? '#131313' : '#2D5A50';
-    const cardBgColor = isDark ? '#282828' : '#FAFBF7';
-    const statBoxColor = isDark ? 'rgba(255, 255, 255, 0.05)' : 'rgba(52, 107, 100, 0.05)';
-    const statLabelColor = isDark ? '#AAAAAA' : '#666666';
-    const statValueColor = isDark ? '#FFFFFF' : '#333333';
-    const charNameColor = isDark ? '#FFFFFF' : tealColor;
-    const dashColor = '#FFFFFF';
+    // 2. 填充基本信息
+    const charName = getCurrentCharacterName();
+    $('#ccs-tpl-name').text(charName);
 
-    // 1. 获取选中的统计项
+    // 3. 填充头像
+    const avatarUrl = getCharacterAvatar();
+    const userAvatarUrl = getUserAvatar();
+    const showUser = $("#ccs-share-user-avatar").is(":checked") && userAvatarUrl;
+
+    const $userImg = $('.ccs-card-avatar-user');
+    const $charImg = $('.ccs-card-avatar-char');
+    const $connection = $('.ccs-card-connection');
+
+    $charImg.attr('src', avatarUrl);
+
+    if (showUser) {
+      $userImg.show().attr('src', userAvatarUrl);
+      $connection.show();
+    } else {
+      $userImg.hide();
+      $connection.hide();
+    }
+
+    // 4. 填充统计项
     const stats = [
       { id: 'ccs-share-start', label: '初遇时间', value: $("#ccs-start").text().replace(/点/g, ':').replace(/分/g, '') },
       { id: 'ccs-share-messages', label: '聊天对话', value: $("#ccs-messages").text(), unit: '条' },
@@ -841,183 +860,54 @@ jQuery(async () => {
       { id: 'ccs-share-size', label: '回忆大小', value: $("#ccs-total-size").text() }
     ].filter(s => $(`#${s.id}`).is(":checked"));
 
-    // 2. 计算动态高度
-    const headerH = 246 * scaleFactor;
-    const boxH = 68 * scaleFactor;
-    const boxGap = 12 * scaleFactor;
-    const nameAreaH = 100 * scaleFactor; // 角色名区域高度
-    const paddingBottom = 40 * scaleFactor; // 底部留白
+    const $statsContainer = $('#ccs-tpl-stats');
+    $statsContainer.empty();
 
-    const statsAreaH = stats.length * boxH + (stats.length > 0 ? (stats.length - 1) * boxGap : 0);
-    const dynamicHeight = headerH + nameAreaH + statsAreaH + paddingBottom;
-
-    canvas.width = width;
-    canvas.height = dynamicHeight;
-
-    // 等待字体加载
-    try {
-      if (document.fonts) {
-        await document.fonts.load(`300 32px "LXGW Neo XiHei"`);
-        await document.fonts.load(`700 32px "LXGW Neo XiHei"`);
-      }
-    } catch (e) {
-      if (DEBUG) console.warn('Font load failed:', e);
-    }
-
-    // Helper: Rounded Rect
-    function roundRect(x, y, w, h, r, fill = true, stroke = false) {
-      ctx.beginPath();
-      ctx.moveTo(x + r, y);
-      ctx.arcTo(x + w, y, x + w, y + h, r);
-      ctx.arcTo(x + w, y + h, x, y + h, r);
-      ctx.arcTo(x, y + h, x, y, r);
-      ctx.arcTo(x, y, x + w, y, r);
-      ctx.closePath();
-      if (fill) ctx.fill();
-      if (stroke) ctx.stroke();
-    }
-
-    // 3. 绘制背景
-    ctx.fillStyle = tealColor;
-    ctx.fillRect(0, 0, width, headerH);
-    ctx.fillStyle = cardBgColor;
-    ctx.fillRect(0, headerH, width, dynamicHeight - headerH);
-
-    // 4. 绘制头像
-    const avatarUrl = getCharacterAvatar();
-    const userAvatarUrl = getUserAvatar();
-
-    const loadImg = (url) => new Promise((resolve) => {
-      if (!url) return resolve(null);
-      const img = new Image();
-      img.crossOrigin = 'anonymous';
-      img.onload = () => resolve(img);
-      img.onerror = () => resolve(null);
-      img.src = url;
-    });
-
-    const [charImg, userImg] = await Promise.all([loadImg(avatarUrl), loadImg(userAvatarUrl)]);
-
-    function drawRoundedAvatar(img, x, y, w, h, r) {
-      ctx.save();
-      roundRect(x, y, w, h, r, false, false);
-      ctx.clip();
-      if (img) {
-        const scale = Math.max(w / img.width, h / img.height);
-        const sw = img.width * scale;
-        const sh = img.height * scale;
-        ctx.drawImage(img, x + (w - sw) / 2, y + (h - sh) / 2, sw, sh);
-      } else {
-        ctx.fillStyle = '#e0e0e0';
-        ctx.fillRect(x, y, w, h);
-      }
-      ctx.restore();
-    }
-
-    const showUser = $("#ccs-share-user-avatar").is(":checked") && userImg;
-    const avatarW = 100 * scaleFactor;
-    const avatarH = 150 * scaleFactor;
-    const centerY = headerH / 2;
-    const avatarY = centerY - avatarH / 2;
-    const avatarGap = 180 * scaleFactor;
-
-    if (showUser) {
-      const leftX = (width - (avatarW * 2 + avatarGap)) / 2;
-      const rightX = leftX + avatarW + avatarGap;
-
-      // User Avatar (Left)
-      drawRoundedAvatar(userImg, leftX, avatarY, avatarW, avatarH, 16 * scaleFactor);
-      // Char Avatar (Right)
-      drawRoundedAvatar(charImg, rightX, avatarY, avatarW, avatarH, 16 * scaleFactor);
-
-      // Connection: Dashed Line
-      ctx.save();
-      const dashLen = 16 * scaleFactor;
-      ctx.setLineDash([dashLen * 0.4, dashLen * 0.6]);
-      ctx.strokeStyle = dashColor;
-      ctx.lineWidth = 2 * scaleFactor;
-
-      const iconW = 32 * scaleFactor;
-      const iconH = 24 * scaleFactor;
-      const ix = width / 2 - iconW / 2;
-      const iy = centerY - iconH / 2;
-      const gap = 10 * scaleFactor;
-
-      ctx.beginPath();
-      ctx.moveTo(leftX + avatarW + 10 * scaleFactor, centerY);
-      ctx.lineTo(ix - gap, centerY);
-      ctx.moveTo(ix + iconW + gap, centerY);
-      ctx.lineTo(rightX - 10 * scaleFactor, centerY);
-      ctx.stroke();
-      ctx.restore();
-
-      // Envelope BG
-      ctx.fillStyle = '#FFFFFF';
-      roundRect(ix, iy, iconW, iconH, 6 * scaleFactor);
-
-      // Envelope SVG Path
-      ctx.strokeStyle = tealColor;
-      ctx.lineWidth = 2 * scaleFactor;
-      ctx.lineCap = 'round';
-      ctx.lineJoin = 'round';
-      ctx.beginPath();
-      ctx.moveTo(ix + (4 / 40) * iconW, iy + (6 / 30) * iconH);
-      ctx.lineTo(ix + (20 / 40) * iconW, iy + (18 / 30) * iconH);
-      ctx.lineTo(ix + (36 / 40) * iconW, iy + (6 / 30) * iconH);
-      ctx.stroke();
-    } else {
-      // 只有角色头像：样式与 showUser 保持一致 (100x150)，居中
-      drawRoundedAvatar(charImg, (width - avatarW) / 2, avatarY, avatarW, avatarH, 16 * scaleFactor);
-    }
-
-    // 5. 绘制角色名
-    const charName = getCurrentCharacterName();
-    const nameY = headerH + 60 * scaleFactor;
-    ctx.textAlign = 'center';
-    ctx.fillStyle = charNameColor;
-    ctx.font = `300 ${34 * scaleFactor}px "LXGW Neo XiHei", "PingFang SC", sans-serif`;
-    ctx.fillText(charName, width / 2, nameY);
-
-    // 6. 绘制统计项
-    const statsStartY = nameY + 40 * scaleFactor;
-    const boxX = (width - (540 * scaleFactor)) / 2;
-    const boxW = 540 * scaleFactor;
-
-    stats.forEach((stat, i) => {
-      const cy = statsStartY + i * (boxH + boxGap);
-      ctx.fillStyle = statBoxColor;
-      roundRect(boxX, cy, boxW, boxH, 8 * scaleFactor);
-
-      // Label
-      ctx.textAlign = 'left';
-      ctx.fillStyle = isDark ? '#FFFFFF' : '#000000';
-      ctx.font = `300 ${22 * scaleFactor}px "LXGW Neo XiHei", "PingFang SC", sans-serif`;
-      ctx.fillText(stat.label, boxX + 24 * scaleFactor, cy + boxH / 2 + 8 * scaleFactor);
-
-      // Value & Unit (Mixed Weight)
-      ctx.textAlign = 'right';
-      let currentX = boxX + boxW - 24 * scaleFactor;
-      const baselineY = cy + boxH / 2 + 8 * scaleFactor;
-
-      if (stat.unit) {
-        ctx.fillStyle = statLabelColor;
-        ctx.font = `300 ${22 * scaleFactor}px "LXGW Neo XiHei", "PingFang SC", sans-serif`;
-        ctx.fillText(stat.unit, currentX, baselineY);
-        currentX -= ctx.measureText(stat.unit).width + 6 * scaleFactor;
-      }
-
+    stats.forEach(stat => {
+      // 智能分割数值和单位
       const parts = stat.value.split(/(\d+\.?\d*|:)/g).filter(p => p !== '');
-      for (let j = parts.length - 1; j >= 0; j--) {
-        const p = parts[j];
+      let valueHtml = '';
+
+      parts.forEach(p => {
         const isNum = /^\d+\.?\d*$/.test(p);
         const isTimeSep = p === ':';
-        ctx.font = isNum
-          ? `700 ${24 * scaleFactor}px "LXGW Neo XiHei", "PingFang SC", sans-serif`
-          : `300 ${22 * scaleFactor}px "LXGW Neo XiHei", "PingFang SC", sans-serif`;
-        ctx.fillStyle = isNum || isTimeSep ? statValueColor : statLabelColor;
-        ctx.fillText(p, currentX, cy + boxH / 2 + (isNum ? 9 : 8) * scaleFactor);
-        currentX -= ctx.measureText(p).width + (j > 0 ? 2 * scaleFactor : 0);
+        const className = (isNum || isTimeSep) ? 'ccs-card-stat-num' : 'ccs-card-stat-unit';
+        valueHtml += `<span class="${className}">${p}</span>`;
+      });
+
+      if (stat.unit) {
+        valueHtml += `<span class="ccs-card-stat-unit" style="margin-left: 6px;">${stat.unit}</span>`;
       }
+
+      const boxHtml = `
+        <div class="ccs-card-stat-box">
+          <div class="ccs-card-stat-label">${stat.label}</div>
+          <div class="ccs-card-stat-value-group">${valueHtml}</div>
+        </div>
+      `;
+      $statsContainer.append(boxHtml);
+    });
+
+    // 5. 等待字体和图片加载
+    await document.fonts.ready;
+    // 确保图片加载完成
+    const imgs = $card.find('img').get();
+    await Promise.all(imgs.map(img => {
+      if (img.complete) return Promise.resolve();
+      return new Promise(resolve => { img.onload = img.onerror = resolve; });
+    }));
+
+    // 6. 使用 html2canvas 截图
+    if (!window.html2canvas) {
+      alert('正在加载截图库，请稍后再试...');
+      return null;
+    }
+
+    const canvas = await html2canvas($card[0], {
+      useCORS: true,
+      scale: 2, // 高清渲染
+      backgroundColor: null,
+      logging: false,
     });
 
     return canvas.toDataURL('image/png');
