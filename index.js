@@ -9,8 +9,11 @@ jQuery(async () => {
   // 加载CSS文件 using dynamic path
   $('head').append(`<link rel="stylesheet" type="text/css" href="${extensionWebPath}/styles.css">`);
 
-  // 加载自定义字体
-  $('head').append(`<style>@import url("https://fontsapi.zeoseven.com/19/main/result.css");</style>`);
+  // 加载自定义字体 (Added handwritten font for ins style)
+  $('head').append(`<style>
+    @import url("https://fontsapi.zeoseven.com/19/main/result.css");
+    @import url("https://fonts.googleapis.com/css2?family=Long+Cang&display=swap");
+  </style>`);
 
   let shareStyle = 'modern-light';
 
@@ -838,6 +841,15 @@ jQuery(async () => {
     const charNameColor = isDark ? '#FAFBF7' : '#131313';
     const dashColor = '#FFFFFF';
 
+    // Instagram Icons (SVG Paths)
+    const insIcons = {
+      heart: "M16.792 3.904c1.035-1.121 2.373-1.688 3.824-1.688 2.059 0 3.737 1.134 4.854 3.255.706 1.343.832 2.766.381 4.316-.445 1.551-1.391 3.149-2.871 4.881-1.467 1.737-3.155 3.394-5.064 4.966a3.791 3.791 0 01-.351.272l-.089.062a.417.417 0 01-.462 0l-.089-.062a3.639 3.639 0 01-.351-.272c-1.909-1.572-3.597-3.23-5.064-4.966C9.011 13.018 8.065 11.419 7.62 9.868c-.451-1.55-.325-2.973.381-4.316.326-.62.723-1.171 1.189-1.644 1.309-1.332 2.73-1.684 4.041-1.684 1.451 0 2.789.567 3.824 1.688l.1 0 .1 0-.435.435z",
+      comment: "M20.656 17.008c.559 0 .857-.333.857-.852 0-.251-.019-.506-.058-.759a1.042 1.042 0 01.32-.888c3.04-2.895 3.016-7.55-.054-10.42a7.352 7.352 0 00-10.366 0c-3.07 2.87-3.094 7.525-.054 10.42.223.213.342.508.324.811-.064.928-.242 1.847-.532 2.731-.088.261.04.536.27.653a.56.56 0 00.569-.053c1.328-.973 2.508-2.126 3.51-3.432.193-.25.5-.398.823-.398h4.412a.456.456 0 01.01.01L20.656 17.008z",
+      share: "M21 3L3 11l8 2 2 8 8-18z",
+      bookmark: "M6.75 3h10.5c.966 0 1.75.784 1.75 1.75v16.25l-7-4.375-7 4.375V4.75c0-.966.784-1.75 1.75-1.75z",
+      more: "M12 10a2 2 0 100 4 2 2 0 000-4zm-8 0a2 2 0 100 4 2 2 0 000-4zm16 0a2 2 0 100 4 2 2 0 000-4z"
+    };
+
     // 1. 获取选中的统计项
     const statsItems = [
       { id: 'ccs-share-messages', label: '聊天对话', value: $("#ccs-messages").text(), unit: '条' },
@@ -864,19 +876,20 @@ jQuery(async () => {
     const stats = statsItems.filter(s => $(`#${s.id}`).is(":checked"));
 
     // 2. 计算动态高度
-    const headerH = 214 * scaleFactor;
+    const headerH = (shareStyle === 'ins' ? 144 : 214) * scaleFactor;
+    const footerH = (shareStyle === 'ins' ? 92 : 48) * scaleFactor; // Added 100px for ins footer
     const boxH = 80 * scaleFactor;
     const boxGap = 32 * scaleFactor;
-    const paddingBottom = 48 * scaleFactor;
-
     const statsAreaH = stats.length * boxH + (stats.length > 0 ? (stats.length - 1) * boxGap : 0);
     const hasStats = stats.length > 0;
-    const dynamicHeight = hasStats ? (headerH + statsAreaH + 64 * scaleFactor + paddingBottom) : headerH;
+    const totalStatsH = hasStats ? (statsAreaH + 80 * scaleFactor) : 0; // Padding inside content
+    const height = headerH + totalStatsH + footerH;
+    const dynamicHeight = height; // Renamed from original dynamicHeight to avoid confusion
 
-    // 现代版底色区域
+    // 现代版底色区域 (This block is now mostly for non-ins styles)
     const contentAreaMargin = 32 * scaleFactor;
     const contentAreaW = isModern ? 599 * scaleFactor : (540 * scaleFactor);
-    const contentAreaH = hasStats ? (statsAreaH + 80 * scaleFactor) : 0; // Padding inside content
+    // const contentAreaH = hasStats ? (statsAreaH + 80 * scaleFactor) : 0; // Padding inside content (now totalStatsH)
 
     canvas.width = width;
     canvas.height = dynamicHeight;
@@ -893,7 +906,8 @@ jQuery(async () => {
         // Also explicitly load the weights we use most
         await Promise.all([
           document.fonts.load(`400 32px "LXGW Neo XiHei"`),
-          document.fonts.load(`700 32px "LXGW Neo XiHei"`)
+          document.fonts.load(`700 32px "LXGW Neo XiHei"`),
+          document.fonts.load(`400 48px "Long Cang"`)
         ]);
       }
     } catch (e) {
@@ -914,19 +928,71 @@ jQuery(async () => {
     }
 
     // 3. 绘制背景
-    ctx.fillStyle = tealColor;
-    ctx.fillRect(0, 0, width, headerH);
-    ctx.fillStyle = cardBgColor;
-    ctx.fillRect(0, headerH, width, dynamicHeight - headerH);
-
-    if (hasStats) {
-      // 现代版圆角区域背景块
-      const contentX = (width - contentAreaW) / 2;
-      ctx.fillStyle = contentAreaBg;
-      roundRect(contentX, headerH, contentAreaW, contentAreaH, 24 * scaleFactor);
+    ctx.fillStyle = (shareStyle === 'ins') ? '#FFFFFF' : tealColor; // Ins style is white overall
+    if (shareStyle === 'ins') {
+      roundRect(0, 0, width, height, 24 * scaleFactor);
+    } else {
+      ctx.fillRect(0, 0, width, headerH);
+      ctx.fillStyle = cardBgColor;
+      ctx.fillRect(0, headerH, width, dynamicHeight - headerH);
     }
 
-    // 4. 绘制头像
+
+    // 4. 内容区域背景
+    if (shareStyle === 'ins') {
+      // Mesh Gradient for Ins Style
+      ctx.save();
+      // Draw Mesh Gradient (Simulated with radial gradients)
+      // const gradBg = ctx.createRect ? null : null; // Just placeholder
+      ctx.beginPath();
+      ctx.rect(0, headerH, width, totalStatsH);
+      ctx.clip();
+
+      // Base color (pale green/yellow)
+      ctx.fillStyle = '#E8F5E9';
+      ctx.fillRect(0, headerH, width, totalStatsH);
+
+      // Radial 1: Blue-ish (top left)
+      const r1 = ctx.createRadialGradient(width * 0.1, headerH + totalStatsH * 0.1, 0, width * 0.1, headerH + totalStatsH * 0.1, width * 0.7);
+      r1.addColorStop(0, 'rgba(179, 229, 252, 0.7)');
+      r1.addColorStop(1, 'rgba(179, 229, 252, 0)');
+      ctx.fillStyle = r1;
+      ctx.fillRect(0, headerH, width, totalStatsH);
+
+      // Radial 2: Teal/Green-ish (top right)
+      const r2 = ctx.createRadialGradient(width * 0.9, headerH + totalStatsH * 0.2, 0, width * 0.9, headerH + totalStatsH * 0.2, width * 0.7);
+      r2.addColorStop(0, 'rgba(178, 223, 219, 0.7)');
+      r2.addColorStop(1, 'rgba(178, 223, 219, 0)');
+      ctx.fillStyle = r2;
+      ctx.fillRect(0, headerH, width, totalStatsH);
+
+      // Radial 3: Yellow/Peach (bottom left)
+      const r3 = ctx.createRadialGradient(width * 0.2, headerH + totalStatsH * 0.8, 0, width * 0.2, headerH + totalStatsH * 0.8, width * 0.7);
+      r3.addColorStop(0, 'rgba(FFF9C4, 0.6)'); // This usually works as string, but let's use rgba
+      r3.fillStyle = 'rgba(255, 249, 196, 0.6)';
+      r3.addColorStop(0, 'rgba(255, 249, 196, 0.6)');
+      r3.addColorStop(1, 'rgba(255, 249, 196, 0)');
+      ctx.fillStyle = r3;
+      ctx.fillRect(0, headerH, width, totalStatsH);
+
+      // Radial 4: Pink-ish (middle)
+      const r4 = ctx.createRadialGradient(width * 0.6, headerH + totalStatsH * 0.5, 0, width * 0.6, headerH + totalStatsH * 0.5, width * 0.8);
+      r4.addColorStop(0, 'rgba(F8BBD0, 0.5)');
+      r4.addColorStop(1, 'rgba(F8BBD0, 0)');
+      ctx.fillStyle = r4;
+      ctx.fillRect(0, headerH, width, totalStatsH);
+
+      ctx.restore();
+    } else if (hasStats) { // Only draw this if there are stats and not 'ins' style
+      ctx.fillStyle = contentAreaBg;
+      const contentAreaW = 599 * scaleFactor;
+      const contentAreaX = (width - contentAreaW) / 2;
+      // const contentAreaH = totalStatsH; // Already defined as totalStatsH
+      roundRect(contentAreaX, headerH, contentAreaW, totalStatsH, 24 * scaleFactor);
+    }
+
+
+    // 4. 绘制头像 (Moved to after background, before header logic)
     const avatarUrl = getCharacterAvatar();
     const userAvatarUrl = getUserAvatar();
 
@@ -959,14 +1025,79 @@ jQuery(async () => {
 
     const showUser = $("#ccs-share-user-avatar").is(":checked") && userImg;
     const showEncounterDate = $("#ccs-share-start").is(":checked");
-    const avatarW = (isModern ? 100 : 100) * scaleFactor;
-    const avatarH = (isModern ? 100 : 150) * scaleFactor;
     const centerY = headerH / 2;
-    const avatarY = centerY - avatarH / 2;
-    const avatarGap = isModern ? -20 * scaleFactor : 180 * scaleFactor;
 
-    if (isModern) {
-      const drawModernAvatar = (img, x, y) => {
+    if (shareStyle === 'ins') {
+      const avatarW = 72 * scaleFactor;
+      const avatarH = 72 * scaleFactor;
+      const avatarY = (headerH - avatarH) / 2;
+      const startX = 24 * scaleFactor;
+
+      function drawInsAvatar(img, x, y) {
+        if (!img) return;
+        ctx.save();
+        // White Border
+        ctx.beginPath();
+        ctx.arc(x + avatarW / 2, y + avatarH / 2, avatarW / 2 + 4 * scaleFactor, 0, Math.PI * 2);
+        ctx.fillStyle = '#F7F9FB'; // Figma: #f7f9fb
+        ctx.fill();
+        ctx.lineWidth = 1 * scaleFactor;
+        ctx.strokeStyle = '#E0E0E0';
+        ctx.stroke();
+
+        // Image
+        ctx.beginPath();
+        ctx.arc(x + avatarW / 2, y + avatarH / 2, avatarW / 2, 0, Math.PI * 2);
+        ctx.clip();
+        // Use charImg/userImg directly, no need to reload
+        const iw = img.width;
+        const ih = img.height;
+        const r = Math.max(avatarW / iw, avatarH / ih);
+        const nw = iw * r;
+        const nh = ih * r;
+        const sx = (iw - avatarW / r) / 2;
+        const sy = (ih - avatarH / r) / 2;
+        ctx.drawImage(img, sx, sy, avatarW / r, avatarH / r, x, y, avatarW, avatarH);
+        ctx.restore();
+      }
+
+      if (showUser) {
+        drawInsAvatar(userImg, startX, avatarY);
+        drawInsAvatar(charImg, startX + 36 * scaleFactor, avatarY);
+      } else {
+        drawInsAvatar(charImg, startX, avatarY);
+      }
+
+      // Title & Encounter
+      const textX = startX + (showUser ? (avatarW + 36 * scaleFactor + 16 * scaleFactor) : (avatarW + 16 * scaleFactor));
+      ctx.textAlign = 'left';
+
+      ctx.fillStyle = '#131313';
+      ctx.font = `600 ${24 * scaleFactor}px "LXGW Neo XiHei", sans-serif`;
+      ctx.fillText(charName, textX, avatarY + 28 * scaleFactor);
+
+      ctx.fillStyle = '#5E5E5E';
+      ctx.font = `400 ${22 * scaleFactor}px "LXGW Neo XiHei", sans-serif`;
+      ctx.fillText(`初遇于 ${$("#ccs-start").text()}`, textX, avatarY + 60 * scaleFactor);
+
+      // Three Dots Icon
+      ctx.save();
+      ctx.translate(width - 48 * scaleFactor, centerY);
+      ctx.fillStyle = '#131313';
+      const p = new Path2D(insIcons.more);
+      ctx.scale(1.5 * scaleFactor, 1.5 * scaleFactor);
+      ctx.translate(-12, -12); // Center path
+      ctx.fill(p);
+      ctx.restore();
+
+    } else {
+      // Modern style header logic...
+      const avatarW = 100 * scaleFactor;
+      const avatarH = 100 * scaleFactor;
+      const avatarGap = -52 * scaleFactor;
+      const avatarY = (headerH - avatarH) / 2;
+
+      function drawModernAvatar(img, x, y) {
         // Outer frame
         ctx.fillStyle = isDark ? '#37393B' : 'rgba(220, 221, 220, 1)';
         ctx.beginPath();
@@ -1014,23 +1145,21 @@ jQuery(async () => {
         ctx.restore();
       };
 
-      if (!showEncounterDate) {
+      if (!showEncounterDate) { // Original logic for modern style when encounter date is not shown
         const combinedW = showUser ? (avatarW * 2 + avatarGap) : avatarW;
         const centerX = (width - combinedW) / 2;
-        drawModernAvatar(userImg, centerX + (showUser ? (avatarW + avatarGap) : 0), avatarY);
         drawModernAvatar(charImg, centerX, avatarY);
-      } else {
+        if (showUser) {
+          drawModernAvatar(userImg, centerX + avatarW + avatarGap, avatarY);
+        }
+      } else { // Original logic for modern style when encounter date is shown
         const startX = 48 * scaleFactor;
+        drawModernAvatar(charImg, startX, avatarY);
         if (showUser) {
           drawModernAvatar(userImg, startX + avatarW + avatarGap, avatarY);
-          drawModernAvatar(charImg, startX, avatarY);
-        } else {
-          drawModernAvatar(charImg, startX, avatarY);
         }
       }
-    }
 
-    if (isModern) {
       if (showEncounterDate) {
         const infoX = 260 * scaleFactor;
         const infoY = centerY;
@@ -1060,43 +1189,80 @@ jQuery(async () => {
     stats.forEach((stat, i) => {
       const cy = statsStartY + i * (boxH + boxGap);
 
-      // Shadow for Modern Style
-      ctx.save();
-      ctx.shadowColor = shadowColor;
-      ctx.shadowBlur = 24 * scaleFactor;
-      ctx.shadowOffsetY = 12 * scaleFactor;
-      ctx.fillStyle = statBoxColor;
-      roundRect(boxX, cy, boxW, boxH, 24 * scaleFactor);
-      ctx.restore();
+      if (shareStyle === 'ins') {
+        // Ins style doesn't use boxes, it uses centered text with gap
+        ctx.textAlign = 'center';
+        ctx.fillStyle = '#131313';
+        ctx.font = `400 ${48 * scaleFactor}px "Long Cang", cursive`; // Cursive for handwritten feel
 
-      // Label
-      ctx.textAlign = 'left';
-      ctx.fillStyle = statLabelColor;
-      ctx.font = `400 ${28 * scaleFactor}px "LXGW Neo XiHei", "PingFang SC", sans-serif`; // Reverted to 400
-      ctx.fillText(stat.label, boxX + 32 * scaleFactor, cy + boxH / 2 + 8 * scaleFactor);
-
-      // Value & Unit
-      ctx.textAlign = 'right';
-      const valueX = boxX + boxW - 32 * scaleFactor;
-
-      if (stat.unit) {
+        const labelText = `${stat.label}   ${stat.value} ${stat.unit || ''}`;
+        ctx.fillText(labelText, width / 2, cy + boxH / 2);
+      } else {
+        // Shadow for Modern Style
         ctx.save();
-        ctx.globalAlpha = 0.7; // 70% opacity for units
-        ctx.fillStyle = statLabelColor;
-        ctx.font = `400 ${24 * scaleFactor}px "LXGW Neo XiHei", "PingFang SC", sans-serif`; // Reverted to 400
-        ctx.fillText(stat.unit, valueX, cy + boxH / 2 + 8 * scaleFactor);
+        ctx.shadowColor = shadowColor;
+        ctx.shadowBlur = 24 * scaleFactor;
+        ctx.shadowOffsetY = 12 * scaleFactor;
+        ctx.fillStyle = statBoxColor;
+        roundRect(boxX, cy, boxW, boxH, 24 * scaleFactor);
         ctx.restore();
 
-        const unitWidth = ctx.measureText(stat.unit).width;
-        ctx.fillStyle = statValueColor;
-        ctx.font = `700 ${28 * scaleFactor}px "LXGW Neo XiHei", "PingFang SC", sans-serif`; // Weight Bold
-        ctx.fillText(stat.value, valueX - unitWidth - 8 * scaleFactor, cy + boxH / 2 + 8 * scaleFactor);
-      } else {
-        ctx.fillStyle = statValueColor;
-        ctx.font = `700 ${28 * scaleFactor}px "LXGW Neo XiHei", "PingFang SC", sans-serif`;
-        ctx.fillText(stat.value, valueX, cy + boxH / 2 + 8 * scaleFactor);
+        // Label
+        ctx.textAlign = 'left';
+        ctx.fillStyle = statLabelColor;
+        ctx.font = `400 ${28 * scaleFactor}px "LXGW Neo XiHei", "PingFang SC", sans-serif`; // Reverted to 400
+        ctx.fillText(stat.label, boxX + 32 * scaleFactor, cy + boxH / 2 + 8 * scaleFactor);
+
+        // Value & Unit
+        ctx.textAlign = 'right';
+        const valueX = boxX + boxW - 32 * scaleFactor;
+
+        if (stat.unit) {
+          ctx.save();
+          ctx.globalAlpha = 0.7; // 70% opacity for units
+          ctx.fillStyle = statLabelColor;
+          ctx.font = `400 ${24 * scaleFactor}px "LXGW Neo XiHei", "PingFang SC", sans-serif`; // Reverted to 400
+          ctx.fillText(stat.unit, valueX, cy + boxH / 2 + 8 * scaleFactor);
+          ctx.restore();
+
+          const unitWidth = ctx.measureText(stat.unit).width;
+          ctx.fillStyle = statValueColor;
+          ctx.font = `700 ${28 * scaleFactor}px "LXGW Neo XiHei", "PingFang SC", sans-serif`; // Weight Bold
+          ctx.fillText(stat.value, valueX - unitWidth - 8 * scaleFactor, cy + boxH / 2 + 8 * scaleFactor);
+        } else {
+          ctx.fillStyle = statValueColor;
+          ctx.font = `700 ${28 * scaleFactor}px "LXGW Neo XiHei", "PingFang SC", sans-serif`;
+          ctx.fillText(stat.value, valueX, cy + boxH / 2 + 8 * scaleFactor);
+        }
       }
     });
+
+    // 7. 绘制底部互动栏 (Ins Style Only)
+    if (shareStyle === 'ins') {
+      const footerY = height - footerH;
+      ctx.fillStyle = '#FFFFFF';
+      ctx.fillRect(0, footerY, width, footerH);
+
+      const iconY = footerY + 32 * scaleFactor;
+      const startX = 32 * scaleFactor;
+      const iconGap = 48 * scaleFactor;
+      const iconSize = 32 * scaleFactor;
+
+      function drawInsIcon(path, x, y) {
+        ctx.save();
+        ctx.translate(x, y);
+        ctx.fillStyle = '#131313';
+        const p = new Path2D(path);
+        ctx.scale(iconSize / 24, iconSize / 24);
+        ctx.fill(p);
+        ctx.restore();
+      }
+
+      drawInsIcon(insIcons.heart, startX, iconY);
+      drawInsIcon(insIcons.comment, startX + iconSize + iconGap, iconY);
+      drawInsIcon(insIcons.share, startX + (iconSize + iconGap) * 2, iconY);
+      drawInsIcon(insIcons.bookmark, width - startX - iconSize, iconY);
+    }
 
     ctx.restore(); // Restore from card-level 16px clipping
     return canvas.toDataURL('image/png');
