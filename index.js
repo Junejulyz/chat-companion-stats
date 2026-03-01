@@ -912,7 +912,7 @@ jQuery(async () => {
 
     // Ins style: fixed height for content area vs others
     const totalStatsH = (shareStyle === 'ins')
-      ? (663 * scaleFactor) // Fixed height for ins content
+      ? (484 * scaleFactor) // Fixed height for ins content
       : (stats.length > 0 ? (stats.length * boxH + (stats.length - 1) * boxGap + 80 * scaleFactor) : 0);
 
     const height = headerH + totalStatsH + footerH;
@@ -931,14 +931,20 @@ jQuery(async () => {
     roundRect(0, 0, width, dynamicHeight, 16 * scaleFactor, false, false);
     ctx.clip();
 
-    // 尝试加载字体 (Non-blocking)
+    // 尝试加载字体并等待加载完成
     try {
       if (document.fonts) {
-        // Just trigger the load, don't await the promise which might hang if URL is blocked
-        document.fonts.load(`400 32px "LXGW Neo XiHei"`);
-        document.fonts.load(`700 32px "LXGW Neo XiHei"`);
-        document.fonts.load(`400 32px "PING FANG SHAO HUA"`);
-        document.fonts.load(`400 48px "Long Cang"`);
+        // Trigger font loading
+        const fontPromises = [
+          document.fonts.load(`400 32px "LXGW Neo XiHei"`),
+          document.fonts.load(`700 32px "LXGW Neo XiHei"`),
+          document.fonts.load(`400 32px "PING FANG SHAO HUA"`),
+          document.fonts.load(`400 48px "Long Cang"`)
+        ];
+
+        // Wait for fonts to load, with a timeout to prevent hanging forever
+        const timeoutPromise = new Promise(resolve => setTimeout(resolve, 1500));
+        await Promise.race([Promise.all(fontPromises), timeoutPromise]);
       }
     } catch (e) {
       if (DEBUG) console.warn('Font load trigger failed:', e);
@@ -1072,11 +1078,16 @@ jQuery(async () => {
 
       ctx.fillStyle = '#131313';
       ctx.font = `400 ${24 * scaleFactor}px "LXGW Neo XiHei", sans-serif`;
-      ctx.fillText(charName, textX, avatarY + 28 * scaleFactor);
 
-      ctx.fillStyle = '#5E5E5E';
-      ctx.font = `400 ${22 * scaleFactor}px "LXGW Neo XiHei", sans-serif`;
-      ctx.fillText(`初遇 ${$("#ccs-start").text()}`, textX, avatarY + 60 * scaleFactor);
+      if (showEncounterDate) {
+        ctx.fillText(charName, textX, avatarY + 28 * scaleFactor);
+        ctx.fillStyle = '#5E5E5E';
+        ctx.font = `400 ${22 * scaleFactor}px "LXGW Neo XiHei", sans-serif`;
+        ctx.fillText(`初遇 ${$("#ccs-start").text()}`, textX, avatarY + 60 * scaleFactor);
+      } else {
+        // Center the name vertically if encounter date is not shown
+        ctx.fillText(charName, textX, centerY + 8 * scaleFactor);
+      }
 
       // Three Dots Icon
       ctx.save();
@@ -1182,7 +1193,7 @@ jQuery(async () => {
     }
 
     // 6. 绘制统计项
-    const insContentH = 663 * scaleFactor;
+    const insContentH = 484 * scaleFactor;
     const actualStatsH = stats.length * boxH + (stats.length > 0 ? (stats.length - 1) * boxGap : 0);
     const statsStartY = (shareStyle === 'ins')
       ? (headerH + (insContentH - actualStatsH) / 2) // Vertically centered in fixed height
