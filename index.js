@@ -1063,7 +1063,7 @@ jQuery(async () => {
     const charName = getCurrentCharacterName();
     if (isModern) {
       if (showEncounterDate) {
-        const infoX = 278 * scaleFactor;
+        const infoX = 260 * scaleFactor;
         const infoY = centerY;
         ctx.textAlign = 'left';
 
