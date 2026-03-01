@@ -889,8 +889,12 @@ jQuery(async () => {
     // 等待字体加载
     try {
       if (document.fonts) {
-        await document.fonts.load(`300 32px "LXGW Neo XiHei"`);
-        await document.fonts.load(`700 32px "LXGW Neo XiHei"`);
+        await document.fonts.ready;
+        // Also explicitly load the weights we use most
+        await Promise.all([
+          document.fonts.load(`300 32px "LXGW Neo XiHei"`),
+          document.fonts.load(`700 32px "LXGW Neo XiHei"`)
+        ]);
       }
     } catch (e) {
       if (DEBUG) console.warn('Font load failed:', e);
@@ -1034,13 +1038,13 @@ jQuery(async () => {
 
         // Name
         ctx.fillStyle = charNameColor;
-        ctx.font = `300 ${32 * scaleFactor}px "LXGW Neo XiHei", "PingFang SC", sans-serif`; // Total +4, Weight Light
+        ctx.font = `300 ${31 * scaleFactor}px "LXGW Neo XiHei", "PingFang SC", sans-serif`; // Reduced by 1px
         ctx.fillText(charName, infoX, infoY - 8 * scaleFactor);
 
         // Encounter Info
         const encounterText = `初遇 ${$("#ccs-start").text()}`;
         ctx.fillStyle = statLabelColor;
-        ctx.font = `300 ${26 * scaleFactor}px "LXGW Neo XiHei", "PingFang SC", sans-serif`; // Total +4, Weight Light
+        ctx.font = `300 ${25 * scaleFactor}px "LXGW Neo XiHei", "PingFang SC", sans-serif`; // Reduced by 1px
         ctx.fillText(encounterText, infoX, infoY + 32 * scaleFactor);
       }
     }
@@ -1074,7 +1078,7 @@ jQuery(async () => {
 
       if (stat.unit) {
         ctx.fillStyle = statLabelColor;
-        ctx.font = `300 ${25 * scaleFactor}px "LXGW Neo XiHei", "PingFang SC", sans-serif`; // Decreased by 1px (26->25)
+        ctx.font = `300 ${24 * scaleFactor}px "LXGW Neo XiHei", "PingFang SC", sans-serif`; // Reduced by 1px (25->24)
         ctx.fillText(stat.unit, valueX, cy + boxH / 2 + 8 * scaleFactor);
 
         const unitWidth = ctx.measureText(stat.unit).width;
