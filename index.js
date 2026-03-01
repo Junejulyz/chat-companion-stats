@@ -854,7 +854,7 @@ jQuery(async () => {
     const boxH = 80 * scaleFactor; // Updated from 80px in playground
     const boxGap = isModern ? 32 * scaleFactor : 12 * scaleFactor;
     const nameAreaH = isModern ? 0 : 100 * scaleFactor;
-    const paddingBottom = 56 * scaleFactor; // Increased from 40px for more air
+    const paddingBottom = 48 * scaleFactor; // Increased from 40px for more air
 
     const statsAreaH = stats.length * boxH + (stats.length > 0 ? (stats.length - 1) * boxGap : 0);
     const hasStats = stats.length > 0;
