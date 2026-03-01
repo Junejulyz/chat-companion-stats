@@ -14,8 +14,8 @@ jQuery(async () => {
 
   let shareStyle = 'modern-light';
 
-  // 加载HTML using dynamic path
-  const settingsHtml = await $.get(`${extensionWebPath}/settings.html`);
+  // 加载HTML using dynamic path with cache buster
+  const settingsHtml = await $.get(`${extensionWebPath}/settings.html?v=${Date.now()}`);
   $("#extensions_settings").append(settingsHtml);
 
   // 确保模态框初始状态是隐藏的
@@ -824,7 +824,7 @@ jQuery(async () => {
     const width = 663 * scaleFactor;
 
     // Theme colors
-    const isDark = shareStyle === 'modern-dark';
+    const isDark = shareStyle === 'modern-dark' || shareStyle === 'dark';
     const isModern = true; // All styles are now modern
 
     const tealColor = isDark ? '#2F3033' : '#F7F9FB';
@@ -1043,7 +1043,7 @@ jQuery(async () => {
 
     // 6. 绘制统计项
     const statsStartY = isModern ? (headerH + 40 * scaleFactor) : (headerH + 100 * scaleFactor + 40 * scaleFactor);
-    const boxW = isModern ? 519 * scaleFactor : (540 * scaleFactor); // Figma content width 599px minus horizontal margins
+    const boxW = 599 * scaleFactor; // Match contentAreaW
     const boxX = (width - boxW) / 2;
 
     stats.forEach((stat, i) => {
