@@ -829,7 +829,7 @@ jQuery(async () => {
     const tealColor = isDark ? '#131313' : (isModern ? '#F7F9FB' : '#2D5A50');
     const cardBgColor = isDark ? '#282828' : (isModern ? '#F7F9FB' : '#FAFBF7');
     const statBoxColor = isDark ? 'rgba(255, 255, 255, 0.05)' : (isModern ? '#F7F9FB' : 'rgba(52, 107, 100, 0.05)');
-    const statLabelColor = isDark ? '#AAAAAA' : (isModern ? '#666666' : '#666666');
+    const statLabelColor = isDark ? '#AAAAAA' : (isModern ? '#131313' : '#666666');
     const statValueColor = isDark ? '#FFFFFF' : (isModern ? '#131313' : '#333333');
     const charNameColor = isDark ? '#FFFFFF' : (isModern ? '#131313' : tealColor);
     const dashColor = '#FFFFFF';
@@ -839,7 +839,17 @@ jQuery(async () => {
       { id: 'ccs-share-messages', label: '聊天对话', value: $("#ccs-messages").text(), unit: '条' },
       { id: 'ccs-share-days', label: '相伴天数', value: $("#ccs-days").text(), unit: '天' },
       { id: 'ccs-share-words', label: '聊天字数', value: $("#ccs-words").text(), unit: '字' },
-      { id: 'ccs-share-size', label: '回忆大小', value: $("#ccs-total-size").text() }
+      {
+        id: 'ccs-share-size', label: '回忆大小', value: (() => {
+          const val = $("#ccs-total-size").text();
+          const match = val.match(/^([\d.]+)\s*(\w+)$/);
+          return match ? match[1] : val;
+        })(), unit: (() => {
+          const val = $("#ccs-total-size").text();
+          const match = val.match(/^([\d.]+)\s*(\w+)$/);
+          return match ? match[2] : '';
+        })()
+      }
     ];
 
     // 如果不是现代简约风，则加上初遇时间显示
@@ -869,6 +879,11 @@ jQuery(async () => {
 
     canvas.width = width;
     canvas.height = dynamicHeight;
+
+    // Apply 16px border radius to the entire card
+    ctx.save();
+    roundRect(0, 0, width, dynamicHeight, 16 * scaleFactor, false, false);
+    ctx.clip();
 
     // 等待字体加载
     try {
@@ -1069,13 +1084,13 @@ jQuery(async () => {
 
         // Name
         ctx.fillStyle = charNameColor;
-        ctx.font = `300 ${30 * scaleFactor}px "LXGW Neo XiHei", "PingFang SC", sans-serif`; // Enlarge by 2
+        ctx.font = `300 ${31 * scaleFactor}px "LXGW Neo XiHei", "PingFang SC", sans-serif`; // Enlarge by 1 specialized
         ctx.fillText(charName, infoX, infoY - 8 * scaleFactor);
 
         // Encounter Info
-        const encounterText = `初遇于 ${$("#ccs-start").text()}`;
-        ctx.fillStyle = statLabelColor;
-        ctx.font = `300 ${24 * scaleFactor}px "LXGW Neo XiHei", "PingFang SC", sans-serif`; // Enlarge by 2
+        const encounterText = `初遇 ${$("#ccs-start").text()}`;
+        ctx.fillStyle = isModern ? '#131313' : statLabelColor; // Label color #131313 per request
+        ctx.font = `400 ${25 * scaleFactor}px "LXGW Neo XiHei", "PingFang SC", sans-serif`; // Regular weight, Enlarge by 1
         ctx.fillText(encounterText, infoX, infoY + 32 * scaleFactor);
       }
     } else {
@@ -1111,7 +1126,7 @@ jQuery(async () => {
       // Label
       ctx.textAlign = 'left';
       ctx.fillStyle = statLabelColor;
-      ctx.font = `300 ${26 * scaleFactor}px "LXGW Neo XiHei", "PingFang SC", sans-serif`; // Enlarge by 2
+      ctx.font = (isModern ? `400 ` : `300 `) + `${27 * scaleFactor}px "LXGW Neo XiHei", "PingFang SC", sans-serif`; // Regular for modern, enlarge by 1
       ctx.fillText(stat.label, boxX + 32 * scaleFactor, cy + boxH / 2 + 8 * scaleFactor);
 
       // Value & Unit
@@ -1120,16 +1135,16 @@ jQuery(async () => {
 
       if (stat.unit) {
         ctx.fillStyle = statLabelColor;
-        ctx.font = `300 ${24 * scaleFactor}px "LXGW Neo XiHei", "PingFang SC", sans-serif`; // Enlarge by 2
+        ctx.font = (isModern ? `400 ` : `300 `) + `${25 * scaleFactor}px "LXGW Neo XiHei", "PingFang SC", sans-serif`; // Enlarge by 1
         ctx.fillText(stat.unit, valueX, cy + boxH / 2 + 8 * scaleFactor);
 
         const unitWidth = ctx.measureText(stat.unit).width;
         ctx.fillStyle = statValueColor;
-        ctx.font = `700 ${26 * scaleFactor}px "LXGW Neo XiHei", "PingFang SC", sans-serif`; // Enlarge by 2
+        ctx.font = `700 ${27 * scaleFactor}px "LXGW Neo XiHei", "PingFang SC", sans-serif`; // Enlarge by 1
         ctx.fillText(stat.value, valueX - unitWidth - 8 * scaleFactor, cy + boxH / 2 + 8 * scaleFactor);
       } else {
         ctx.fillStyle = statValueColor;
-        ctx.font = `700 ${26 * scaleFactor}px "LXGW Neo XiHei", "PingFang SC", sans-serif`; // Enlarge by 2
+        ctx.font = `700 ${27 * scaleFactor}px "LXGW Neo XiHei", "PingFang SC", sans-serif`; // Enlarge by 1
         ctx.fillText(stat.value, valueX, cy + boxH / 2 + 8 * scaleFactor);
       }
     });
