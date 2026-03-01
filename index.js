@@ -899,19 +899,16 @@ jQuery(async () => {
     roundRect(0, 0, width, dynamicHeight, 16 * scaleFactor, false, false);
     ctx.clip();
 
-    // 等待字体加载
+    // 尝试加载字体 (Non-blocking)
     try {
       if (document.fonts) {
-        await document.fonts.ready;
-        // Also explicitly load the weights we use most
-        await Promise.all([
-          document.fonts.load(`400 32px "LXGW Neo XiHei"`),
-          document.fonts.load(`700 32px "LXGW Neo XiHei"`),
-          document.fonts.load(`400 48px "Long Cang"`)
-        ]);
+        // Just trigger the load, don't await the promise which might hang if URL is blocked
+        document.fonts.load(`400 32px "LXGW Neo XiHei"`);
+        document.fonts.load(`700 32px "LXGW Neo XiHei"`);
+        document.fonts.load(`400 48px "Long Cang"`);
       }
     } catch (e) {
-      if (DEBUG) console.warn('Font load failed:', e);
+      if (DEBUG) console.warn('Font load trigger failed:', e);
     }
 
     // Helper: Rounded Rect
@@ -968,8 +965,6 @@ jQuery(async () => {
 
       // Radial 3: Yellow/Peach (bottom left)
       const r3 = ctx.createRadialGradient(width * 0.2, headerH + totalStatsH * 0.8, 0, width * 0.2, headerH + totalStatsH * 0.8, width * 0.7);
-      r3.addColorStop(0, 'rgba(FFF9C4, 0.6)'); // This usually works as string, but let's use rgba
-      r3.fillStyle = 'rgba(255, 249, 196, 0.6)';
       r3.addColorStop(0, 'rgba(255, 249, 196, 0.6)');
       r3.addColorStop(1, 'rgba(255, 249, 196, 0)');
       ctx.fillStyle = r3;
@@ -977,8 +972,8 @@ jQuery(async () => {
 
       // Radial 4: Pink-ish (middle)
       const r4 = ctx.createRadialGradient(width * 0.6, headerH + totalStatsH * 0.5, 0, width * 0.6, headerH + totalStatsH * 0.5, width * 0.8);
-      r4.addColorStop(0, 'rgba(F8BBD0, 0.5)');
-      r4.addColorStop(1, 'rgba(F8BBD0, 0)');
+      r4.addColorStop(0, 'rgba(248, 187, 208, 0.5)');
+      r4.addColorStop(1, 'rgba(248, 187, 208, 0)');
       ctx.fillStyle = r4;
       ctx.fillRect(0, headerH, width, totalStatsH);
 
@@ -1073,12 +1068,12 @@ jQuery(async () => {
       ctx.textAlign = 'left';
 
       ctx.fillStyle = '#131313';
-      ctx.font = `600 ${24 * scaleFactor}px "LXGW Neo XiHei", sans-serif`;
+      ctx.font = `400 ${24 * scaleFactor}px "LXGW Neo XiHei", sans-serif`;
       ctx.fillText(charName, textX, avatarY + 28 * scaleFactor);
 
       ctx.fillStyle = '#5E5E5E';
       ctx.font = `400 ${22 * scaleFactor}px "LXGW Neo XiHei", sans-serif`;
-      ctx.fillText(`初遇于 ${$("#ccs-start").text()}`, textX, avatarY + 60 * scaleFactor);
+      ctx.fillText(`初遇 ${$("#ccs-start").text()}`, textX, avatarY + 60 * scaleFactor);
 
       // Three Dots Icon
       ctx.save();
