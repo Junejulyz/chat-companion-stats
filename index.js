@@ -1148,16 +1148,16 @@ jQuery(async () => {
       if (!showEncounterDate) { // Original logic for modern style when encounter date is not shown
         const combinedW = showUser ? (avatarW * 2 + avatarGap) : avatarW;
         const centerX = (width - combinedW) / 2;
-        drawModernAvatar(charImg, centerX, avatarY);
         if (showUser) {
-          drawModernAvatar(userImg, centerX + avatarW + avatarGap, avatarY);
+          drawModernAvatar(userImg, centerX + avatarW + avatarGap, avatarY); // User RIGHT (bottom)
         }
+        drawModernAvatar(charImg, centerX, avatarY); // Character LEFT (top)
       } else { // Original logic for modern style when encounter date is shown
         const startX = 48 * scaleFactor;
-        drawModernAvatar(charImg, startX, avatarY);
         if (showUser) {
-          drawModernAvatar(userImg, startX + avatarW + avatarGap, avatarY);
+          drawModernAvatar(userImg, startX + avatarW + avatarGap, avatarY); // User RIGHT (bottom)
         }
+        drawModernAvatar(charImg, startX, avatarY); // Character LEFT (top)
       }
 
       if (showEncounterDate) {
