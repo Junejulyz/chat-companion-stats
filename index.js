@@ -854,7 +854,7 @@ jQuery(async () => {
     const boxH = 80 * scaleFactor; // Updated from 80px in playground
     const boxGap = isModern ? 32 * scaleFactor : 12 * scaleFactor;
     const nameAreaH = isModern ? 0 : 100 * scaleFactor;
-    const paddingBottom = 40 * scaleFactor; // Consistant with side spacing
+    const paddingBottom = 64 * scaleFactor; // Increased from 40px for more air
 
     const statsAreaH = stats.length * boxH + (stats.length > 0 ? (stats.length - 1) * boxGap : 0);
     const hasStats = stats.length > 0;
@@ -995,23 +995,19 @@ jQuery(async () => {
         const combinedW = showUser ? (avatarW * 2 + avatarGap) : avatarW;
         const centerX = (width - combinedW) / 2;
 
-        drawModernAvatar(charImg, centerX + (showUser ? (avatarW + avatarGap) : 0), avatarY);
-        if (showUser) drawModernAvatar(userImg, centerX, avatarY);
+        // Character on top/left, User on bottom/right
+        drawModernAvatar(userImg, centerX + (showUser ? (avatarW + avatarGap) : 0), avatarY);
+        drawModernAvatar(charImg, centerX, avatarY);
       } else {
         // Normal left-aligned layout
-        const startX = 48 * scaleFactor; // Option 1: Moved right slightly (32 -> 48)
+        const startX = 48 * scaleFactor;
 
-        // Option 5: Char stays left-ish even if user unselected but date shown
         if (showUser) {
-          drawModernAvatar(charImg, startX + avatarW + avatarGap, avatarY);
-          drawModernAvatar(userImg, startX, avatarY);
+          // Character on left (top/front), User on right (bottom/back)
+          drawModernAvatar(userImg, startX + avatarW + avatarGap, avatarY);
+          drawModernAvatar(charImg, startX, avatarY);
         } else {
-          // If no user avatar but encounter date exists, char stays in its "pair-right" spot
-          // to avoid overlapping text or moving too far left?
-          // User said "remove user but character stays in place".
-          drawModernAvatar(charImg, startX, avatarY); // User said "stay", so use startX as if it was there alone? Or startX + pair distance?
-          // Re-reading: "character stays in its place", usually means its original position.
-          // Drawing char at startX (where user would have been) seems more balanced for a single avatar layout though.
+          drawModernAvatar(charImg, startX, avatarY);
         }
       }
     } else if (showUser) {
@@ -1073,13 +1069,13 @@ jQuery(async () => {
 
         // Name
         ctx.fillStyle = charNameColor;
-        ctx.font = `300 ${28 * scaleFactor}px "LXGW Neo XiHei", "PingFang SC", sans-serif`;
+        ctx.font = `300 ${30 * scaleFactor}px "LXGW Neo XiHei", "PingFang SC", sans-serif`; // Enlarge by 2
         ctx.fillText(charName, infoX, infoY - 8 * scaleFactor);
 
         // Encounter Info
         const encounterText = `初遇于 ${$("#ccs-start").text()}`;
         ctx.fillStyle = statLabelColor;
-        ctx.font = `300 ${22 * scaleFactor}px "LXGW Neo XiHei", "PingFang SC", sans-serif`;
+        ctx.font = `300 ${24 * scaleFactor}px "LXGW Neo XiHei", "PingFang SC", sans-serif`; // Enlarge by 2
         ctx.fillText(encounterText, infoX, infoY + 32 * scaleFactor);
       }
     } else {
@@ -1114,33 +1110,27 @@ jQuery(async () => {
 
       // Label
       ctx.textAlign = 'left';
-      ctx.fillStyle = isDark ? '#FFFFFF' : '#000000';
-      ctx.font = `300 ${22 * scaleFactor}px "LXGW Neo XiHei", "PingFang SC", sans-serif`;
-      ctx.fillText(stat.label, boxX + 24 * scaleFactor, cy + boxH / 2 + 8 * scaleFactor);
+      ctx.fillStyle = statLabelColor;
+      ctx.font = `300 ${26 * scaleFactor}px "LXGW Neo XiHei", "PingFang SC", sans-serif`; // Enlarge by 2
+      ctx.fillText(stat.label, boxX + 32 * scaleFactor, cy + boxH / 2 + 8 * scaleFactor);
 
-      // Value & Unit (Mixed Weight)
+      // Value & Unit
       ctx.textAlign = 'right';
-      let currentX = boxX + boxW - 24 * scaleFactor;
-      const baselineY = cy + boxH / 2 + 8 * scaleFactor;
+      const valueX = boxX + boxW - 32 * scaleFactor;
 
       if (stat.unit) {
         ctx.fillStyle = statLabelColor;
-        ctx.font = `300 ${22 * scaleFactor}px "LXGW Neo XiHei", "PingFang SC", sans-serif`;
-        ctx.fillText(stat.unit, currentX, baselineY);
-        currentX -= ctx.measureText(stat.unit).width + 6 * scaleFactor;
-      }
+        ctx.font = `300 ${24 * scaleFactor}px "LXGW Neo XiHei", "PingFang SC", sans-serif`; // Enlarge by 2
+        ctx.fillText(stat.unit, valueX, cy + boxH / 2 + 8 * scaleFactor);
 
-      const parts = stat.value.split(/(\d+\.?\d*|:)/g).filter(p => p !== '');
-      for (let j = parts.length - 1; j >= 0; j--) {
-        const p = parts[j];
-        const isNum = /^\d+\.?\d*$/.test(p);
-        const isTimeSep = p === ':';
-        ctx.font = isNum
-          ? `700 ${24 * scaleFactor}px "LXGW Neo XiHei", "PingFang SC", sans-serif`
-          : `300 ${22 * scaleFactor}px "LXGW Neo XiHei", "PingFang SC", sans-serif`;
-        ctx.fillStyle = isNum || isTimeSep ? statValueColor : statLabelColor;
-        ctx.fillText(p, currentX, cy + boxH / 2 + (isNum ? 9 : 8) * scaleFactor);
-        currentX -= ctx.measureText(p).width + (j > 0 ? 2 * scaleFactor : 0);
+        const unitWidth = ctx.measureText(stat.unit).width;
+        ctx.fillStyle = statValueColor;
+        ctx.font = `700 ${26 * scaleFactor}px "LXGW Neo XiHei", "PingFang SC", sans-serif`; // Enlarge by 2
+        ctx.fillText(stat.value, valueX - unitWidth - 8 * scaleFactor, cy + boxH / 2 + 8 * scaleFactor);
+      } else {
+        ctx.fillStyle = statValueColor;
+        ctx.font = `700 ${26 * scaleFactor}px "LXGW Neo XiHei", "PingFang SC", sans-serif`; // Enlarge by 2
+        ctx.fillText(stat.value, valueX, cy + boxH / 2 + 8 * scaleFactor);
       }
     });
 
