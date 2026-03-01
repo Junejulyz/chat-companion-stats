@@ -78,46 +78,26 @@
   min-height: 24px;
 }
 
-/* Style Selector */
-.ccs-style-selector {
-  display: flex;
-  align-items: center;
-  margin-top: 10px;
-}
-
-.ccs-style-options {
-  display: flex;
-  gap: 12px;
-  margin-left: 10px;
-}
-
-.ccs-style-opt {
-  width: 28px;
-  height: 28px;
-  border-radius: 50%;
-  border: 2px solid transparent;
-  display: flex;
-  align-items: center;
-  justify-content: center;
+/* Style Selector (Dropdown) */
+#ccs-style-select {
+  padding: 5px 10px;
+  background-color: var(--SmartThemeButtonColor);
+  color: var(--SmartThemeButtonTextColor);
+  border: 1px solid var(--SmartThemeBorderColor);
+  border-radius: 4px;
   cursor: pointer;
-  transition: all 0.2s ease;
-  padding: 2px;
+  outline: none;
+  font-family: inherit;
+  font-size: 0.9em;
 }
 
-.ccs-style-opt:hover {
-  transform: scale(1.1);
+#ccs-style-select:hover {
+  background-color: var(--SmartThemeButtonHoverColor);
 }
 
-.ccs-style-opt.active {
-  border-color: #2D5A50;
-  box-shadow: 0 0 8px rgba(45, 90, 80, 0.3);
-}
-
-.ccs-style-dot {
-  width: 100%;
-  height: 100%;
-  border-radius: 50%;
-  box-shadow: inset 0 0 2px rgba(0, 0, 0, 0.2);
+.loading-preview {
+  opacity: 0.6;
+  pointer-events: none;
 }
 
 /* Styles for share option checkboxes and labels */
@@ -170,162 +150,4 @@
 .ccs-tip-text {
   flex: 1;
   color: var(--SmartThemeBodyColor);
-}
-
-/* ============================================================ */
-/* Share Card Template Styles (DOM capture)                    */
-/* ============================================================ */
-
-:root {
-  --ccs-font: "LXGW Neo XiHei", "PingFang SC", "Microsoft YaHei", sans-serif;
-}
-
-/* Theme Variables */
-.ccs-theme-classic {
-  --ccs-primary: #2D5A50;
-  --ccs-bg: #FAFBF7;
-  --ccs-box-bg: rgba(52, 107, 100, 0.05);
-  --ccs-label: #666666;
-  --ccs-value: #333333;
-  --ccs-name: #2D5A50;
-}
-
-.ccs-theme-dark {
-  --ccs-primary: #131313;
-  --ccs-bg: #282828;
-  --ccs-box-bg: rgba(255, 255, 255, 0.05);
-  --ccs-label: #AAAAAA;
-  --ccs-value: #FFFFFF;
-  --ccs-name: #FFFFFF;
-}
-
-.ccs-share-card {
-  width: 663px;
-  background-color: var(--ccs-bg);
-  border-radius: 32px;
-  overflow: hidden;
-  display: flex;
-  flex-direction: column;
-  font-family: var(--ccs-font);
-}
-
-.ccs-card-header {
-  height: 246px;
-  background-color: var(--ccs-primary);
-  position: relative;
-  display: flex;
-  justify-content: center;
-  align-items: center;
-}
-
-.ccs-card-avatars {
-  display: flex;
-  align-items: center;
-  gap: 180px;
-  z-index: 2;
-}
-
-.ccs-card-avatars img {
-  width: 100px;
-  height: 150px;
-  border-radius: 16px;
-  object-fit: cover;
-  background-color: #eee;
-}
-
-.ccs-card-connection {
-  position: absolute;
-  width: 100%;
-  height: 2px;
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  gap: 10px;
-}
-
-.ccs-card-dash {
-  width: 180px;
-  height: 2px;
-  background-image: linear-gradient(to right, #FFFFFF 40%, transparent 40%);
-  background-size: 16px 100%;
-  background-repeat: repeat-x;
-}
-
-.ccs-card-envelope {
-  position: absolute;
-  width: 32px;
-  height: 24px;
-  z-index: 5;
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  background: white;
-  border-radius: 6px;
-  padding: 0 4px;
-}
-
-.ccs-card-envelope svg {
-  width: 100%;
-  height: 100%;
-}
-
-.ccs-card-content {
-  padding: 40px;
-  padding-bottom: 40px;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-}
-
-.ccs-card-name {
-  color: var(--ccs-name);
-  font-size: 34px;
-  font-weight: 300;
-  margin-bottom: 25px;
-  text-align: center;
-}
-
-.ccs-card-stats {
-  width: 540px;
-  display: flex;
-  flex-direction: column;
-  gap: 12px;
-}
-
-.ccs-card-stat-box {
-  height: 68px;
-  background-color: var(--ccs-box-bg);
-  border-radius: 8px;
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  padding: 0 24px;
-}
-
-.ccs-card-stat-label {
-  color: #000000;
-  font-size: 22px;
-  font-weight: 300;
-}
-
-.ccs-theme-dark .ccs-card-stat-label {
-  color: #FFFFFF;
-}
-
-.ccs-card-stat-value-group {
-  display: flex;
-  align-items: baseline;
-  gap: 4px;
-}
-
-.ccs-card-stat-num {
-  color: var(--ccs-value);
-  font-size: 24px;
-  font-weight: 700;
-}
-
-.ccs-card-stat-unit {
-  color: var(--ccs-label);
-  font-size: 22px;
-  font-weight: 300;
 }
