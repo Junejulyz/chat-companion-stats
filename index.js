@@ -975,11 +975,15 @@ jQuery(async () => {
         ctx.shadowBlur = 18 * scaleFactor;
         ctx.shadowOffsetY = 12 * scaleFactor;
 
-        // Inner Gradient Border
+        // Inner Gradient Border (Dark Mode specific inner border)
         const grad = ctx.createLinearGradient(x, y, x, y + avatarH);
-        grad.addColorStop(0, '#444');
-        grad.addColorStop(1, '#000');
-        ctx.fillStyle = grad;
+        if (isDark) {
+          ctx.fillStyle = '#131313'; // Fixed color for Dark Mode per request
+        } else {
+          grad.addColorStop(0, '#444');
+          grad.addColorStop(1, '#000');
+          ctx.fillStyle = grad;
+        }
         ctx.beginPath();
         ctx.arc(x + avatarW / 2, y + avatarH / 2, (avatarW / 2) + 6 * scaleFactor, 0, Math.PI * 2);
         ctx.fill();
@@ -1070,7 +1074,7 @@ jQuery(async () => {
 
       if (stat.unit) {
         ctx.fillStyle = statLabelColor;
-        ctx.font = `300 ${26 * scaleFactor}px "LXGW Neo XiHei", "PingFang SC", sans-serif`; // Weight Light
+        ctx.font = `300 ${25 * scaleFactor}px "LXGW Neo XiHei", "PingFang SC", sans-serif`; // Decreased by 1px (26->25)
         ctx.fillText(stat.unit, valueX, cy + boxH / 2 + 8 * scaleFactor);
 
         const unitWidth = ctx.measureText(stat.unit).width;
