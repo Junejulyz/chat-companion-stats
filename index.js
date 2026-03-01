@@ -823,15 +823,18 @@ jQuery(async () => {
     const width = 663 * scaleFactor;
 
     // Theme colors
-    const isDark = shareStyle === 'dark';
-    const isModern = shareStyle === 'modern';
+    const isDark = shareStyle === 'modern-dark';
+    const isModern = true; // All styles are now modern
 
-    const tealColor = isDark ? '#131313' : (isModern ? '#F7F9FB' : '#2D5A50');
-    const cardBgColor = isDark ? '#282828' : (isModern ? '#F7F9FB' : '#FAFBF7');
-    const statBoxColor = isDark ? 'rgba(255, 255, 255, 0.05)' : (isModern ? '#F7F9FB' : 'rgba(52, 107, 100, 0.05)');
-    const statLabelColor = isDark ? '#AAAAAA' : (isModern ? '#131313' : '#666666');
-    const statValueColor = isDark ? '#FFFFFF' : (isModern ? '#131313' : '#333333');
-    const charNameColor = isDark ? '#FFFFFF' : (isModern ? '#131313' : tealColor);
+    const tealColor = isDark ? '#2F3033' : '#F7F9FB';
+    const cardBgColor = isDark ? '#2F3033' : '#F7F9FB';
+    const contentAreaBg = isDark ? '#1C1D1E' : '#EFF2F4';
+    const statBoxColor = isDark ? '#2F3033' : '#F7F9FB';
+    const shadowColor = isDark ? 'rgba(19, 19, 19, 0.6)' : 'rgba(218, 227, 232, 0.6)';
+
+    const statLabelColor = isDark ? '#FAFBF7' : '#131313';
+    const statValueColor = isDark ? '#FAFBF7' : '#131313';
+    const charNameColor = isDark ? '#FAFBF7' : '#131313';
     const dashColor = '#FFFFFF';
 
     // 1. 获取选中的统计项
@@ -860,17 +863,14 @@ jQuery(async () => {
     const stats = statsItems.filter(s => $(`#${s.id}`).is(":checked"));
 
     // 2. 计算动态高度
-    const headerH = isModern ? 214 * scaleFactor : 246 * scaleFactor;
-    const boxH = 80 * scaleFactor; // Updated from 80px in playground
-    const boxGap = isModern ? 32 * scaleFactor : 12 * scaleFactor;
-    const nameAreaH = isModern ? 0 : 100 * scaleFactor;
-    const paddingBottom = 48 * scaleFactor; // Increased from 40px for more air
+    const headerH = 214 * scaleFactor;
+    const boxH = 80 * scaleFactor;
+    const boxGap = 32 * scaleFactor;
+    const paddingBottom = 48 * scaleFactor;
 
     const statsAreaH = stats.length * boxH + (stats.length > 0 ? (stats.length - 1) * boxGap : 0);
     const hasStats = stats.length > 0;
-    const dynamicHeight = isModern ?
-      (hasStats ? (headerH + statsAreaH + 64 * scaleFactor + paddingBottom) : headerH) :
-      (headerH + nameAreaH + statsAreaH + paddingBottom);
+    const dynamicHeight = hasStats ? (headerH + statsAreaH + 64 * scaleFactor + paddingBottom) : headerH;
 
     // 现代版底色区域
     const contentAreaMargin = 32 * scaleFactor;
@@ -914,10 +914,10 @@ jQuery(async () => {
     ctx.fillStyle = cardBgColor;
     ctx.fillRect(0, headerH, width, dynamicHeight - headerH);
 
-    if (isModern && hasStats) {
-      // 现代版圆角灰色背景块
+    if (hasStats) {
+      // 现代版圆角区域背景块
       const contentX = (width - contentAreaW) / 2;
-      ctx.fillStyle = isDark ? 'rgba(255,255,255,0.05)' : '#EFF2F4';
+      ctx.fillStyle = contentAreaBg;
       roundRect(contentX, headerH, contentAreaW, contentAreaH, 24 * scaleFactor);
     }
 
@@ -962,15 +962,15 @@ jQuery(async () => {
 
     if (isModern) {
       const drawModernAvatar = (img, x, y) => {
-        // Outer frame 6px
-        ctx.fillStyle = 'rgba(220, 221, 220, 1)';
+        // Outer frame
+        ctx.fillStyle = isDark ? '#37393B' : 'rgba(220, 221, 220, 1)';
         ctx.beginPath();
         ctx.arc(x + avatarW / 2, y + avatarH / 2, (avatarW / 2) + 12 * scaleFactor, 0, Math.PI * 2);
         ctx.fill();
 
         // Inner Shadow
         ctx.save();
-        ctx.shadowColor = 'rgba(175, 183, 188, 0.8)';
+        ctx.shadowColor = isDark ? 'rgba(19, 19, 19, 0.8)' : 'rgba(175, 183, 188, 0.8)';
         ctx.shadowBlur = 18 * scaleFactor;
         ctx.shadowOffsetY = 12 * scaleFactor;
 
@@ -1006,76 +1006,21 @@ jQuery(async () => {
       };
 
       if (!showEncounterDate) {
-        // Option 4: If no date shown, center avatars in header
         const combinedW = showUser ? (avatarW * 2 + avatarGap) : avatarW;
         const centerX = (width - combinedW) / 2;
-
-        // Character on top/left, User on bottom/right
         drawModernAvatar(userImg, centerX + (showUser ? (avatarW + avatarGap) : 0), avatarY);
         drawModernAvatar(charImg, centerX, avatarY);
       } else {
-        // Normal left-aligned layout
         const startX = 48 * scaleFactor;
-
         if (showUser) {
-          // Character on left (top/front), User on right (bottom/back)
           drawModernAvatar(userImg, startX + avatarW + avatarGap, avatarY);
           drawModernAvatar(charImg, startX, avatarY);
         } else {
           drawModernAvatar(charImg, startX, avatarY);
         }
       }
-    } else if (showUser) {
-      const leftX = (width - (avatarW * 2 + avatarGap)) / 2;
-      const rightX = leftX + avatarW + avatarGap;
-
-      // User Avatar (Left)
-      drawRoundedAvatar(userImg, leftX, avatarY, avatarW, avatarH, 16 * scaleFactor);
-      // Char Avatar (Right)
-      drawRoundedAvatar(charImg, rightX, avatarY, avatarW, avatarH, 16 * scaleFactor);
-
-      // Connection: Dashed Line
-      ctx.save();
-      const dashLen = 16 * scaleFactor;
-      ctx.setLineDash([dashLen * 0.4, dashLen * 0.6]);
-      ctx.strokeStyle = dashColor;
-      ctx.lineWidth = 2 * scaleFactor;
-
-      const iconW = 32 * scaleFactor;
-      const iconH = 24 * scaleFactor;
-      const ix = width / 2 - iconW / 2;
-      const iy = centerY - iconH / 2;
-      const gap = 10 * scaleFactor;
-
-      ctx.beginPath();
-      ctx.moveTo(leftX + avatarW + 10 * scaleFactor, centerY);
-      ctx.lineTo(ix - gap, centerY);
-      ctx.moveTo(ix + iconW + gap, centerY);
-      ctx.lineTo(rightX - 10 * scaleFactor, centerY);
-      ctx.stroke();
-      ctx.restore();
-
-      // Envelope BG
-      ctx.fillStyle = '#FFFFFF';
-      roundRect(ix, iy, iconW, iconH, 6 * scaleFactor);
-
-      // Envelope SVG Path
-      ctx.strokeStyle = tealColor;
-      ctx.lineWidth = 2 * scaleFactor;
-      ctx.lineCap = 'round';
-      ctx.lineJoin = 'round';
-      ctx.beginPath();
-      ctx.moveTo(ix + (4 / 40) * iconW, iy + (6 / 30) * iconH);
-      ctx.lineTo(ix + (20 / 40) * iconW, iy + (18 / 30) * iconH);
-      ctx.lineTo(ix + (36 / 40) * iconW, iy + (6 / 30) * iconH);
-      ctx.stroke();
-    } else {
-      // 只有角色头像：样式与 showUser 保持一致 (100x150)，居中
-      drawRoundedAvatar(charImg, (width - avatarW) / 2, avatarY, avatarW, avatarH, 16 * scaleFactor);
     }
 
-    // 5. 绘制角色名和初遇时间 (现代版特殊定位)
-    const charName = getCurrentCharacterName();
     if (isModern) {
       if (showEncounterDate) {
         const infoX = 260 * scaleFactor;
@@ -1084,21 +1029,15 @@ jQuery(async () => {
 
         // Name
         ctx.fillStyle = charNameColor;
-        ctx.font = `300 ${31 * scaleFactor}px "LXGW Neo XiHei", "PingFang SC", sans-serif`; // Enlarge by 1 specialized
+        ctx.font = `300 ${32 * scaleFactor}px "LXGW Neo XiHei", "PingFang SC", sans-serif`; // Total +4, Weight Light
         ctx.fillText(charName, infoX, infoY - 8 * scaleFactor);
 
         // Encounter Info
         const encounterText = `初遇 ${$("#ccs-start").text()}`;
-        ctx.fillStyle = isModern ? '#131313' : statLabelColor; // Label color #131313 per request
-        ctx.font = `400 ${25 * scaleFactor}px "LXGW Neo XiHei", "PingFang SC", sans-serif`; // Regular weight, Enlarge by 1
+        ctx.fillStyle = statLabelColor;
+        ctx.font = `300 ${26 * scaleFactor}px "LXGW Neo XiHei", "PingFang SC", sans-serif`; // Total +4, Weight Light
         ctx.fillText(encounterText, infoX, infoY + 32 * scaleFactor);
       }
-    } else {
-      const nameY = headerH + 60 * scaleFactor;
-      ctx.textAlign = 'center';
-      ctx.fillStyle = charNameColor;
-      ctx.font = `300 ${34 * scaleFactor}px "LXGW Neo XiHei", "PingFang SC", sans-serif`;
-      ctx.fillText(charName, width / 2, nameY);
     }
 
     // 6. 绘制统计项
@@ -1110,23 +1049,18 @@ jQuery(async () => {
       const cy = statsStartY + i * (boxH + boxGap);
 
       // Shadow for Modern Style
-      if (isModern) {
-        ctx.save();
-        ctx.shadowColor = 'rgba(218, 227, 232, 0.6)';
-        ctx.shadowBlur = 24 * scaleFactor;
-        ctx.shadowOffsetY = 12 * scaleFactor;
-        ctx.fillStyle = statBoxColor;
-        roundRect(boxX, cy, boxW, boxH, 24 * scaleFactor);
-        ctx.restore();
-      } else {
-        ctx.fillStyle = statBoxColor;
-        roundRect(boxX, cy, boxW, boxH, 8 * scaleFactor);
-      }
+      ctx.save();
+      ctx.shadowColor = shadowColor;
+      ctx.shadowBlur = 24 * scaleFactor;
+      ctx.shadowOffsetY = 12 * scaleFactor;
+      ctx.fillStyle = statBoxColor;
+      roundRect(boxX, cy, boxW, boxH, 24 * scaleFactor);
+      ctx.restore();
 
       // Label
       ctx.textAlign = 'left';
       ctx.fillStyle = statLabelColor;
-      ctx.font = (isModern ? `400 ` : `300 `) + `${27 * scaleFactor}px "LXGW Neo XiHei", "PingFang SC", sans-serif`; // Regular for modern, enlarge by 1
+      ctx.font = `300 ${28 * scaleFactor}px "LXGW Neo XiHei", "PingFang SC", sans-serif`; // Weight Light, +4 size
       ctx.fillText(stat.label, boxX + 32 * scaleFactor, cy + boxH / 2 + 8 * scaleFactor);
 
       // Value & Unit
@@ -1135,16 +1069,16 @@ jQuery(async () => {
 
       if (stat.unit) {
         ctx.fillStyle = statLabelColor;
-        ctx.font = (isModern ? `400 ` : `300 `) + `${25 * scaleFactor}px "LXGW Neo XiHei", "PingFang SC", sans-serif`; // Enlarge by 1
+        ctx.font = `300 ${26 * scaleFactor}px "LXGW Neo XiHei", "PingFang SC", sans-serif`; // Weight Light
         ctx.fillText(stat.unit, valueX, cy + boxH / 2 + 8 * scaleFactor);
 
         const unitWidth = ctx.measureText(stat.unit).width;
         ctx.fillStyle = statValueColor;
-        ctx.font = `700 ${27 * scaleFactor}px "LXGW Neo XiHei", "PingFang SC", sans-serif`; // Enlarge by 1
+        ctx.font = `700 ${28 * scaleFactor}px "LXGW Neo XiHei", "PingFang SC", sans-serif`; // Weight Bold
         ctx.fillText(stat.value, valueX - unitWidth - 8 * scaleFactor, cy + boxH / 2 + 8 * scaleFactor);
       } else {
         ctx.fillStyle = statValueColor;
-        ctx.font = `700 ${27 * scaleFactor}px "LXGW Neo XiHei", "PingFang SC", sans-serif`; // Enlarge by 1
+        ctx.font = `700 ${28 * scaleFactor}px "LXGW Neo XiHei", "PingFang SC", sans-serif`;
         ctx.fillText(stat.value, valueX, cy + boxH / 2 + 8 * scaleFactor);
       }
     });
