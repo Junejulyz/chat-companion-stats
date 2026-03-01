@@ -826,7 +826,7 @@ jQuery(async () => {
     const isDark = shareStyle === 'dark';
     const isModern = shareStyle === 'modern';
 
-    const tealColor = isDark ? '#131313' : (isModern ? 'transparent' : '#2D5A50');
+    const tealColor = isDark ? '#131313' : (isModern ? '#F7F9FB' : '#2D5A50');
     const cardBgColor = isDark ? '#282828' : (isModern ? '#F7F9FB' : '#FAFBF7');
     const statBoxColor = isDark ? 'rgba(255, 255, 255, 0.05)' : (isModern ? '#F7F9FB' : 'rgba(52, 107, 100, 0.05)');
     const statLabelColor = isDark ? '#AAAAAA' : (isModern ? '#666666' : '#666666');
@@ -847,7 +847,7 @@ jQuery(async () => {
       statsItems.unshift({ id: 'ccs-share-start', label: '初遇时间', value: $("#ccs-start").text().replace(/点/g, ':').replace(/分/g, '') });
     }
 
-    const stats = statsItems.filter(s => $(`#${s.id}`).is(":checked") || (isModern && s.id !== 'ccs-share-start'));
+    const stats = statsItems.filter(s => $(`#${s.id}`).is(":checked"));
 
     // 2. 计算动态高度
     const headerH = isModern ? 214 * scaleFactor : 246 * scaleFactor;
