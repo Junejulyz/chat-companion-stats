@@ -848,7 +848,7 @@ jQuery(async () => {
       if (DEBUG) console.log('Loading ins background...');
       const v = Date.now();
       const assetList = {
-        bg: `${extensionWebPath}/ins_bg.png?v=${v}`
+        bg: `${extensionWebPath}/mesh-bg.svg?v=${v}`
       };
 
       const loadAssetImg = (url) => new Promise((resolve) => {
