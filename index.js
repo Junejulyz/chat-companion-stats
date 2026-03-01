@@ -9,9 +9,10 @@ jQuery(async () => {
   // 加载CSS文件 using dynamic path
   $('head').append(`<link rel="stylesheet" type="text/css" href="${extensionWebPath}/styles.css">`);
 
-  // 加载自定义字体 (Added handwritten font for ins style)
+  // 加载自定义字体 (Added handwritten and PING FANG SHAO HUA font)
   $('head').append(`<style>
     @import url("https://fontsapi.zeoseven.com/19/main/result.css");
+    @import url("https://fontsapi.zeoseven.com/157/main/result.css");
     @import url("https://fonts.googleapis.com/css2?family=Long+Cang&display=swap");
   </style>`);
 
@@ -841,14 +842,28 @@ jQuery(async () => {
     const charNameColor = isDark ? '#FAFBF7' : '#131313';
     const dashColor = '#FFFFFF';
 
-    // Instagram Icons (SVG Paths)
-    const insIcons = {
-      heart: "M16.792 3.904c1.035-1.121 2.373-1.688 3.824-1.688 2.059 0 3.737 1.134 4.854 3.255.706 1.343.832 2.766.381 4.316-.445 1.551-1.391 3.149-2.871 4.881-1.467 1.737-3.155 3.394-5.064 4.966a3.791 3.791 0 01-.351.272l-.089.062a.417.417 0 01-.462 0l-.089-.062a3.639 3.639 0 01-.351-.272c-1.909-1.572-3.597-3.23-5.064-4.966C9.011 13.018 8.065 11.419 7.62 9.868c-.451-1.55-.325-2.973.381-4.316.326-.62.723-1.171 1.189-1.644 1.309-1.332 2.73-1.684 4.041-1.684 1.451 0 2.789.567 3.824 1.688l.1 0 .1 0-.435.435z",
-      comment: "M20.656 17.008c.559 0 .857-.333.857-.852 0-.251-.019-.506-.058-.759a1.042 1.042 0 01.32-.888c3.04-2.895 3.016-7.55-.054-10.42a7.352 7.352 0 00-10.366 0c-3.07 2.87-3.094 7.525-.054 10.42.223.213.342.508.324.811-.064.928-.242 1.847-.532 2.731-.088.261.04.536.27.653a.56.56 0 00.569-.053c1.328-.973 2.508-2.126 3.51-3.432.193-.25.5-.398.823-.398h4.412a.456.456 0 01.01.01L20.656 17.008z",
-      share: "M21 3L3 11l8 2 2 8 8-18z",
-      bookmark: "M6.75 3h10.5c.966 0 1.75.784 1.75 1.75v16.25l-7-4.375-7 4.375V4.75c0-.966.784-1.75 1.75-1.75z",
-      more: "M12 10a2 2 0 100 4 2 2 0 000-4zm-8 0a2 2 0 100 4 2 2 0 000-4zm16 0a2 2 0 100 4 2 2 0 000-4z"
-    };
+    // 0. 加载 Ins 风格专属资源
+    const insAssets = {};
+    if (shareStyle === 'ins') {
+      const assetList = {
+        bg: `${extensionWebPath}/ins_bg.png`,
+        heart: `${extensionWebPath}/ins_heart.png`,
+        comment: `${extensionWebPath}/ins_comment.png`,
+        share: `${extensionWebPath}/ins_share.png`,
+        bookmark: `${extensionWebPath}/ins_bookmark.png`
+      };
+      const loadImg = (url) => new Promise((resolve) => {
+        const img = new Image();
+        img.onload = () => resolve(img);
+        img.onerror = () => resolve(null);
+        img.src = url;
+      });
+      await Promise.all(Object.entries(assetList).map(async ([key, url]) => {
+        insAssets[key] = await loadImg(url);
+      }));
+    }
+
+    // Instagram Icons (SVG Paths - Kept as fallback or reference)
 
     // 1. 获取选中的统计项
     const statsItems = [
@@ -877,14 +892,17 @@ jQuery(async () => {
 
     // 2. 计算动态高度
     const headerH = (shareStyle === 'ins' ? 144 : 214) * scaleFactor;
-    const footerH = (shareStyle === 'ins' ? 92 : 48) * scaleFactor; // Added 100px for ins footer
+    const footerH = (shareStyle === 'ins' ? 92 : 48) * scaleFactor;
     const boxH = 80 * scaleFactor;
     const boxGap = 32 * scaleFactor;
-    const statsAreaH = stats.length * boxH + (stats.length > 0 ? (stats.length - 1) * boxGap : 0);
-    const hasStats = stats.length > 0;
-    const totalStatsH = hasStats ? (statsAreaH + 80 * scaleFactor) : 0; // Padding inside content
+
+    // Ins style: fixed height for content area vs others
+    const totalStatsH = (shareStyle === 'ins')
+      ? (663 * scaleFactor) // Fixed height for ins content
+      : (stats.length > 0 ? (stats.length * boxH + (stats.length - 1) * boxGap + 80 * scaleFactor) : 0);
+
     const height = headerH + totalStatsH + footerH;
-    const dynamicHeight = height; // Renamed from original dynamicHeight to avoid confusion
+    const dynamicHeight = height;
 
     // 现代版底色区域 (This block is now mostly for non-ins styles)
     const contentAreaMargin = 32 * scaleFactor;
@@ -905,6 +923,7 @@ jQuery(async () => {
         // Just trigger the load, don't await the promise which might hang if URL is blocked
         document.fonts.load(`400 32px "LXGW Neo XiHei"`);
         document.fonts.load(`700 32px "LXGW Neo XiHei"`);
+        document.fonts.load(`400 32px "PING FANG SHAO HUA"`);
         document.fonts.load(`400 48px "Long Cang"`);
       }
     } catch (e) {
@@ -937,48 +956,14 @@ jQuery(async () => {
 
     // 4. 内容区域背景
     if (shareStyle === 'ins') {
-      // Mesh Gradient for Ins Style
-      ctx.save();
-      // Draw Mesh Gradient (Simulated with radial gradients)
-      // const gradBg = ctx.createRect ? null : null; // Just placeholder
-      ctx.beginPath();
-      ctx.rect(0, headerH, width, totalStatsH);
-      ctx.clip();
-
-      // Base color (pale green/yellow)
-      ctx.fillStyle = '#E8F5E9';
-      ctx.fillRect(0, headerH, width, totalStatsH);
-
-      // Radial 1: Blue-ish (top left)
-      const r1 = ctx.createRadialGradient(width * 0.1, headerH + totalStatsH * 0.1, 0, width * 0.1, headerH + totalStatsH * 0.1, width * 0.7);
-      r1.addColorStop(0, 'rgba(179, 229, 252, 0.7)');
-      r1.addColorStop(1, 'rgba(179, 229, 252, 0)');
-      ctx.fillStyle = r1;
-      ctx.fillRect(0, headerH, width, totalStatsH);
-
-      // Radial 2: Teal/Green-ish (top right)
-      const r2 = ctx.createRadialGradient(width * 0.9, headerH + totalStatsH * 0.2, 0, width * 0.9, headerH + totalStatsH * 0.2, width * 0.7);
-      r2.addColorStop(0, 'rgba(178, 223, 219, 0.7)');
-      r2.addColorStop(1, 'rgba(178, 223, 219, 0)');
-      ctx.fillStyle = r2;
-      ctx.fillRect(0, headerH, width, totalStatsH);
-
-      // Radial 3: Yellow/Peach (bottom left)
-      const r3 = ctx.createRadialGradient(width * 0.2, headerH + totalStatsH * 0.8, 0, width * 0.2, headerH + totalStatsH * 0.8, width * 0.7);
-      r3.addColorStop(0, 'rgba(255, 249, 196, 0.6)');
-      r3.addColorStop(1, 'rgba(255, 249, 196, 0)');
-      ctx.fillStyle = r3;
-      ctx.fillRect(0, headerH, width, totalStatsH);
-
-      // Radial 4: Pink-ish (middle)
-      const r4 = ctx.createRadialGradient(width * 0.6, headerH + totalStatsH * 0.5, 0, width * 0.6, headerH + totalStatsH * 0.5, width * 0.8);
-      r4.addColorStop(0, 'rgba(248, 187, 208, 0.5)');
-      r4.addColorStop(1, 'rgba(248, 187, 208, 0)');
-      ctx.fillStyle = r4;
-      ctx.fillRect(0, headerH, width, totalStatsH);
-
-      ctx.restore();
-    } else if (hasStats) { // Only draw this if there are stats and not 'ins' style
+      // Mesh Gradient for Ins Style - Use PNG if loaded, else skip mesh generator
+      if (insAssets.bg) {
+        ctx.drawImage(insAssets.bg, 0, headerH, width, totalStatsH);
+      } else {
+        ctx.fillStyle = '#E8F5E9'; // Fallback
+        ctx.fillRect(0, headerH, width, totalStatsH);
+      }
+    } else if (stats.length > 0) {
       ctx.fillStyle = contentAreaBg;
       const contentAreaW = 599 * scaleFactor;
       const contentAreaX = (width - contentAreaW) / 2;
@@ -1057,8 +1042,8 @@ jQuery(async () => {
       }
 
       if (showUser) {
-        drawInsAvatar(userImg, startX, avatarY);
-        drawInsAvatar(charImg, startX + 36 * scaleFactor, avatarY);
+        drawInsAvatar(charImg, startX, avatarY); // Character LEFT
+        drawInsAvatar(userImg, startX + 36 * scaleFactor, avatarY); // User RIGHT
       } else {
         drawInsAvatar(charImg, startX, avatarY);
       }
@@ -1079,10 +1064,12 @@ jQuery(async () => {
       ctx.save();
       ctx.translate(width - 48 * scaleFactor, centerY);
       ctx.fillStyle = '#131313';
-      const p = new Path2D(insIcons.more);
-      ctx.scale(1.5 * scaleFactor, 1.5 * scaleFactor);
-      ctx.translate(-12, -12); // Center path
-      ctx.fill(p);
+      const p = (shareStyle === 'ins' && insIcons.more) ? new Path2D(insIcons.more) : null;
+      if (p) {
+        ctx.scale(1.5 * scaleFactor, 1.5 * scaleFactor);
+        ctx.translate(-12, -12); // Center path
+        ctx.fill(p);
+      }
       ctx.restore();
 
     } else {
@@ -1177,21 +1164,26 @@ jQuery(async () => {
     }
 
     // 6. 绘制统计项
-    const statsStartY = isModern ? (headerH + 40 * scaleFactor) : (headerH + 100 * scaleFactor + 40 * scaleFactor);
-    const boxW = 519 * scaleFactor; // Match contentAreaW
+    const insContentH = 663 * scaleFactor;
+    const actualStatsH = stats.length * boxH + (stats.length > 0 ? (stats.length - 1) * boxGap : 0);
+    const statsStartY = (shareStyle === 'ins')
+      ? (headerH + (insContentH - actualStatsH) / 2) // Vertically centered in fixed height
+      : (isModern ? (headerH + 40 * scaleFactor) : (headerH + 100 * scaleFactor + 40 * scaleFactor));
+
+    const boxW = 519 * scaleFactor;
     const boxX = (width - boxW) / 2;
 
     stats.forEach((stat, i) => {
       const cy = statsStartY + i * (boxH + boxGap);
 
       if (shareStyle === 'ins') {
-        // Ins style doesn't use boxes, it uses centered text with gap
-        ctx.textAlign = 'center';
+        // Ins style: Left aligned with 40px spacing
+        ctx.textAlign = 'left';
         ctx.fillStyle = '#131313';
-        ctx.font = `400 ${48 * scaleFactor}px "Long Cang", cursive`; // Cursive for handwritten feel
+        ctx.font = `400 ${46 * scaleFactor}px "PING FANG SHAO HUA", sans-serif`;
 
         const labelText = `${stat.label}   ${stat.value} ${stat.unit || ''}`;
-        ctx.fillText(labelText, width / 2, cy + boxH / 2);
+        ctx.fillText(labelText, 40 * scaleFactor, cy + boxH / 2 + 10 * scaleFactor);
       } else {
         // Shadow for Modern Style
         ctx.save();
@@ -1238,25 +1230,20 @@ jQuery(async () => {
       ctx.fillStyle = '#FFFFFF';
       ctx.fillRect(0, footerY, width, footerH);
 
-      const iconY = footerY + 32 * scaleFactor;
+      const iconY = footerY + 30 * scaleFactor;
       const startX = 32 * scaleFactor;
-      const iconGap = 48 * scaleFactor;
-      const iconSize = 32 * scaleFactor;
+      const iconGap = 42 * scaleFactor;
+      const iconSize = 34 * scaleFactor;
 
-      function drawInsIcon(path, x, y) {
-        ctx.save();
-        ctx.translate(x, y);
-        ctx.fillStyle = '#131313';
-        const p = new Path2D(path);
-        ctx.scale(iconSize / 24, iconSize / 24);
-        ctx.fill(p);
-        ctx.restore();
+      function drawPngIcon(img, x, y) {
+        if (!img) return;
+        ctx.drawImage(img, x, y, iconSize, iconSize);
       }
 
-      drawInsIcon(insIcons.heart, startX, iconY);
-      drawInsIcon(insIcons.comment, startX + iconSize + iconGap, iconY);
-      drawInsIcon(insIcons.share, startX + (iconSize + iconGap) * 2, iconY);
-      drawInsIcon(insIcons.bookmark, width - startX - iconSize, iconY);
+      drawPngIcon(insAssets.heart, startX, iconY);
+      drawPngIcon(insAssets.comment, startX + iconSize + iconGap, iconY);
+      drawPngIcon(insAssets.share, startX + (iconSize + iconGap) * 2, iconY);
+      drawPngIcon(insAssets.bookmark, width - startX - iconSize, iconY);
     }
 
     ctx.restore(); // Restore from card-level 16px clipping
