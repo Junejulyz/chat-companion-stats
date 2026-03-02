@@ -1013,11 +1013,6 @@ jQuery(async () => {
 
     // 4. 内容区域背景
     if (shareStyle === 'ins') {
-      // Dynamic Canvas Mesh Gradient Background
-      ctx.save();
-      ctx.beginPath();
-      ctx.rect(0, headerH, width, totalStatsH);
-      ctx.clip();
       const w = width;
       const h = totalStatsH;
       const y0 = headerH;
