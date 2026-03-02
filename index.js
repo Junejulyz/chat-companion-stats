@@ -895,7 +895,7 @@ jQuery(async () => {
     const insIcons = {
       heart: "M18 10C18 10 14.5 5 9.5 5C4 5 3 11 3 14.5C3 19 8.5 24 18 31C27.5 24 33 19 33 14.5C33 11 32 5 26.5 5C21.5 5 18 10 18 10Z",
       comment: "M3 17C3 9.26801 9.26801 3 17 3C24.732 3 31 9.26801 31 17C31 24.732 24.732 31 17 31C14.757 31 12.6366 30.4716 10.7584 29.5392L3 32L5.80803 24.976C4.01186 22.75 3 19.9983 3 17Z",
-      share: "M29 7L7 16L16 20L20 29L29 7ZM16 20L29 7",
+      share: "M32 4L4 16L15 21L20 32L32 4ZM15 21L32 4",
       bookmark: "M8 3V32L18 25L28 32V3H8Z",
       more: "M5.69238 14C7.73155 14 9.38477 15.6532 9.38477 17.6924C9.38473 19.7315 7.73153 21.3847 5.69238 21.3848C3.6532 21.3848 2.00004 19.7316 2 17.6924C2 15.6532 3.65318 14 5.69238 14ZM18 14C20.0392 14 21.6924 15.6532 21.6924 17.6924C21.6924 19.7316 20.0392 21.3848 18 21.3848C15.9608 21.3848 14.3076 19.7316 14.3076 17.6924C14.3076 15.6532 15.9608 14 18 14ZM30.3076 14C32.3468 14 34 15.6532 34 17.6924C34 19.7316 32.3468 21.3848 30.3076 21.3848C28.2684 21.3847 26.6152 19.7316 26.6152 17.6924C26.6152 15.6532 28.2684 14 30.3076 14Z"
     };
@@ -929,7 +929,7 @@ jQuery(async () => {
     const headerH = (shareStyle === 'ins' ? 144 : 214) * scaleFactor;
     const footerH = (shareStyle === 'ins' ? 92 : 48) * scaleFactor;
     const boxH = 80 * scaleFactor;
-    const boxGap = (shareStyle === 'ins' ? 32 : 32) * scaleFactor;
+    const boxGap = (shareStyle === 'ins' ? 24 : 32) * scaleFactor;
 
     // Ins style: fixed height for content area vs others
     const totalStatsH = (shareStyle === 'ins')
@@ -1000,13 +1000,39 @@ jQuery(async () => {
 
     // 4. 内容区域背景
     if (shareStyle === 'ins') {
-      // Mesh Gradient for Ins Style - Use PNG if loaded, else skip mesh generator
-      if (insAssets.bg) {
-        ctx.drawImage(insAssets.bg, 0, headerH, width, totalStatsH);
-      } else {
-        ctx.fillStyle = '#E8F5E9'; // Fallback
-        ctx.fillRect(0, headerH, width, totalStatsH);
+      // Dynamic Canvas Mesh Gradient Background
+      ctx.save();
+      ctx.beginPath();
+      ctx.rect(0, headerH, width, totalStatsH);
+      ctx.clip();
+
+      // Base background color
+      ctx.fillStyle = '#C8E6C9'; // Light green base
+      ctx.fillRect(0, headerH, width, totalStatsH);
+
+      // Function to draw blurred radial gradient
+      function drawMeshGradient(cx, cy, r, colorStart, colorEnd) {
+        const grad = ctx.createRadialGradient(cx, cy, 0, cx, cy, r);
+        grad.addColorStop(0, colorStart);
+        grad.addColorStop(1, colorEnd);
+        ctx.fillStyle = grad;
+        ctx.beginPath();
+        ctx.arc(cx, cy, r, 0, Math.PI * 2);
+        ctx.fill();
       }
+
+      // Overlapping gradients to create "mesh" effect
+      const w = width;
+      const h = totalStatsH;
+      const y0 = headerH;
+
+      ctx.globalCompositeOperation = 'screen';
+      drawMeshGradient(w * 0.1, y0 + h * 0.2, w * 0.8, 'rgba(129, 199, 132, 0.8)', 'rgba(129, 199, 132, 0)');
+      drawMeshGradient(w * 0.9, y0 + h * 0.1, w * 0.7, 'rgba(255, 245, 157, 0.6)', 'rgba(255, 245, 157, 0)');
+      drawMeshGradient(w * 0.8, y0 + h * 0.9, w * 0.8, 'rgba(165, 214, 167, 0.7)', 'rgba(165, 214, 167, 0)');
+      drawMeshGradient(w * 0.2, y0 + h * 0.8, w * 0.7, 'rgba(255, 255, 255, 0.5)', 'rgba(255, 255, 255, 0)');
+
+      ctx.restore();
     } else if (stats.length > 0) {
       ctx.fillStyle = contentAreaBg;
       const contentAreaW = 599 * scaleFactor;
