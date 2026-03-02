@@ -1006,31 +1006,56 @@ jQuery(async () => {
       ctx.rect(0, headerH, width, totalStatsH);
       ctx.clip();
 
-      // Base background color
-      ctx.fillStyle = '#C8E6C9'; // Light green base
-      ctx.fillRect(0, headerH, width, totalStatsH);
-
-      // Function to draw blurred radial gradient
-      function drawMeshGradient(cx, cy, r, colorStart, colorEnd) {
-        const grad = ctx.createRadialGradient(cx, cy, 0, cx, cy, r);
-        grad.addColorStop(0, colorStart);
-        grad.addColorStop(1, colorEnd);
-        ctx.fillStyle = grad;
-        ctx.beginPath();
-        ctx.arc(cx, cy, r, 0, Math.PI * 2);
-        ctx.fill();
-      }
-
-      // Overlapping gradients to create "mesh" effect
       const w = width;
       const h = totalStatsH;
       const y0 = headerH;
 
+      // Base background color - soft off-white/cream
+      ctx.fillStyle = '#fdfbfb';
+      ctx.fillRect(0, y0, w, h);
+
+      // Function to draw blurred radial gradient
+      function drawMeshBlob(cx, cy, rx, ry, color) {
+        ctx.save();
+        ctx.translate(cx, cy);
+        ctx.scale(1, ry / rx); // Enable elliptical gradients by scaling geometry
+        const grad = ctx.createRadialGradient(0, 0, 0, 0, 0, rx);
+        grad.addColorStop(0, color);
+        // Fade out smoothly
+        const colorTrans = color.replace(/rgba?\((\d+),\s*(\d+),\s*(\d+)(?:,\s*[\d.]+)?\)/, 'rgba($1, $2, $3, 0)');
+        grad.addColorStop(1, colorTrans);
+
+        ctx.fillStyle = grad;
+        ctx.beginPath();
+        ctx.arc(0, 0, rx, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.restore();
+      }
+
+      ctx.globalCompositeOperation = 'multiply'; // Use multiply to blend soft pastels like ink
+
+      // Top left - Pastel Pink/Peach
+      drawMeshBlob(w * 0.1, y0 + h * 0.1, w * 0.7, w * 0.6, 'rgba(255, 204, 204, 0.6)');
+
+      // Top right - Soft Purple/Lavender
+      drawMeshBlob(w * 0.8, y0 + h * 0.2, w * 0.6, w * 0.7, 'rgba(230, 204, 255, 0.5)');
+
+      // Bottom left - Mint/Aqua
+      drawMeshBlob(w * 0.2, y0 + h * 0.9, w * 0.8, w * 0.5, 'rgba(204, 255, 229, 0.4)');
+
+      // Bottom right - Soft Gold/Yellow
+      drawMeshBlob(w * 0.9, y0 + h * 0.8, w * 0.7, w * 0.7, 'rgba(255, 245, 204, 0.5)');
+
+      // Center highlight (Screen to pop it up)
       ctx.globalCompositeOperation = 'screen';
-      drawMeshGradient(w * 0.1, y0 + h * 0.2, w * 0.8, 'rgba(129, 199, 132, 0.8)', 'rgba(129, 199, 132, 0)');
-      drawMeshGradient(w * 0.9, y0 + h * 0.1, w * 0.7, 'rgba(255, 245, 157, 0.6)', 'rgba(255, 245, 157, 0)');
-      drawMeshGradient(w * 0.8, y0 + h * 0.9, w * 0.8, 'rgba(165, 214, 167, 0.7)', 'rgba(165, 214, 167, 0)');
-      drawMeshGradient(w * 0.2, y0 + h * 0.8, w * 0.7, 'rgba(255, 255, 255, 0.5)', 'rgba(255, 255, 255, 0)');
+      drawMeshBlob(w * 0.5, y0 + h * 0.5, w * 0.5, w * 0.5, 'rgba(255, 255, 255, 0.7)');
+
+      // Add a subtle noise using text/stippling for texture (optional but adds mesh feel)
+      ctx.globalCompositeOperation = 'source-over';
+      ctx.fillStyle = 'rgba(255, 255, 255, 0.1)';
+      for (let i = 0; i < h; i += 4) {
+        ctx.fillRect(0, y0 + i, w, 1);
+      }
 
       ctx.restore();
     } else if (stats.length > 0) {
