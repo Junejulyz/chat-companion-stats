@@ -1156,23 +1156,16 @@ jQuery(async () => {
         ctx.arc(x + avatarW / 2, y + avatarH / 2, (avatarW / 2) + 12 * scaleFactor, 0, Math.PI * 2);
         ctx.fill();
 
-        // Inner Shadow
+        // Inner Shadow (cast by the avatar circle itself now)
         ctx.save();
         ctx.shadowColor = isDark ? 'rgba(19, 19, 19, 0.8)' : 'rgba(175, 183, 188, 0.8)';
         ctx.shadowBlur = 18 * scaleFactor;
         ctx.shadowOffsetY = 12 * scaleFactor;
 
-        // Inner Gradient Border (Dark Mode specific inner border)
-        const grad = ctx.createLinearGradient(x, y, x, y + avatarH);
-        if (isDark) {
-          ctx.fillStyle = '#131313'; // Fixed color for Dark Mode per request
-        } else {
-          grad.addColorStop(0, '#444');
-          grad.addColorStop(1, '#000');
-          ctx.fillStyle = grad;
-        }
+        // Draw a dummy circle exact size of the avatar to cast the drop shadow
+        ctx.fillStyle = isDark ? '#131313' : '#FFFFFF';
         ctx.beginPath();
-        ctx.arc(x + avatarW / 2, y + avatarH / 2, (avatarW / 2) + 6 * scaleFactor, 0, Math.PI * 2);
+        ctx.arc(x + avatarW / 2, y + avatarH / 2, avatarW / 2, 0, Math.PI * 2);
         ctx.fill();
         ctx.restore();
 
@@ -1213,7 +1206,7 @@ jQuery(async () => {
       }
 
       if (showEncounterDate) {
-        const infoX = 260 * scaleFactor;
+        const infoX = 220 * scaleFactor;
         const infoY = centerY;
         ctx.textAlign = 'left';
 
