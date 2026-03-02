@@ -563,7 +563,20 @@ jQuery(async () => {
       // 默认先使用估算值 (密度取 32.5)
       let estimatedWords = Math.round(totalSizeKB * 32.5);
 
-      // 尝试进行真实全量统计
+      // 【性能保护】如果聊天过记录总文件过大，直接跳过全量真实解析防止浏览器崩溃/卡死
+      if (totalSizeKB > 10240) { // > 10MB
+        if (DEBUG) console.log(`[Performance Check] 体积过大(${totalSizeKB.toFixed(2)}KB)，启用「高速估算模式」以保护内存。`);
+        return {
+          messageCount: totalMessagesFromChats,
+          wordCount: estimatedWords,
+          firstTime: earliestTime,
+          totalDuration: totalDurationSeconds,
+          totalSizeBytes: totalSizeBytesRaw,
+          chatFilesCount
+        };
+      }
+
+      // 尝试进行真实全量统计 (仅在数据量适中时)
       try {
         let totalWordsCalculated = 0;
         let totalMessagesCalculated = 0;
@@ -1005,85 +1018,17 @@ jQuery(async () => {
       ctx.beginPath();
       ctx.rect(0, headerH, width, totalStatsH);
       ctx.clip();
-
       const w = width;
       const h = totalStatsH;
       const y0 = headerH;
 
-      // Base background - Bright cool linear mesh backdrop
-      const bgGrad = ctx.createLinearGradient(0, y0, width, y0 + h);
-      bgGrad.addColorStop(0, '#FFFFFF');
-      bgGrad.addColorStop(0.5, '#F2F8F4'); // very slight mint
-      bgGrad.addColorStop(1, '#FFFFFF');
-      ctx.fillStyle = bgGrad;
-      ctx.fillRect(0, y0, w, h);
-
-      // Function to draw blurred diagonal wave shapes
-      function drawWave(color, xOffset, yOffset, amplitude, widthScale, rotation) {
-        ctx.save();
-        ctx.translate(w / 2, y0 + h / 2);
-        ctx.rotate(rotation);
-        ctx.translate(-w / 2, -h / 2);
-
-        ctx.beginPath();
-        ctx.moveTo(-w, h + 200); // Start bottom left, far out
-
-        // Draw a large sine wave-like curve across the canvas
-        ctx.bezierCurveTo(
-          w * 0.2 + xOffset, h * 0.8 + yOffset - amplitude,
-          w * 0.8 + xOffset, h * 0.2 + yOffset + amplitude,
-          w * 2, -200
-        );
-
-        // Complete the shapes to the bottom right
-        ctx.lineTo(w * 2, h + 200);
-        ctx.closePath();
-
-        // Create a gradient for the wave to blur its edges organically
-        // Let's use a linear gradient perpendicular to the wave for the fade
-        const grad = ctx.createLinearGradient(0, yOffset, w * widthScale, h + yOffset);
-        grad.addColorStop(0, color);
-
-        const transparentColor = color.replace(/rgba?\((\d+),\s*(\d+),\s*(\d+)(?:,\s*[\d.]+)?\)/, 'rgba($1, $2, $3, 0)');
-        grad.addColorStop(1, transparentColor);
-
-        ctx.fillStyle = grad;
-        // Optionally blur the canvas context for this shape to make it soft
-        ctx.shadowColor = color;
-        ctx.shadowBlur = 60 * scaleFactor;
-        ctx.shadowOffsetY = 20 * scaleFactor;
-
-        ctx.fill();
-        ctx.restore();
+      // Mesh Gradient for Ins Style - Use PNG/SVG if loaded, else skip mesh generator
+      if (insAssets.bg) {
+        ctx.drawImage(insAssets.bg, 0, headerH, width, totalStatsH);
+      } else {
+        ctx.fillStyle = '#fdfbfb'; // Fallback
+        ctx.fillRect(0, headerH, width, totalStatsH);
       }
-
-      ctx.globalCompositeOperation = 'multiply';
-
-      // Primary requested colors: #BFE1CA (Mint Green) & #E1EAC8 (Lime/Yellow Green)
-      // We will plot multiple wavy swooshes, overlapping at angles
-
-      // Wave 1 (Deepest) - Mint #BFE1CA
-      drawWave('rgba(191, 225, 202, 0.9)', 0, 100 * scaleFactor, 150 * scaleFactor, 1.2, -0.2);
-
-      // Wave 2 (Middle) - Lime/Yellow #E1EAC8
-      drawWave('rgba(225, 234, 200, 0.8)', -100 * scaleFactor, -50 * scaleFactor, 200 * scaleFactor, 0.8, 0.1);
-
-      // Wave 3 (Accent) - Light Cyan/Aqua just for depth
-      drawWave('rgba(177, 211, 218, 0.6)', 200 * scaleFactor, -150 * scaleFactor, 100 * scaleFactor, 1.5, -0.4);
-
-      // Wave 4 (Top highlight) - Overlay #BFE1CA again with negative angle
-      ctx.globalCompositeOperation = 'normal';
-      drawWave('rgba(191, 225, 202, 0.5)', -50 * scaleFactor, -250 * scaleFactor, 300 * scaleFactor, 1, 0.3);
-
-      // Restore normal blending for noise
-      ctx.globalCompositeOperation = 'source-over';
-      // Add a subtle noise using text/stippling for texture (optional but adds mesh feel)
-      ctx.fillStyle = 'rgba(255, 255, 255, 0.2)';
-      for (let i = 0; i < h; i += 4) {
-        ctx.fillRect(0, y0 + i, w, 1);
-      }
-
-      ctx.restore();
     } else if (stats.length > 0) {
       ctx.fillStyle = contentAreaBg;
       const contentAreaW = 599 * scaleFactor;
@@ -1141,14 +1086,11 @@ jQuery(async () => {
       function drawInsAvatar(img, x, y) {
         if (!img) return;
         ctx.save();
-        // White Border
+        // White Background behind Avatar
         ctx.beginPath();
         ctx.arc(x + avatarW / 2, y + avatarH / 2, avatarW / 2 + 4 * scaleFactor, 0, Math.PI * 2);
-        ctx.fillStyle = '#F7F9FB'; // Figma: #f7f9fb
+        ctx.fillStyle = '#FFFFFF'; // Pure white solid border, no gray outlines
         ctx.fill();
-        ctx.lineWidth = 1 * scaleFactor;
-        ctx.strokeStyle = '#E0E0E0';
-        ctx.stroke();
 
         // Image
         ctx.beginPath();
