@@ -1081,11 +1081,14 @@ jQuery(async () => {
       function drawInsAvatar(img, x, y) {
         if (!img) return;
         ctx.save();
-        // White Background behind Avatar
+        // White Background & Light Gray Border behind Avatar
         ctx.beginPath();
         ctx.arc(x + avatarW / 2, y + avatarH / 2, avatarW / 2 + 4 * scaleFactor, 0, Math.PI * 2);
-        ctx.fillStyle = '#FFFFFF'; // Pure white solid border, no gray outlines
+        ctx.fillStyle = '#FFFFFF';
         ctx.fill();
+        ctx.lineWidth = 1 * scaleFactor;
+        ctx.strokeStyle = '#EFEFEF'; // Very light gray border
+        ctx.stroke();
 
         // Image
         ctx.beginPath();
