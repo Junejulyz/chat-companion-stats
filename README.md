@@ -23,7 +23,7 @@
 3. 点击 "扩展" 选项卡，安装扩展。
 4. 输入以下地址安装：
    ```
-   https://github.com/Junejulyz/chat-companion-stats-beta.git
+   https://github.com/Junejulyz/chat-companion-stats.git
    ```
 
 ---
