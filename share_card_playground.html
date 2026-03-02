@@ -261,6 +261,32 @@
         </div>
     </div>
 
+    <style>
+        /* ... existing styles ... */
+
+        .loading-preview {
+            position: relative;
+            min-height: 200px;
+            /* Ensure there's space for the loader even if no image yet */
+        }
+
+        .loading-preview::after {
+            content: "正在生成卡片...";
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(255, 255, 255, 0.8);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            font-size: 16px;
+            color: #333;
+            border-radius: 5px;
+            z-index: 10;
+        }
+    </style>
 </body>
 
 </html>
