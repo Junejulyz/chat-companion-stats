@@ -1010,21 +1010,22 @@ jQuery(async () => {
       const h = totalStatsH;
       const y0 = headerH;
 
-      // Base background color - soft off-white/cream
-      ctx.fillStyle = '#fdfbfb';
+      // Base background - soft linear gradient base
+      const bgGrad = ctx.createLinearGradient(0, y0, width, y0 + h);
+      bgGrad.addColorStop(0, '#EAE5D9');
+      bgGrad.addColorStop(0.5, '#F7E7E6');
+      bgGrad.addColorStop(1, '#D8EFE0');
+      ctx.fillStyle = bgGrad;
       ctx.fillRect(0, y0, w, h);
 
       // Function to draw blurred radial gradient
-      function drawMeshBlob(cx, cy, rx, ry, color) {
+      function drawMeshBlob(cx, cy, rx, ry, colorStart, colorEnd) {
         ctx.save();
         ctx.translate(cx, cy);
-        ctx.scale(1, ry / rx); // Enable elliptical gradients by scaling geometry
+        ctx.scale(1, ry / rx); // Enable elliptical gradients 
         const grad = ctx.createRadialGradient(0, 0, 0, 0, 0, rx);
-        grad.addColorStop(0, color);
-        // Fade out smoothly
-        const colorTrans = color.replace(/rgba?\((\d+),\s*(\d+),\s*(\d+)(?:,\s*[\d.]+)?\)/, 'rgba($1, $2, $3, 0)');
-        grad.addColorStop(1, colorTrans);
-
+        grad.addColorStop(0, colorStart);
+        grad.addColorStop(1, colorEnd);
         ctx.fillStyle = grad;
         ctx.beginPath();
         ctx.arc(0, 0, rx, 0, Math.PI * 2);
@@ -1032,27 +1033,31 @@ jQuery(async () => {
         ctx.restore();
       }
 
-      ctx.globalCompositeOperation = 'multiply'; // Use multiply to blend soft pastels like ink
+      ctx.globalCompositeOperation = 'normal';
 
-      // Top left - Pastel Pink/Peach
-      drawMeshBlob(w * 0.1, y0 + h * 0.1, w * 0.7, w * 0.6, 'rgba(255, 204, 204, 0.6)');
+      // Recreating the exact colors from the SVG stop points
+      // #B7DAC6 (soft mint), #B1D3DA (soft cyan), #ECE7C7 (cream yellow)
+      // #D9F5D9 (pale green), #FFEABD (peach/gold), #CDEDD2 (light green)
 
-      // Top right - Soft Purple/Lavender
-      drawMeshBlob(w * 0.8, y0 + h * 0.2, w * 0.6, w * 0.7, 'rgba(230, 204, 255, 0.5)');
+      // Top Right Blob (#B7DAC6)
+      drawMeshBlob(w * 0.8, y0 + h * 0.2, w * 0.7, h * 0.7, 'rgba(183, 218, 198, 0.9)', 'rgba(183, 218, 198, 0)');
 
-      // Bottom left - Mint/Aqua
-      drawMeshBlob(w * 0.2, y0 + h * 0.9, w * 0.8, w * 0.5, 'rgba(204, 255, 229, 0.4)');
+      // Top Left Blob (#B1D3DA)
+      drawMeshBlob(w * 0.2, y0 + h * 0.1, w * 0.8, h * 0.8, 'rgba(177, 211, 218, 0.8)', 'rgba(177, 211, 218, 0)');
 
-      // Bottom right - Soft Gold/Yellow
-      drawMeshBlob(w * 0.9, y0 + h * 0.8, w * 0.7, w * 0.7, 'rgba(255, 245, 204, 0.5)');
+      // Center Left Blob (#ECE7C7)
+      drawMeshBlob(w * 0.1, y0 + h * 0.6, w * 0.6, h * 0.7, 'rgba(236, 231, 199, 0.9)', 'rgba(236, 231, 199, 0)');
 
-      // Center highlight (Screen to pop it up)
-      ctx.globalCompositeOperation = 'screen';
-      drawMeshBlob(w * 0.5, y0 + h * 0.5, w * 0.5, w * 0.5, 'rgba(255, 255, 255, 0.7)');
+      // Bottom Right Blob (#D9F5D9)
+      drawMeshBlob(w * 0.9, y0 + h * 0.9, w * 0.8, h * 0.6, 'rgba(217, 245, 217, 0.9)', 'rgba(217, 245, 217, 0)');
+
+      // Center Highlights (#FFEABD & #CDEDD2)
+      drawMeshBlob(w * 0.5, y0 + h * 0.4, w * 0.9, h * 0.9, 'rgba(255, 234, 189, 0.7)', 'rgba(255, 234, 189, 0)');
+      drawMeshBlob(w * 0.6, y0 + h * 0.8, w * 0.7, h * 0.5, 'rgba(205, 237, 210, 0.8)', 'rgba(205, 237, 210, 0)');
 
       // Add a subtle noise using text/stippling for texture (optional but adds mesh feel)
       ctx.globalCompositeOperation = 'source-over';
-      ctx.fillStyle = 'rgba(255, 255, 255, 0.1)';
+      ctx.fillStyle = 'rgba(255, 255, 255, 0.15)';
       for (let i = 0; i < h; i += 4) {
         ctx.fillRect(0, y0 + i, w, 1);
       }
