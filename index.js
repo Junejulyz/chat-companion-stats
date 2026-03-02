@@ -1153,7 +1153,7 @@ jQuery(async () => {
         // Outer frame
         ctx.fillStyle = isDark ? '#37393B' : 'rgba(220, 221, 220, 1)';
         ctx.beginPath();
-        ctx.arc(x + avatarW / 2, y + avatarH / 2, (avatarW / 2) + 12 * scaleFactor, 0, Math.PI * 2);
+        ctx.arc(x + avatarW / 2, y + avatarH / 2, (avatarW / 2) + 6 * scaleFactor, 0, Math.PI * 2);
         ctx.fill();
 
         // Inner Shadow (cast by the avatar circle itself now)
@@ -1206,7 +1206,7 @@ jQuery(async () => {
       }
 
       if (showEncounterDate) {
-        const infoX = 220 * scaleFactor;
+        const infoX = 240 * scaleFactor;
         const infoY = centerY;
         ctx.textAlign = 'left';
 
