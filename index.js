@@ -13,7 +13,8 @@ jQuery(async () => {
   $('head').append(`<style>
     @import url("https://fontsapi.zeoseven.com/19/main/result.css");
     @import url("https://fontsapi.zeoseven.com/157/main/result.css");
-    @import url("https://fonts.googleapis.com/css2?family=DotGothic16&family=Long+Cang&display=swap");
+    @import url("https://fontsapi.zeoseven.com/101/main/result.css");
+    @import url("https://fonts.googleapis.com/css2?family=Long+Cang&display=swap");
     
     #ccs-preview-container.loading-preview {
       position: relative;
@@ -864,20 +865,25 @@ jQuery(async () => {
     // Theme colors
     const isDark = shareStyle === 'modern-dark' || shareStyle === 'dark';
     const isPixel = shareStyle === 'pixel-pink';
-    const isModern = shareStyle.startsWith('modern-');
+    const isModern = !isPixel; // Adjust modern flag
 
-    console.log(`[Pink Pixel Debug] Generating image. shareStyle=${shareStyle}, isPixel=${isPixel}, charName=${charName}`);
+    // Pixel Pink Colors
+    const pixelBg = '#FFF0F3';
+    const pixelBorder = '#FF7EB3';
+    const pixelText = '#E85D8C';
+    const pixelBoxBg = '#FFDFEA';
+    const pixelBoxBorder = '#1A1A1A';
 
-    const tealColor = isDark ? '#2F3033' : (isPixel ? '#FFD1DC' : '#F7F9FB');
-    const cardBgColor = isDark ? '#2F3033' : (isPixel ? '#FFD1DC' : '#F7F9FB');
-    const contentAreaBg = isDark ? '#1C1D1E' : (isPixel ? '#FFFFFF' : '#EFF2F4');
-    const statBoxColor = isDark ? '#2F3033' : (isPixel ? '#FFCFD9' : '#F7F9FB');
-    const shadowColor = isDark ? 'rgba(19, 19, 19, 0.6)' : (isPixel ? '#000000' : 'rgba(218, 227, 232, 0.6)');
+    const tealColor = isDark ? '#2F3033' : '#F7F9FB';
+    const cardBgColor = isPixel ? pixelBg : (isDark ? '#2F3033' : '#F7F9FB');
+    const contentAreaBg = isDark ? '#1C1D1E' : '#EFF2F4';
+    const statBoxColor = isPixel ? pixelBoxBg : (isDark ? '#2F3033' : '#F7F9FB');
+    const shadowColor = isDark ? 'rgba(19, 19, 19, 0.6)' : 'rgba(218, 227, 232, 0.6)';
 
-    const statLabelColor = isDark ? '#FAFBF7' : (isPixel ? '#B34E6C' : '#131313');
-    const statValueColor = isDark ? '#FAFBF7' : (isPixel ? '#B34E6C' : '#131313');
-    const charNameColor = isDark ? '#FAFBF7' : (isPixel ? '#B34E6C' : '#131313');
-    const dashColor = isPixel ? '#FF9EB5' : '#FFFFFF';
+    const statLabelColor = isPixel ? '#1A1A1A' : (isDark ? '#FAFBF7' : '#131313');
+    const statValueColor = isPixel ? '#1A1A1A' : (isDark ? '#FAFBF7' : '#131313');
+    const charNameColor = isPixel ? pixelText : (isDark ? '#FAFBF7' : '#131313');
+    const dashColor = '#FFFFFF';
 
     // 0. 加载 Ins 风格专属资源 (Now only Background PNG)
     const insAssets = {};
@@ -934,25 +940,25 @@ jQuery(async () => {
       }
     ];
 
-    // 如果不是现代简约风且不是像素风，则加上初遇时间显示
-    if (!isModern && !isPixel) {
+    // 如果不是现代简约风，则加上初遇时间显示
+    if (!isModern) {
       statsItems.unshift({ id: 'ccs-share-start', label: '初遇时间', value: $("#ccs-start").text().replace(/点/g, ':').replace(/分/g, '') });
     }
 
     const stats = statsItems.filter(s => $(`#${s.id}`).is(":checked"));
 
     // 2. 计算动态高度
-    const headerH = (shareStyle === 'ins' ? 144 : 214) * scaleFactor;
+    const headerH = (shareStyle === 'ins' ? 144 : (isPixel ? 260 : 214)) * scaleFactor;
     const footerH = (shareStyle === 'ins' ? 92 : 48) * scaleFactor;
-    const boxH = 80 * scaleFactor;
-    const boxGap = (shareStyle === 'ins' ? 24 : 32) * scaleFactor;
+    const boxH = (isPixel ? 70 : 80) * scaleFactor;
+    const boxGap = (shareStyle === 'ins' ? 24 : (isPixel ? 24 : 32)) * scaleFactor;
 
     // Ins style: fixed height for content area vs others
     const totalStatsH = (shareStyle === 'ins')
       ? (500 * scaleFactor) // Fixed height for ins content
       : (stats.length > 0 ? (stats.length * boxH + (stats.length - 1) * boxGap + 80 * scaleFactor) : 0);
 
-    const height = headerH + totalStatsH + footerH + (isPixel ? 20 * scaleFactor : 0);
+    const height = headerH + totalStatsH + footerH;
     const dynamicHeight = height;
 
     // 现代版底色区域 (This block is now mostly for non-ins styles)
@@ -974,249 +980,301 @@ jQuery(async () => {
         // Extract all unique characters from stats to ensure subsetted fonts load them
         const statChars = Array.from(new Set(statsItems.map(s => (s.label + s.value + (s.unit || '')).split('')).flat())).join('');
 
-        console.log('[Pink Pixel Debug] Triggering font loading...');
         // Trigger font loading
         const fontPromises = [
           document.fonts.load(`400 32px "LXGW Neo XiHei"`, charName + statChars + '初遇'),
           document.fonts.load(`700 32px "LXGW Neo XiHei"`, statChars),
           document.fonts.load(`400 32px "PING FANG SHAO HUA"`, statChars),
-          document.fonts.load(`normal 32px "Cubic 11"`, charName + statChars + '初遇于'),
+          document.fonts.load(`400 32px "Cubic 11"`, charName + statChars + '初遇'),
           document.fonts.load(`400 48px "Long Cang"`, '初遇')
         ];
 
         // Wait for fonts to load, with a timeout to prevent hanging forever
-        const timeoutPromise = new Promise(resolve => setTimeout(() => {
-          console.warn('[Pink Pixel Debug] Font loading timed out!');
-          resolve();
-        }, 3000)); // Increased timeout slightly for the new font
-        
+        const timeoutPromise = new Promise(resolve => setTimeout(resolve, 1500));
         await Promise.race([Promise.all(fontPromises), timeoutPromise]);
-        console.log('[Pink Pixel Debug] Font loading completed or timed out.');
       }
     } catch (e) {
       if (DEBUG) console.warn('Font load trigger failed:', e);
-      console.error('[Pink Pixel Debug] Font loading caught error:', e);
     }
 
-    console.log('[Pink Pixel Debug] Starting drawing operations...');
-    
-    try {
-      // Helper: Rounded Rect
-      function roundRect(x, y, w, h, r, fill = true, stroke = false) {
-        if (isPixel) {
-          if (fill) {
-            ctx.fillRect(x, y, w, h);
-          }
-          if (stroke) {
-            ctx.strokeRect(x, y, w, h);
-          }
-          return;
-        }
-        ctx.beginPath();
-        ctx.moveTo(x + r, y);
-        ctx.arcTo(x + w, y, x + w, y + h, r);
-        ctx.arcTo(x + w, y + h, x, y + h, r);
-        ctx.arcTo(x, y + h, x, y, r);
-        ctx.arcTo(x, y, x + w, y, r);
-        ctx.closePath();
-        if (fill) ctx.fill();
-        if (stroke) ctx.stroke();
-      }
+    // Helper: Rounded Rect
+    function roundRect(x, y, w, h, r, fill = true, stroke = false) {
+      ctx.beginPath();
+      ctx.moveTo(x + r, y);
+      ctx.arcTo(x + w, y, x + w, y + h, r);
+      ctx.arcTo(x + w, y + h, x, y + h, r);
+      ctx.arcTo(x, y + h, x, y, r);
+      ctx.arcTo(x, y, x + w, y, r);
+      ctx.closePath();
+      if (fill) ctx.fill();
+      if (stroke) ctx.stroke();
+    }
 
-      function drawPixelHeart(x, y, size, color) {
-        ctx.save();
-        ctx.fillStyle = color;
-        const s = size / 7;
-        // 7x7 pixel heart matrix
-        const heart = [
-          [0, 1, 1, 0, 1, 1, 0],
-          [1, 1, 1, 1, 1, 1, 1],
-          [1, 1, 1, 1, 1, 1, 1],
-          [1, 1, 1, 1, 1, 1, 1],
-          [0, 1, 1, 1, 1, 1, 0],
-          [0, 0, 1, 1, 1, 0, 0],
-          [0, 0, 0, 1, 0, 0, 0]
-        ];
-        for (let r = 0; r < 7; r++) {
-          for (let c = 0; c < 7; c++) {
-            if (heart[r][c]) {
-              ctx.fillRect(x + c * s, y + r * s, s + 0.5, s + 0.5);
-            }
-          }
-        }
-        ctx.restore();
-      }
+    // 3. 绘制背景
+    ctx.fillStyle = (shareStyle === 'ins') ? '#FFFFFF' : tealColor; // Ins style is white overall
+    if (shareStyle === 'ins') {
+      roundRect(0, 0, width, height, 24 * scaleFactor);
+    } else {
+      ctx.fillRect(0, 0, width, headerH);
+      ctx.fillStyle = cardBgColor;
+      ctx.fillRect(0, headerH, width, dynamicHeight - headerH);
+    }
 
-      // 3. 绘制背景
-      ctx.fillStyle = (shareStyle === 'ins') ? '#FFFFFF' : tealColor; // Ins style is white overall
-      if (shareStyle === 'ins') {
-        roundRect(0, 0, width, height, 24 * scaleFactor);
-      } else if (isPixel) {
-        ctx.fillRect(0, 0, width, height);
-        // Pixel Border
-        ctx.strokeStyle = '#FF9EB5';
-        ctx.lineWidth = 4 * scaleFactor;
-        ctx.strokeRect(20 * scaleFactor, 20 * scaleFactor, width - 40 * scaleFactor, height - 40 * scaleFactor);
+
+    // 4. 内容区域背景
+    if (shareStyle === 'ins') {
+      const w = width;
+      const h = totalStatsH;
+      const y0 = headerH;
+
+      // Mesh Gradient for Ins Style - Use PNG/SVG if loaded, else skip mesh generator
+      if (insAssets.bg) {
+        ctx.drawImage(insAssets.bg, 0, headerH, width, totalStatsH);
       } else {
-        ctx.fillRect(0, 0, width, headerH);
-        ctx.fillStyle = cardBgColor;
-        ctx.fillRect(0, headerH, width, dynamicHeight - headerH);
+        ctx.fillStyle = '#fdfbfb'; // Fallback
+        ctx.fillRect(0, headerH, width, totalStatsH);
       }
+    } else if (isPixel) {
+      // Pixel Pink Background - Simple pink fill already done in step 3
+    } else if (stats.length > 0) {
+      ctx.fillStyle = contentAreaBg;
+      const contentAreaW = 599 * scaleFactor;
+      const contentAreaX = (width - contentAreaW) / 2;
+      // const contentAreaH = totalStatsH; // Already defined as totalStatsH
+      roundRect(contentAreaX, headerH, contentAreaW, totalStatsH, 24 * scaleFactor);
+    }
 
 
-      // 4. 内容区域背景
-      if (shareStyle === 'ins') {
-        const w = width;
-        const h = totalStatsH;
-        const y0 = headerH;
+    // 4. 绘制头像 (Moved to after background, before header logic)
+    const avatarUrl = getCharacterAvatar();
+    const userAvatarUrl = getUserAvatar();
 
-        // Mesh Gradient for Ins Style - Use PNG/SVG if loaded, else skip mesh generator
-        if (insAssets.bg) {
-          ctx.drawImage(insAssets.bg, 0, headerH, width, totalStatsH);
-        } else {
-          ctx.fillStyle = '#fdfbfb'; // Fallback
-          ctx.fillRect(0, headerH, width, totalStatsH);
-        }
-      } else if (isPixel) {
-        ctx.fillStyle = '#FFFFFF';
-        const margin = 40 * scaleFactor;
-        ctx.fillRect(margin, margin, width - margin * 2, headerH - margin + 20 * scaleFactor);
-      } else if (stats.length > 0) {
-        ctx.fillStyle = contentAreaBg;
-        const contentAreaW = 599 * scaleFactor;
-        const contentAreaX = (width - contentAreaW) / 2;
-        // const contentAreaH = totalStatsH; // Already defined as totalStatsH
-        roundRect(contentAreaX, headerH, contentAreaW, totalStatsH, 24 * scaleFactor);
+    const loadImg = (url) => new Promise((resolve) => {
+      if (!url) return resolve(null);
+      const img = new Image();
+      img.crossOrigin = 'anonymous';
+      const timeout = setTimeout(() => {
+        console.warn(`Avatar load timeout: ${url}`);
+        resolve(null);
+      }, 5000);
+      img.onload = () => { clearTimeout(timeout); resolve(img); };
+      img.onerror = () => { clearTimeout(timeout); resolve(null); };
+      img.src = url;
+    });
+
+    const [charImg, userImg] = await Promise.all([loadImg(avatarUrl), loadImg(userAvatarUrl)]);
+
+    function drawRoundedAvatar(img, x, y, w, h, r) {
+      ctx.save();
+      roundRect(x, y, w, h, r, false, false);
+      ctx.clip();
+      if (img) {
+        const scale = Math.max(w / img.width, h / img.height);
+        const sw = img.width * scale;
+        const sh = img.height * scale;
+        ctx.drawImage(img, x + (w - sw) / 2, y + (h - sh) / 2, sw, sh);
+      } else {
+        ctx.fillStyle = '#e0e0e0';
+        ctx.fillRect(x, y, w, h);
       }
+      ctx.restore();
+    }
 
+    const showUser = $("#ccs-share-user-avatar").is(":checked") && userImg;
+    const showEncounterDate = $("#ccs-share-start").is(":checked");
+    const centerY = headerH / 2;
 
-      // 4. 绘制头像 (Moved to after background, before header logic)
-      const avatarUrl = getCharacterAvatar();
-      const userAvatarUrl = getUserAvatar();
+    if (shareStyle === 'ins') {
+      const avatarW = 72 * scaleFactor;
+      const avatarH = 72 * scaleFactor;
+      const avatarY = (headerH - avatarH) / 2;
+      const startX = 24 * scaleFactor;
 
-      const loadImg = (url) => new Promise((resolve) => {
-        if (!url) return resolve(null);
-        const img = new Image();
-        img.crossOrigin = 'anonymous';
-        const timeout = setTimeout(() => {
-          console.warn(`Avatar load timeout: ${url}`);
-          resolve(null);
-        }, 5000);
-        img.onload = () => { clearTimeout(timeout); resolve(img); };
-        img.onerror = () => { clearTimeout(timeout); resolve(null); };
-        img.src = url;
-      });
-
-      const [charImg, userImg] = await Promise.all([loadImg(avatarUrl), loadImg(userAvatarUrl)]);
-      console.log(`[Pink Pixel Debug] Avatars loaded. charImg: ${!!charImg}, userImg: ${!!userImg}`);
-
-      function drawRoundedAvatar(img, x, y, w, h, r) {
+      function drawInsAvatar(img, x, y) {
+        if (!img) return;
         ctx.save();
-        roundRect(x, y, w, h, r, false, false);
-        ctx.clip();
-        if (img) {
-          const scale = Math.max(w / img.width, h / img.height);
-          const sw = img.width * scale;
-          const sh = img.height * scale;
-          ctx.drawImage(img, x + (w - sw) / 2, y + (h - sh) / 2, sw, sh);
-        } else {
-          ctx.fillStyle = '#e0e0e0';
-          ctx.fillRect(x, y, w, h);
-        }
-        ctx.restore();
-      }
-
-      const showUser = $("#ccs-share-user-avatar").is(":checked") && userImg;
-      const showEncounterDate = $("#ccs-share-start").is(":checked");
-      const centerY = headerH / 2;
-
-      console.log('[Pink Pixel Debug] Drawing Header...');
-      if (isPixel) {
-        const avatarW = 80 * scaleFactor;
-        const avatarH = 80 * scaleFactor;
-        const gap = 120 * scaleFactor;
-        const centerX = width / 2;
-        const avatarY = 80 * scaleFactor;
-
-        function drawPixelAvatar(img, x, y) {
-          // Pixel Shadow
-          ctx.fillStyle = '#FF9EB5';
-          ctx.fillRect(x + 4 * scaleFactor, y + 4 * scaleFactor, avatarW, avatarH);
-          // Photo Frame
-          ctx.strokeStyle = '#B34E6C';
-          ctx.lineWidth = 2 * scaleFactor;
-          ctx.strokeRect(x, y, avatarW, avatarH);
-          // Image
-          ctx.save();
-          ctx.beginPath(); // Added beginPath here to prevent previous paths from interfering
-          ctx.rect(x + 1 * scaleFactor, y + 1 * scaleFactor, avatarW - 2 * scaleFactor, avatarH - 2 * scaleFactor);
-          ctx.clip();
-          if (img) {
-            const scale = Math.max(avatarW / img.width, avatarH / img.height);
-            const sw = img.width * scale;
-            const sh = img.height * scale;
-            ctx.drawImage(img, x + (avatarW - sw) / 2, y + (avatarH - sh) / 2, sw, sh);
-          } else {
-            ctx.fillStyle = '#eee';
-            ctx.fillRect(x, y, avatarW, avatarH);
-          }
-          ctx.restore();
-        }
-
-        // Connector Line
-        ctx.strokeStyle = '#FF9EB5';
-        ctx.lineWidth = 2 * scaleFactor;
+        // White Background & Light Gray Border behind Avatar
         ctx.beginPath();
-        ctx.moveTo(centerX - gap / 2, avatarY + avatarH / 2);
-        ctx.lineTo(centerX + gap / 2, avatarY + avatarH / 2);
+        ctx.arc(x + avatarW / 2, y + avatarH / 2, avatarW / 2 + 4 * scaleFactor, 0, Math.PI * 2);
+        ctx.fillStyle = '#FFFFFF';
+        ctx.fill();
+        ctx.lineWidth = 1 * scaleFactor;
+        ctx.strokeStyle = '#EFEFEF'; // Very light gray border
         ctx.stroke();
 
-        // Pixel Heart
-        const heartSize = 42 * scaleFactor;
-        drawPixelHeart(centerX - heartSize / 2, avatarY + avatarH / 2 - heartSize / 2, heartSize, '#FF9EB5');
+        // Image
+        ctx.beginPath();
+        ctx.arc(x + avatarW / 2, y + avatarH / 2, avatarW / 2, 0, Math.PI * 2);
+        ctx.clip();
+        // Use charImg/userImg directly, no need to reload
+        const iw = img.width;
+        const ih = img.height;
+        const r = Math.max(avatarW / iw, avatarH / ih);
+        const nw = iw * r;
+        const nh = ih * r;
+        const sx = (iw - avatarW / r) / 2;
+        const sy = (ih - avatarH / r) / 2;
+        ctx.drawImage(img, sx, sy, avatarW / r, avatarH / r, x, y, avatarW, avatarH);
+        ctx.restore();
+      }
 
-        if (showUser) {
-          drawPixelAvatar(charImg, centerX - gap / 2 - avatarW, avatarY);
-          drawPixelAvatar(userImg, centerX + gap / 2, avatarY);
+      if (showUser) {
+        drawInsAvatar(userImg, startX + 44 * scaleFactor, avatarY); // User RIGHT (bottom), separated by 44 instead of 36
+        drawInsAvatar(charImg, startX, avatarY); // Character LEFT (top)
+      } else {
+        drawInsAvatar(charImg, startX, avatarY);
+      }
+
+      // Title & Encounter
+      const textX = startX + (showUser ? (avatarW + 44 * scaleFactor + 16 * scaleFactor) : (avatarW + 16 * scaleFactor));
+      ctx.textAlign = 'left';
+
+      ctx.fillStyle = '#131313';
+      ctx.font = `400 ${24 * scaleFactor}px "LXGW Neo XiHei", sans-serif`;
+
+      if (showEncounterDate) {
+        ctx.fillText(charName, textX, avatarY + 28 * scaleFactor);
+        ctx.fillStyle = '#5E5E5E';
+        ctx.font = `400 ${22 * scaleFactor}px "LXGW Neo XiHei", sans-serif`;
+        ctx.fillText(`初遇 ${$("#ccs-start").text()}`, textX, avatarY + 60 * scaleFactor);
+      } else {
+        // Center the name vertically if encounter date is not shown
+        ctx.fillText(charName, textX, centerY + 8 * scaleFactor);
+      }
+
+      // Three Dots Icon
+      ctx.save();
+      ctx.translate(width - 48 * scaleFactor, centerY);
+      ctx.fillStyle = '#4F4F4F'; // Figma color
+      const p = (shareStyle === 'ins' && insIcons.more) ? new Path2D(insIcons.more) : null;
+      if (p) {
+        ctx.scale(1 * scaleFactor, 1 * scaleFactor); // Figma: 36px total, path fits in 36x36
+        ctx.translate(-18, -18); // Center 36x36 path
+        ctx.fill(p);
+      }
+      ctx.restore();
+
+    } else if (isPixel) {
+      // Pixel Pink Header logic
+      const avatarW = 90 * scaleFactor;
+      const avatarH = 90 * scaleFactor;
+      const avatarY = 48 * scaleFactor;
+      const leftAvatarX = 70 * scaleFactor;
+      const rightAvatarX = width - 70 * scaleFactor - avatarW;
+
+      // Outer Pink border (as requested by reference)
+      ctx.strokeStyle = pixelBorder;
+      ctx.lineWidth = 6 * scaleFactor;
+      roundRect(24 * scaleFactor, 24 * scaleFactor, width - 48 * scaleFactor, headerH - 48 * scaleFactor, 8 * scaleFactor, false, true);
+
+      function drawPixelAvatar(img, x, y) {
+        // Shadow/Offset effect
+        ctx.fillStyle = 'rgba(232, 93, 140, 0.4)';
+        ctx.fillRect(x + 6 * scaleFactor, y + 6 * scaleFactor, avatarW, avatarH);
+
+        // Border
+        ctx.strokeStyle = pixelBorder;
+        ctx.lineWidth = 4 * scaleFactor;
+        ctx.strokeRect(x, y, avatarW, avatarH);
+
+        // Image
+        ctx.save();
+        ctx.beginPath();
+        ctx.rect(x + 2 * scaleFactor, y + 2 * scaleFactor, avatarW - 4 * scaleFactor, avatarH - 4 * scaleFactor);
+        ctx.clip();
+        if (img) {
+          const scale = Math.max(avatarW / img.width, avatarH / img.height);
+          const sw = img.width * scale;
+          const sh = img.height * scale;
+          ctx.drawImage(img, x + (avatarW - sw) / 2, y + (avatarH - sh) / 2, sw, sh);
         } else {
-          drawPixelAvatar(charImg, centerX - avatarW / 2, avatarY);
+          ctx.fillStyle = '#ddd';
+          ctx.fillRect(x, y, avatarW, avatarH);
         }
+        ctx.restore();
+      }
 
-        // Text Info below
-        ctx.textAlign = 'center';
-        ctx.fillStyle = charNameColor;
-        ctx.font = `normal ${32 * scaleFactor}px "Cubic 11", sans-serif`;
-        ctx.fillText(charName, centerX, avatarY + avatarH + 45 * scaleFactor);
+      drawPixelAvatar(charImg, leftAvatarX, avatarY);
+      if (showUser) {
+        drawPixelAvatar(userImg, rightAvatarX, avatarY);
+      }
 
-        if (showEncounterDate) {
-          ctx.font = `normal ${22 * scaleFactor}px "Cubic 11", sans-serif`;
-          const dateText = `初遇于 ${$("#ccs-start").text().replace(/点/g, ':').replace(/分/g, '')}`;
-          ctx.fillText(dateText, centerX, avatarY + avatarH + 78 * scaleFactor);
-        }
+      // Connecting Line and Pixel Heart
+      const lineY = avatarY + avatarH / 2;
+      ctx.strokeStyle = pixelBorder;
+      ctx.lineWidth = 3 * scaleFactor;
+      ctx.beginPath();
+      ctx.moveTo(leftAvatarX + avatarW, lineY);
+      ctx.lineTo(showUser ? rightAvatarX : width / 2 + 50 * scaleFactor, lineY);
+      ctx.stroke();
 
-      } else if (shareStyle === 'ins') {
-        const avatarW = 72 * scaleFactor;
-        const avatarH = 72 * scaleFactor;
-        const avatarY = (headerH - avatarH) / 2;
-        const startX = 24 * scaleFactor;
+      // Draw Pixel Heart
+      const heartSize = 6 * scaleFactor;
+      const hx = (showUser ? (leftAvatarX + avatarW + rightAvatarX) / 2 : width / 2) - 4.5 * heartSize;
+      const hy = lineY - 4 * heartSize;
+      
+      const heartData = [
+        [0,0,1,1,0,1,1,0,0],
+        [0,1,1,1,1,1,1,1,0],
+        [1,1,1,1,1,1,1,1,1],
+        [1,1,1,1,1,1,1,1,1],
+        [0,1,1,1,1,1,1,1,0],
+        [0,0,1,1,1,1,1,0,0],
+        [0,0,0,1,1,1,0,0,0],
+        [0,0,0,0,1,0,0,0,0]
+      ];
+      
+      ctx.fillStyle = pixelBorder;
+      heartData.forEach((row, r) => {
+        row.forEach((cell, c) => {
+          if (cell) ctx.fillRect(hx + c * heartSize, hy + r * heartSize, heartSize, heartSize);
+        });
+      });
 
-        function drawInsAvatar(img, x, y) {
-          if (!img) return;
-          ctx.save();
-          // White Background & Light Gray Border behind Avatar
-          ctx.beginPath();
-          ctx.arc(x + avatarW / 2, y + avatarH / 2, avatarW / 2 + 4 * scaleFactor, 0, Math.PI * 2);
-          ctx.fillStyle = '#FFFFFF';
-          ctx.fill();
-          ctx.lineWidth = 1 * scaleFactor;
-          ctx.strokeStyle = '#EFEFEF'; // Very light gray border
-          ctx.stroke();
+      // Name and Date
+      ctx.textAlign = 'center';
+      ctx.fillStyle = pixelText;
+      ctx.font = `400 ${36 * scaleFactor}px "Cubic 11", sans-serif`;
+      ctx.fillText(charName, width / 2, avatarY + avatarH + 45 * scaleFactor);
 
-          // Image
-          ctx.beginPath();
-          ctx.arc(x + avatarW / 2, y + avatarH / 2, avatarW / 2, 0, Math.PI * 2);
-          ctx.clip();
-          // Use charImg/userImg directly, no need to reload
+      if (showEncounterDate) {
+        ctx.font = `400 ${22 * scaleFactor}px "Cubic 11", sans-serif`;
+        ctx.fillText(`初遇于 ${$("#ccs-start").text()}`, width / 2, avatarY + avatarH + 75 * scaleFactor);
+      }
+
+    } else {
+      // Modern style header logic...
+      const avatarW = 100 * scaleFactor;
+      const avatarH = 100 * scaleFactor;
+      const avatarGap = -27 * scaleFactor; // Decreased from -35 to -27 to separate by ~8px more
+      const avatarY = (headerH - avatarH) / 2;
+
+      function drawModernAvatar(img, x, y) {
+        // Outer frame
+        ctx.fillStyle = isDark ? '#37393B' : 'rgba(220, 221, 220, 1)';
+        ctx.beginPath();
+        ctx.arc(x + avatarW / 2, y + avatarH / 2, (avatarW / 2) + 6 * scaleFactor, 0, Math.PI * 2);
+        ctx.fill();
+
+        // Inner Shadow (cast by the avatar circle itself now)
+        ctx.save();
+        ctx.shadowColor = isDark ? 'rgba(19, 19, 19, 0.8)' : 'rgba(175, 183, 188, 0.8)';
+        ctx.shadowBlur = 18 * scaleFactor;
+        ctx.shadowOffsetY = 12 * scaleFactor;
+
+        // Draw a dummy circle exact size of the avatar to cast the drop shadow
+        ctx.fillStyle = isDark ? '#131313' : '#FFFFFF';
+        ctx.beginPath();
+        ctx.arc(x + avatarW / 2, y + avatarH / 2, avatarW / 2, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.restore();
+
+        // Image with Center Crop (Object-fit: cover)
+        ctx.save();
+        ctx.beginPath();
+        ctx.arc(x + avatarW / 2, y + avatarH / 2, avatarW / 2, 0, Math.PI * 2);
+        ctx.clip();
+        if (img) {
           const iw = img.width;
           const ih = img.height;
           const r = Math.max(avatarW / iw, avatarH / ih);
@@ -1225,269 +1283,174 @@ jQuery(async () => {
           const sx = (iw - avatarW / r) / 2;
           const sy = (ih - avatarH / r) / 2;
           ctx.drawImage(img, sx, sy, avatarW / r, avatarH / r, x, y, avatarW, avatarH);
-          ctx.restore();
-        }
-
-        if (showUser) {
-          drawInsAvatar(userImg, startX + 44 * scaleFactor, avatarY); // User RIGHT (bottom), separated by 44 instead of 36
-          drawInsAvatar(charImg, startX, avatarY); // Character LEFT (top)
         } else {
-          drawInsAvatar(charImg, startX, avatarY);
+          ctx.fillStyle = '#ddd';
+          ctx.fill();
         }
+        ctx.restore();
+      };
 
-        // Title & Encounter
-        const textX = startX + (showUser ? (avatarW + 44 * scaleFactor + 16 * scaleFactor) : (avatarW + 16 * scaleFactor));
+      if (!showEncounterDate) { // Original logic for modern style when encounter date is not shown
+        const combinedW = showUser ? (avatarW * 2 + avatarGap) : avatarW;
+        const centerX = (width - combinedW) / 2;
+        if (showUser) {
+          drawModernAvatar(userImg, centerX + avatarW + avatarGap, avatarY); // User RIGHT (bottom)
+        }
+        drawModernAvatar(charImg, centerX, avatarY); // Character LEFT (top)
+      } else { // Original logic for modern style when encounter date is shown
+        const startX = 48 * scaleFactor;
+        if (showUser) {
+          drawModernAvatar(userImg, startX + avatarW + avatarGap, avatarY); // User RIGHT (bottom)
+        }
+        drawModernAvatar(charImg, startX, avatarY); // Character LEFT (top)
+      }
+
+      if (showEncounterDate) {
+        const infoX = 246 * scaleFactor; // Moved to the right by 8px from 238
+        const infoY = centerY;
         ctx.textAlign = 'left';
 
-        ctx.fillStyle = '#131313';
-        ctx.font = `400 ${24 * scaleFactor}px "LXGW Neo XiHei", sans-serif`;
+        // Name
+        ctx.fillStyle = charNameColor;
+        ctx.font = `400 ${31 * scaleFactor}px "LXGW Neo XiHei", "PingFang SC", sans-serif`; // Reverted to 400
+        ctx.fillText(charName, infoX, infoY - 12 * scaleFactor); // Moved up slightly
 
-        if (showEncounterDate) {
-          ctx.fillText(charName, textX, avatarY + 28 * scaleFactor);
-          ctx.fillStyle = '#5E5E5E';
-          ctx.font = `400 ${22 * scaleFactor}px "LXGW Neo XiHei", sans-serif`;
-          ctx.fillText(`初遇 ${$("#ccs-start").text()}`, textX, avatarY + 60 * scaleFactor);
-        } else {
-          // Center the name vertically if encounter date is not shown
-          ctx.fillText(charName, textX, centerY + 8 * scaleFactor);
-        }
-
-        // Three Dots Icon
+        // Encounter Info
+        const encounterText = `初遇 ${$("#ccs-start").text()}`;
         ctx.save();
-        ctx.translate(width - 48 * scaleFactor, centerY);
-        ctx.fillStyle = '#4F4F4F'; // Figma color
-        const p = (shareStyle === 'ins' && insIcons.more) ? new Path2D(insIcons.more) : null;
-        if (p) {
-          ctx.scale(1 * scaleFactor, 1 * scaleFactor); // Figma: 36px total, path fits in 36x36
-          ctx.translate(-18, -18); // Center 36x36 path
+        ctx.globalAlpha = 0.7; // 70% opacity per request
+        ctx.fillStyle = statLabelColor;
+        ctx.font = `400 ${25 * scaleFactor}px "LXGW Neo XiHei", "PingFang SC", sans-serif`; // Reverted to 400
+        ctx.fillText(encounterText, infoX, infoY + 36 * scaleFactor); // Moved down slightly (+32 -> +36)
+        ctx.restore();
+      }
+    }
+
+    // 6. 绘制统计项
+    const insContentH = 500 * scaleFactor;
+    const actualStatsH = stats.length * boxH + (stats.length > 0 ? (stats.length - 1) * boxGap : 0);
+    const statsStartY = (shareStyle === 'ins')
+      ? (headerH + (insContentH - actualStatsH) / 2) // Vertically centered in fixed height
+      : (isModern ? (headerH + 40 * scaleFactor) : (headerH + 100 * scaleFactor + 40 * scaleFactor));
+
+    const boxW = 519 * scaleFactor;
+    const boxX = (width - boxW) / 2;
+
+    stats.forEach((stat, i) => {
+      const cy = statsStartY + i * (boxH + boxGap);
+
+      if (shareStyle === 'ins') {
+        // Ins style: Left aligned with 40px spacing
+        ctx.textAlign = 'left';
+        ctx.fillStyle = '#131313';
+        ctx.font = `400 ${45 * scaleFactor}px "PING FANG SHAO HUA", sans-serif`;
+
+        const labelText = `${stat.label}   ${stat.value} ${stat.unit || ''}`;
+        ctx.fillText(labelText, 40 * scaleFactor, cy + boxH / 2 + 10 * scaleFactor);
+
+      } else if (isPixel) {
+        // Pixel Pink Stats Box
+        ctx.fillStyle = '#000000'; // Shadow/offset border
+        ctx.fillRect(boxX, cy, boxW, boxH);
+        
+        ctx.fillStyle = statBoxColor;
+        ctx.fillRect(boxX, cy - 4 * scaleFactor, boxW, boxH);
+        
+        ctx.strokeStyle = '#000000';
+        ctx.lineWidth = 3 * scaleFactor;
+        ctx.strokeRect(boxX, cy - 4 * scaleFactor, boxW, boxH);
+
+        // Label
+        ctx.textAlign = 'left';
+        ctx.fillStyle = '#1A1A1A';
+        ctx.font = `400 ${28 * scaleFactor}px "Cubic 11", sans-serif`;
+        ctx.fillText(stat.label, boxX + 24 * scaleFactor, cy + boxH / 2 + 6 * scaleFactor);
+
+        // Value
+        ctx.textAlign = 'right';
+        const displayValue = `${stat.value} ${stat.unit || ''}`;
+        ctx.fillText(displayValue, boxX + boxW - 24 * scaleFactor, cy + boxH / 2 + 6 * scaleFactor);
+
+      } else {
+        // Shadow for Modern Style
+        ctx.save();
+        ctx.shadowColor = shadowColor;
+        ctx.shadowBlur = 24 * scaleFactor;
+        ctx.shadowOffsetY = 12 * scaleFactor;
+        ctx.fillStyle = statBoxColor;
+        roundRect(boxX, cy, boxW, boxH, 24 * scaleFactor);
+        ctx.restore();
+
+        // Label
+        ctx.textAlign = 'left';
+        ctx.fillStyle = statLabelColor;
+        ctx.font = `400 ${28 * scaleFactor}px "LXGW Neo XiHei", "PingFang SC", sans-serif`; // Reverted to 400
+        ctx.fillText(stat.label, boxX + 32 * scaleFactor, cy + boxH / 2 + 8 * scaleFactor);
+
+        // Value & Unit
+        ctx.textAlign = 'right';
+        const valueX = boxX + boxW - 32 * scaleFactor;
+
+        if (stat.unit) {
+          ctx.save();
+          ctx.globalAlpha = 0.7; // 70% opacity for units
+          ctx.fillStyle = statLabelColor;
+          ctx.font = `400 ${24 * scaleFactor}px "LXGW Neo XiHei", "PingFang SC", sans-serif`; // Reverted to 400
+          ctx.fillText(stat.unit, valueX, cy + boxH / 2 + 8 * scaleFactor);
+          ctx.restore();
+
+          const unitWidth = ctx.measureText(stat.unit).width;
+          ctx.fillStyle = statValueColor;
+          ctx.font = `700 ${28 * scaleFactor}px "LXGW Neo XiHei", "PingFang SC", sans-serif`; // Weight Bold
+          ctx.fillText(stat.value, valueX - unitWidth - 8 * scaleFactor, cy + boxH / 2 + 8 * scaleFactor);
+        } else {
+          ctx.fillStyle = statValueColor;
+          ctx.font = `700 ${28 * scaleFactor}px "LXGW Neo XiHei", "PingFang SC", sans-serif`;
+          ctx.fillText(stat.value, valueX, cy + boxH / 2 + 8 * scaleFactor);
+        }
+      }
+    });
+
+    // 7. 绘制底部互动栏 (Ins Style Only)
+    if (shareStyle === 'ins') {
+      const footerY = height - footerH;
+      ctx.fillStyle = '#FFFFFF';
+      ctx.fillRect(0, footerY, width, footerH);
+
+      const iconY = footerY + 30 * scaleFactor;
+      const startX = 32 * scaleFactor;
+      const iconGap = 20 * scaleFactor; // Adjusted gap for SVG
+      const iconSize = 36 * scaleFactor; // Figma size
+
+      function drawPngIcon(path, x, y) {
+        if (!path) return;
+        ctx.save();
+        ctx.translate(x, y);
+        const p = new Path2D(path);
+        ctx.scale(iconSize / 36, iconSize / 36); // Original paths are 36x36
+
+        // For simple outlines, we stroke them
+        if (path === insIcons.heart || path === insIcons.comment || path === insIcons.bookmark || path === insIcons.share) {
+          ctx.strokeStyle = '#333333';
+          ctx.lineWidth = 3;
+          ctx.lineJoin = 'round';
+          ctx.lineCap = 'round';
+          ctx.stroke(p);
+        } else {
+          ctx.fillStyle = '#333333';
           ctx.fill(p);
         }
         ctx.restore();
-
-      } else {
-        // Modern style header logic...
-        const avatarW = 100 * scaleFactor;
-        const avatarH = 100 * scaleFactor;
-        const avatarGap = -27 * scaleFactor; // Decreased from -35 to -27 to separate by ~8px more
-        const avatarY = (headerH - avatarH) / 2;
-
-        function drawModernAvatar(img, x, y) {
-          // Outer frame
-          ctx.fillStyle = isDark ? '#37393B' : 'rgba(220, 221, 220, 1)';
-          ctx.beginPath();
-          ctx.arc(x + avatarW / 2, y + avatarH / 2, (avatarW / 2) + 6 * scaleFactor, 0, Math.PI * 2);
-          ctx.fill();
-
-          // Inner Shadow (cast by the avatar circle itself now)
-          ctx.save();
-          ctx.shadowColor = isDark ? 'rgba(19, 19, 19, 0.8)' : 'rgba(175, 183, 188, 0.8)';
-          ctx.shadowBlur = 18 * scaleFactor;
-          ctx.shadowOffsetY = 12 * scaleFactor;
-
-          // Draw a dummy circle exact size of the avatar to cast the drop shadow
-          ctx.fillStyle = isDark ? '#131313' : '#FFFFFF';
-          ctx.beginPath();
-          ctx.arc(x + avatarW / 2, y + avatarH / 2, avatarW / 2, 0, Math.PI * 2);
-          ctx.fill();
-          ctx.restore();
-
-          // Image with Center Crop (Object-fit: cover)
-          ctx.save();
-          ctx.beginPath();
-          ctx.arc(x + avatarW / 2, y + avatarH / 2, avatarW / 2, 0, Math.PI * 2);
-          ctx.clip();
-          if (img) {
-            const iw = img.width;
-            const ih = img.height;
-            const r = Math.max(avatarW / iw, avatarH / ih);
-            const nw = iw * r;
-            const nh = ih * r;
-            const sx = (iw - avatarW / r) / 2;
-            const sy = (ih - avatarH / r) / 2;
-            ctx.drawImage(img, sx, sy, avatarW / r, avatarH / r, x, y, avatarW, avatarH);
-          } else {
-            ctx.fillStyle = '#ddd';
-            ctx.fill();
-          }
-          ctx.restore();
-        };
-
-        if (!showEncounterDate) { // Original logic for modern style when encounter date is not shown
-          const combinedW = showUser ? (avatarW * 2 + avatarGap) : avatarW;
-          const centerX = (width - combinedW) / 2;
-          if (showUser) {
-            drawModernAvatar(userImg, centerX + avatarW + avatarGap, avatarY); // User RIGHT (bottom)
-          }
-          drawModernAvatar(charImg, centerX, avatarY); // Character LEFT (top)
-        } else { // Original logic for modern style when encounter date is shown
-          const startX = 48 * scaleFactor;
-          if (showUser) {
-            drawModernAvatar(userImg, startX + avatarW + avatarGap, avatarY); // User RIGHT (bottom)
-          }
-          drawModernAvatar(charImg, startX, avatarY); // Character LEFT (top)
-        }
-
-        if (showEncounterDate) {
-          const infoX = 246 * scaleFactor; // Moved to the right by 8px from 238
-          const infoY = centerY;
-          ctx.textAlign = 'left';
-
-          // Name
-          ctx.fillStyle = charNameColor;
-          ctx.font = `400 ${31 * scaleFactor}px "LXGW Neo XiHei", "PingFang SC", sans-serif`; // Reverted to 400
-          ctx.fillText(charName, infoX, infoY - 12 * scaleFactor); // Moved up slightly
-
-          // Encounter Info
-          const encounterText = `初遇 ${$("#ccs-start").text()}`;
-          ctx.save();
-          ctx.globalAlpha = 0.7; // 70% opacity per request
-          ctx.fillStyle = statLabelColor;
-          ctx.font = `400 ${25 * scaleFactor}px "LXGW Neo XiHei", "PingFang SC", sans-serif`; // Reverted to 400
-          ctx.fillText(encounterText, infoX, infoY + 36 * scaleFactor); // Moved down slightly (+32 -> +36)
-          ctx.restore();
-        }
       }
 
-      console.log('[Pink Pixel Debug] Drawing Stats Boxes...');
-      // 6. 绘制统计项
-      const insContentH = 500 * scaleFactor;
-      const actualStatsH = stats.length * boxH + (stats.length > 0 ? (stats.length - 1) * boxGap : 0);
-      const statsStartY = (shareStyle === 'ins')
-        ? (headerH + (insContentH - actualStatsH) / 2) // Vertically centered in fixed height
-        : (isPixel ? (headerH + 60 * scaleFactor) : (isModern ? (headerH + 40 * scaleFactor) : (headerH + 100 * scaleFactor + 40 * scaleFactor)));
-
-      const boxW = 519 * scaleFactor;
-      const boxX = (width - boxW) / 2;
-
-      stats.forEach((stat, i) => {
-        const cy = statsStartY + i * (boxH + boxGap);
-
-        if (shareStyle === 'ins') {
-          // Ins style: Left aligned with 40px spacing
-          ctx.textAlign = 'left';
-          ctx.fillStyle = '#131313';
-          ctx.font = `400 ${45 * scaleFactor}px "PING FANG SHAO HUA", sans-serif`;
-
-          const labelText = `${stat.label}   ${stat.value} ${stat.unit || ''}`;
-          ctx.fillText(labelText, 40 * scaleFactor, cy + boxH / 2 + 10 * scaleFactor);
-        } else if (isPixel) {
-          // Shadow (Pixel Style)
-          ctx.fillStyle = '#000000';
-          ctx.fillRect(boxX + 4 * scaleFactor, cy + 4 * scaleFactor, boxW, boxH);
-          // Box
-          ctx.fillStyle = statBoxColor;
-          ctx.fillRect(boxX, cy, boxW, boxH);
-          // Border
-          ctx.strokeStyle = '#B34E6C';
-          ctx.lineWidth = 2 * scaleFactor;
-          ctx.strokeRect(boxX, cy, boxW, boxH);
-
-          // Label
-          ctx.textAlign = 'left';
-          ctx.fillStyle = statLabelColor;
-          ctx.font = `normal ${28 * scaleFactor}px "Cubic 11", sans-serif`;
-          ctx.fillText(stat.label, boxX + 24 * scaleFactor, cy + boxH / 2 + 10 * scaleFactor);
-
-          // Value
-          ctx.textAlign = 'right';
-          const valueX = boxX + boxW - 24 * scaleFactor;
-          const valText = `${stat.value}${stat.unit ? ' ' + stat.unit : ''}`;
-          ctx.fillText(valText, valueX, cy + boxH / 2 + 10 * scaleFactor);
-
-        } else {
-          // Shadow for Modern Style
-          ctx.save();
-          ctx.shadowColor = shadowColor;
-          ctx.shadowBlur = 24 * scaleFactor;
-          ctx.shadowOffsetY = 12 * scaleFactor;
-          ctx.fillStyle = statBoxColor;
-          roundRect(boxX, cy, boxW, boxH, 24 * scaleFactor);
-          ctx.restore();
-
-          // Label
-          ctx.textAlign = 'left';
-          ctx.fillStyle = statLabelColor;
-          ctx.font = `400 ${28 * scaleFactor}px "LXGW Neo XiHei", "PingFang SC", sans-serif`; // Reverted to 400
-          ctx.fillText(stat.label, boxX + 32 * scaleFactor, cy + boxH / 2 + 8 * scaleFactor);
-
-          // Value & Unit
-          ctx.textAlign = 'right';
-          const valueX = boxX + boxW - 32 * scaleFactor;
-
-          if (stat.unit) {
-            ctx.save();
-            ctx.globalAlpha = 0.7; // 70% opacity for units
-            ctx.fillStyle = statLabelColor;
-            ctx.font = `400 ${24 * scaleFactor}px "LXGW Neo XiHei", "PingFang SC", sans-serif`; // Reverted to 400
-            ctx.fillText(stat.unit, valueX, cy + boxH / 2 + 8 * scaleFactor);
-            ctx.restore();
-
-            const unitWidth = ctx.measureText(stat.unit).width;
-            ctx.fillStyle = statValueColor;
-            ctx.font = `700 ${28 * scaleFactor}px "LXGW Neo XiHei", "PingFang SC", sans-serif`; // Weight Bold
-            ctx.fillText(stat.value, valueX - unitWidth - 8 * scaleFactor, cy + boxH / 2 + 8 * scaleFactor);
-          } else {
-            ctx.fillStyle = statValueColor;
-            ctx.font = `700 ${28 * scaleFactor}px "LXGW Neo XiHei", "PingFang SC", sans-serif`;
-            ctx.fillText(stat.value, valueX, cy + boxH / 2 + 8 * scaleFactor);
-          }
-        }
-      });
-
-      console.log('[Pink Pixel Debug] Drawing Footer...');
-      // 7. 绘制底部互动栏 (Ins Style Only)
-      if (shareStyle === 'ins') {
-        const footerY = height - footerH;
-        ctx.fillStyle = '#FFFFFF';
-        ctx.fillRect(0, footerY, width, footerH);
-
-        const iconY = footerY + 30 * scaleFactor;
-        const startX = 32 * scaleFactor;
-        const iconGap = 20 * scaleFactor; // Adjusted gap for SVG
-        const iconSize = 36 * scaleFactor; // Figma size
-
-        function drawPngIcon(path, x, y) {
-          if (!path) return;
-          ctx.save();
-          ctx.translate(x, y);
-          const p = new Path2D(path);
-          ctx.scale(iconSize / 36, iconSize / 36); // Original paths are 36x36
-
-          // For simple outlines, we stroke them
-          if (path === insIcons.heart || path === insIcons.comment || path === insIcons.bookmark || path === insIcons.share) {
-            ctx.strokeStyle = '#333333';
-            ctx.lineWidth = 3;
-            ctx.lineJoin = 'round';
-            ctx.lineCap = 'round';
-            ctx.stroke(p);
-          } else {
-            ctx.fillStyle = '#333333';
-            ctx.fill(p);
-          }
-          ctx.restore();
-        }
-
-        drawPngIcon(insIcons.heart, startX, iconY);
-        drawPngIcon(insIcons.comment, startX + iconSize + iconGap, iconY);
-        drawPngIcon(insIcons.share, startX + (iconSize + iconGap) * 2, iconY);
-        drawPngIcon(insIcons.bookmark, width - startX - iconSize, iconY);
-      }
-    } catch (drawErr) {
-      console.error('[Pink Pixel Debug] Error during drawing:', drawErr);
-      throw drawErr;
+      drawPngIcon(insIcons.heart, startX, iconY);
+      drawPngIcon(insIcons.comment, startX + iconSize + iconGap, iconY);
+      drawPngIcon(insIcons.share, startX + (iconSize + iconGap) * 2, iconY);
+      drawPngIcon(insIcons.bookmark, width - startX - iconSize, iconY);
     }
 
     ctx.restore(); // Restore from card-level 16px clipping
-    console.log('[Pink Pixel Debug] Generating Data URL...');
-    let dataUrl = '';
-    try {
-      dataUrl = canvas.toDataURL('image/png');
-    } catch (urlErr) {
-      console.error('[Pink Pixel Debug] Error exporting canvas toDataURL (Possible cross-origin issue):', urlErr);
-      throw urlErr;
-    }
-    console.log('[Pink Pixel Debug] Done.');
-    return dataUrl;
+    return canvas.toDataURL('image/png');
   }
 
   function showPreview(imageData) {
