@@ -1,8 +1,11 @@
 @import url("https://fontsapi.zeoseven.com/101/main/result.css");
 
-body {
-    font-family: "Cubic 11", sans-serif;
-    font-weight: normal;
+/* Hidden element to ensure the font is loaded for Canvas */
+.ccs-font-loader {
+    font-family: "Cubic 11";
+    position: absolute;
+    opacity: 0;
+    pointer-events: none;
 }
 
 .example-extension-settings {

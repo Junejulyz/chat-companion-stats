@@ -977,7 +977,12 @@ jQuery(async () => {
       statsItems.unshift({ id: 'ccs-share-start', label: '初遇时间', value: $("#ccs-start").text().replace(/点/g, ':').replace(/分/g, '') });
     }
 
-    const stats = statsItems.filter(s => $(`#${s.id}`).is(":checked"));
+    let stats = statsItems.filter(s => $(`#${s.id}`).is(":checked"));
+    
+    // Filter out duplicate Encounter stat from bottom panels in Pink Pixel mode
+    if (isPixel) {
+      stats = stats.filter(s => s.id !== 'ccs-share-start');
+    }
 
     // 2. 计算动态高度
     const headerW = 631 * scaleFactor;
@@ -1220,7 +1225,7 @@ jQuery(async () => {
 
       // Avatar Slots Positioning (User absolute coordinates)
       const avatarSize = 102 * scaleFactor;
-      const charAvatarX = 45 * scaleFactor; 
+      const charAvatarX = 145 * scaleFactor; // Updated from 45 to 145
       const userAvatarX = 415 * scaleFactor; 
       const avatarY = 70 * scaleFactor; 
       
@@ -1367,29 +1372,30 @@ jQuery(async () => {
           ctx.drawImage(statImg, boxX, cy, boxW, boxH);
         }
 
-        // 1. Label Positioning
+        // 1. Label Positioning (Moved left 10px, up 5px)
         ctx.textAlign = 'left';
         ctx.fillStyle = '#333333';
         ctx.font = `400 ${30 * scaleFactor}px "Cubic 11", sans-serif`;
-        ctx.fillText(stat.label, boxX + 60 * scaleFactor, cy + boxH / 2 + 10 * scaleFactor);
+        ctx.fillText(stat.label, boxX + 50 * scaleFactor, cy + boxH / 2 + 5 * scaleFactor);
         
-        // 2. Value Positioning (Inside the dark box on the right)
+        // 2. Value Positioning (Inside the dark box on the right, moved up 5px)
         ctx.textAlign = 'right';
         ctx.fillStyle = '#EFFFFF'; // Light blue-ish pixel text
         const valueX = boxX + boxW - 35 * scaleFactor;
+        const valueY = cy + boxH / 2 + 5 * scaleFactor;
         
         if (stat.unit) {
           // Draw Unit first at 24px
           ctx.font = `400 ${24 * scaleFactor}px "Cubic 11", sans-serif`;
-          ctx.fillText(stat.unit, valueX, cy + boxH / 2 + 10 * scaleFactor);
+          ctx.fillText(stat.unit, valueX, valueY);
           
           // Measure and draw Value at 28px
           const unitW = ctx.measureText(stat.unit).width;
           ctx.font = `400 ${28 * scaleFactor}px "Cubic 11", sans-serif`;
-          ctx.fillText(stat.value, valueX - unitW - 8 * scaleFactor, cy + boxH / 2 + 10 * scaleFactor);
+          ctx.fillText(stat.value, valueX - unitW - 8 * scaleFactor, valueY);
         } else {
           ctx.font = `400 ${28 * scaleFactor}px "Cubic 11", sans-serif`;
-          ctx.fillText(stat.value, valueX, cy + boxH / 2 + 10 * scaleFactor);
+          ctx.fillText(stat.value, valueX, valueY);
         }
 
       } else {
@@ -1434,12 +1440,12 @@ jQuery(async () => {
 
     // 7. Decorative Pixel Art (Pixel style only)
     if (isPixel) {
-      // Floppy Disk / Decor from asset
+      // Floppy Disk / Decor from asset - Move to absolute bottom-left (0, height)
       const decorImg = pixelAssets.decor;
       if (decorImg) {
         const dw = 120 * scaleFactor;
         const dh = (decorImg.height / decorImg.width) * dw;
-        ctx.drawImage(decorImg, 20 * scaleFactor, height - dh - 20 * scaleFactor, dw, dh);
+        ctx.drawImage(decorImg, 0, height - dh, dw, dh);
       }
     }
 
