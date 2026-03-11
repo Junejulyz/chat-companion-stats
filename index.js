@@ -1206,7 +1206,7 @@ jQuery(async () => {
       }
 
       if (showEncounterDate) {
-        const infoX = 238 * scaleFactor; // Moved to the right by 8px from 230
+        const infoX = 246 * scaleFactor; // Moved to the right by 8px from 238
         const infoY = centerY;
         ctx.textAlign = 'left';
 
