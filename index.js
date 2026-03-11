@@ -870,6 +870,8 @@ jQuery(async () => {
     // Pixel Pink Colors
     const pixelBg = '#FFF0F3';
     const pixelBorder = '#FF7EB3';
+    const pixelHighlight = '#FFFFFF';
+    const pixelShadow = '#FFB6C1';
     const pixelText = '#E85D8C';
     const pixelBoxBg = '#FFDFEA';
     const pixelBoxBorder = '#1A1A1A';
@@ -999,6 +1001,13 @@ jQuery(async () => {
 
     // Helper: Rounded Rect
     function roundRect(x, y, w, h, r, fill = true, stroke = false) {
+      if (r === 0) {
+        ctx.beginPath();
+        ctx.rect(x, y, w, h);
+        if (fill) ctx.fill();
+        if (stroke) ctx.stroke();
+        return;
+      }
       ctx.beginPath();
       ctx.moveTo(x + r, y);
       ctx.arcTo(x + w, y, x + w, y + h, r);
@@ -1008,6 +1017,20 @@ jQuery(async () => {
       ctx.closePath();
       if (fill) ctx.fill();
       if (stroke) ctx.stroke();
+    }
+
+    // Helper: Pixel Bezel
+    function drawPixelBezel(x, y, w, h, thickness, raised = true) {
+      const topColor = raised ? pixelHighlight : pixelShadow;
+      const bottomColor = raised ? pixelShadow : pixelHighlight;
+      
+      ctx.fillStyle = topColor;
+      ctx.fillRect(x, y, w, thickness); // Top
+      ctx.fillRect(x, y, thickness, h); // Left
+      
+      ctx.fillStyle = bottomColor;
+      ctx.fillRect(x, y + h - thickness, w, thickness); // Bottom
+      ctx.fillRect(x + w - thickness, y, thickness, h); // Right
     }
 
     // 3. 绘制背景
@@ -1155,32 +1178,76 @@ jQuery(async () => {
       ctx.restore();
 
     } else if (isPixel) {
-      // Pixel Pink Header logic
+      // Pixel Retro OS Window Frame (Outer Bezel)
+      drawPixelBezel(0, 0, width, height, 4 * scaleFactor, true);
+
+      // Window Title Bar
+      const titleBarH = 40 * scaleFactor;
+      const titleBarX = 6 * scaleFactor;
+      const titleBarY = 6 * scaleFactor;
+      const titleBarW = width - 12 * scaleFactor;
+
+      ctx.fillStyle = pixelBorder; // Title bar color
+      ctx.fillRect(titleBarX, titleBarY, titleBarW, titleBarH);
+      
+      // Title Bar Shading (Top highlight, Bottom shadow)
+      ctx.fillStyle = pixelHighlight;
+      ctx.fillRect(titleBarX, titleBarY, titleBarW, 2 * scaleFactor);
+      ctx.fillStyle = pixelShadow;
+      ctx.fillRect(titleBarX, titleBarY + titleBarH - 2 * scaleFactor, titleBarW, 2 * scaleFactor);
+
+      // Title Text
+      ctx.textAlign = 'left';
+      ctx.fillStyle = '#FFFFFF';
+      ctx.font = `400 ${18 * scaleFactor}px "Cubic 11", sans-serif`;
+      ctx.fillText("Chat Companion Stats", titleBarX + 10 * scaleFactor, titleBarY + 26 * scaleFactor);
+
+      // Control Buttons (Close, Max, Min) - Drawn as pixel art
+      const btnSize = 24 * scaleFactor;
+      const btnY = titleBarY + (titleBarH - btnSize) / 2;
+      
+      function drawPixelButton(bx, by, type) {
+        // Button Box (Raised)
+        ctx.fillStyle = pixelBg;
+        ctx.fillRect(bx, by, btnSize, btnSize);
+        drawPixelBezel(bx, by, btnSize, btnSize, 2 * scaleFactor, true);
+        
+        ctx.fillStyle = '#000000';
+        if (type === 'close') {
+          // X
+          ctx.fillRect(bx + 6 * scaleFactor, by + 6 * scaleFactor, 2 * scaleFactor, 2 * scaleFactor);
+          ctx.fillRect(bx + btnSize - 8 * scaleFactor, by + 6 * scaleFactor, 2 * scaleFactor, 2 * scaleFactor);
+          ctx.fillRect(bx + 10 * scaleFactor, by + 10 * scaleFactor, 4 * scaleFactor, 4 * scaleFactor);
+          ctx.fillRect(bx + 6 * scaleFactor, by + btnSize - 8 * scaleFactor, 2 * scaleFactor, 2 * scaleFactor);
+          ctx.fillRect(bx + btnSize - 8 * scaleFactor, by + btnSize - 8 * scaleFactor, 2 * scaleFactor, 2 * scaleFactor);
+        } else if (type === 'max') {
+          // Square
+          ctx.strokeRect(bx + 6 * scaleFactor, by + 6 * scaleFactor, btnSize - 12 * scaleFactor, btnSize - 12 * scaleFactor);
+        } else if (type === 'min') {
+          // Line
+          ctx.fillRect(bx + 6 * scaleFactor, by + btnSize - 8 * scaleFactor, btnSize - 12 * scaleFactor, 2 * scaleFactor);
+        }
+      }
+
+      drawPixelButton(titleBarX + titleBarW - 30 * scaleFactor, btnY, 'close');
+      drawPixelButton(titleBarX + titleBarW - 60 * scaleFactor, btnY, 'max');
+      drawPixelButton(titleBarX + titleBarW - 90 * scaleFactor, btnY, 'min');
+
+      // Content Logic (Avatars, Heart)
       const avatarW = 90 * scaleFactor;
       const avatarH = 90 * scaleFactor;
-      const avatarY = 48 * scaleFactor;
+      const avatarY = titleBarY + titleBarH + 40 * scaleFactor;
       const leftAvatarX = 70 * scaleFactor;
       const rightAvatarX = width - 70 * scaleFactor - avatarW;
 
-      // Outer Pink border (as requested by reference)
-      ctx.strokeStyle = pixelBorder;
-      ctx.lineWidth = 6 * scaleFactor;
-      roundRect(24 * scaleFactor, 24 * scaleFactor, width - 48 * scaleFactor, headerH - 48 * scaleFactor, 8 * scaleFactor, false, true);
-
       function drawPixelAvatar(img, x, y) {
-        // Shadow/Offset effect
-        ctx.fillStyle = 'rgba(232, 93, 140, 0.4)';
-        ctx.fillRect(x + 6 * scaleFactor, y + 6 * scaleFactor, avatarW, avatarH);
-
-        // Border
-        ctx.strokeStyle = pixelBorder;
-        ctx.lineWidth = 4 * scaleFactor;
-        ctx.strokeRect(x, y, avatarW, avatarH);
+        // Image Shadow (Recessed look)
+        drawPixelBezel(x - 4 * scaleFactor, y - 4 * scaleFactor, avatarW + 8 * scaleFactor, avatarH + 8 * scaleFactor, 4 * scaleFactor, false);
 
         // Image
         ctx.save();
         ctx.beginPath();
-        ctx.rect(x + 2 * scaleFactor, y + 2 * scaleFactor, avatarW - 4 * scaleFactor, avatarH - 4 * scaleFactor);
+        ctx.rect(x, y, avatarW, avatarH);
         ctx.clip();
         if (img) {
           const scale = Math.max(avatarW / img.width, avatarH / img.height);
@@ -1349,16 +1416,10 @@ jQuery(async () => {
         ctx.fillText(labelText, 40 * scaleFactor, cy + boxH / 2 + 10 * scaleFactor);
 
       } else if (isPixel) {
-        // Pixel Pink Stats Box
-        ctx.fillStyle = '#000000'; // Shadow/offset border
-        ctx.fillRect(boxX, cy, boxW, boxH);
-        
+        // Pixel Retro OS recessed Panel for Stats
+        drawPixelBezel(boxX, cy, boxW, boxH, 3 * scaleFactor, false); // Inset
         ctx.fillStyle = statBoxColor;
-        ctx.fillRect(boxX, cy - 4 * scaleFactor, boxW, boxH);
-        
-        ctx.strokeStyle = '#000000';
-        ctx.lineWidth = 3 * scaleFactor;
-        ctx.strokeRect(boxX, cy - 4 * scaleFactor, boxW, boxH);
+        ctx.fillRect(boxX + 3 * scaleFactor, cy + 3 * scaleFactor, boxW - 6 * scaleFactor, boxH - 6 * scaleFactor);
 
         // Label
         ctx.textAlign = 'left';
@@ -1410,6 +1471,51 @@ jQuery(async () => {
         }
       }
     });
+
+    // 7. Decorative Pixel Art (Pixel style only)
+    if (isPixel) {
+      // Pixel Mouse Cursor
+      const cursorX = width - 100 * scaleFactor;
+      const cursorY = height - 120 * scaleFactor;
+      
+      const cursorData = [
+        [1,0,0,0,0,0,0],
+        [1,1,0,0,0,0,0],
+        [1,1,1,0,0,0,0],
+        [1,1,1,1,0,0,0],
+        [1,1,1,1,1,0,0],
+        [1,1,1,1,1,1,0],
+        [1,1,1,1,1,1,1],
+        [1,1,1,1,1,0,0],
+        [1,1,0,1,1,0,0],
+        [1,0,0,1,1,0,0]
+      ];
+      
+      const ps = 4 * scaleFactor;
+      ctx.fillStyle = '#FFFFFF';
+      cursorData.forEach((row, r) => {
+        row.forEach((cell, c) => {
+          if (cell) {
+            ctx.fillRect(cursorX + c * ps, cursorY + r * ps, ps, ps);
+            // Black outline
+            ctx.strokeStyle = '#000000';
+            ctx.lineWidth = 0.5 * scaleFactor;
+            ctx.strokeRect(cursorX + c * ps, cursorY + r * ps, ps, ps);
+          }
+        });
+      });
+
+      // Simple Pixel Star
+      function drawPixelStar(sx, sy) {
+        const p = 3 * scaleFactor;
+        ctx.fillStyle = '#FFEB3B';
+        [[1,1],[0,1],[2,1],[1,0],[1,2]].forEach(([dx, dy]) => {
+          ctx.fillRect(sx + dx * p, sy + dy * p, p, p);
+        });
+      }
+      drawPixelStar(40 * scaleFactor, height - 80 * scaleFactor);
+      drawPixelStar(width - 60 * scaleFactor, headerH + 20 * scaleFactor);
+    }
 
     // 7. 绘制底部互动栏 (Ins Style Only)
     if (shareStyle === 'ins') {
