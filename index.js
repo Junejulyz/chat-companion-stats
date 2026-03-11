@@ -13,7 +13,7 @@ jQuery(async () => {
   $('head').append(`<style>
     @import url("https://fontsapi.zeoseven.com/19/main/result.css");
     @import url("https://fontsapi.zeoseven.com/157/main/result.css");
-    @import url("https://fonts.googleapis.com/css2?family=Long+Cang&display=swap");
+    @import url("https://fonts.googleapis.com/css2?family=DotGothic16&family=Long+Cang&display=swap");
     
     #ccs-preview-container.loading-preview {
       position: relative;
@@ -863,18 +863,19 @@ jQuery(async () => {
 
     // Theme colors
     const isDark = shareStyle === 'modern-dark' || shareStyle === 'dark';
-    const isModern = true; // All styles are now modern
+    const isPixel = shareStyle === 'pixel-pink';
+    const isModern = shareStyle.startsWith('modern-');
 
-    const tealColor = isDark ? '#2F3033' : '#F7F9FB';
-    const cardBgColor = isDark ? '#2F3033' : '#F7F9FB';
-    const contentAreaBg = isDark ? '#1C1D1E' : '#EFF2F4';
-    const statBoxColor = isDark ? '#2F3033' : '#F7F9FB';
-    const shadowColor = isDark ? 'rgba(19, 19, 19, 0.6)' : 'rgba(218, 227, 232, 0.6)';
+    const tealColor = isDark ? '#2F3033' : (isPixel ? '#FFD1DC' : '#F7F9FB');
+    const cardBgColor = isDark ? '#2F3033' : (isPixel ? '#FFD1DC' : '#F7F9FB');
+    const contentAreaBg = isDark ? '#1C1D1E' : (isPixel ? '#FFFFFF' : '#EFF2F4');
+    const statBoxColor = isDark ? '#2F3033' : (isPixel ? '#FFCFD9' : '#F7F9FB');
+    const shadowColor = isDark ? 'rgba(19, 19, 19, 0.6)' : (isPixel ? '#000000' : 'rgba(218, 227, 232, 0.6)');
 
-    const statLabelColor = isDark ? '#FAFBF7' : '#131313';
-    const statValueColor = isDark ? '#FAFBF7' : '#131313';
-    const charNameColor = isDark ? '#FAFBF7' : '#131313';
-    const dashColor = '#FFFFFF';
+    const statLabelColor = isDark ? '#FAFBF7' : (isPixel ? '#B34E6C' : '#131313');
+    const statValueColor = isDark ? '#FAFBF7' : (isPixel ? '#B34E6C' : '#131313');
+    const charNameColor = isDark ? '#FAFBF7' : (isPixel ? '#B34E6C' : '#131313');
+    const dashColor = isPixel ? '#FF9EB5' : '#FFFFFF';
 
     // 0. 加载 Ins 风格专属资源 (Now only Background PNG)
     const insAssets = {};
@@ -931,8 +932,8 @@ jQuery(async () => {
       }
     ];
 
-    // 如果不是现代简约风，则加上初遇时间显示
-    if (!isModern) {
+    // 如果不是现代简约风且不是像素风，则加上初遇时间显示
+    if (!isModern && !isPixel) {
       statsItems.unshift({ id: 'ccs-share-start', label: '初遇时间', value: $("#ccs-start").text().replace(/点/g, ':').replace(/分/g, '') });
     }
 
@@ -949,7 +950,7 @@ jQuery(async () => {
       ? (500 * scaleFactor) // Fixed height for ins content
       : (stats.length > 0 ? (stats.length * boxH + (stats.length - 1) * boxGap + 80 * scaleFactor) : 0);
 
-    const height = headerH + totalStatsH + footerH;
+    const height = headerH + totalStatsH + footerH + (isPixel ? 20 * scaleFactor : 0);
     const dynamicHeight = height;
 
     // 现代版底色区域 (This block is now mostly for non-ins styles)
@@ -976,6 +977,7 @@ jQuery(async () => {
           document.fonts.load(`400 32px "LXGW Neo XiHei"`, charName + statChars + '初遇'),
           document.fonts.load(`700 32px "LXGW Neo XiHei"`, statChars),
           document.fonts.load(`400 32px "PING FANG SHAO HUA"`, statChars),
+          document.fonts.load(`400 32px "DotGothic16"`, charName + statChars + '初遇于'),
           document.fonts.load(`400 48px "Long Cang"`, '初遇')
         ];
 
@@ -989,6 +991,15 @@ jQuery(async () => {
 
     // Helper: Rounded Rect
     function roundRect(x, y, w, h, r, fill = true, stroke = false) {
+      if (isPixel) {
+        if (fill) {
+          ctx.fillRect(x, y, w, h);
+        }
+        if (stroke) {
+          ctx.strokeRect(x, y, w, h);
+        }
+        return;
+      }
       ctx.beginPath();
       ctx.moveTo(x + r, y);
       ctx.arcTo(x + w, y, x + w, y + h, r);
@@ -1000,10 +1011,40 @@ jQuery(async () => {
       if (stroke) ctx.stroke();
     }
 
+    function drawPixelHeart(x, y, size, color) {
+      ctx.save();
+      ctx.fillStyle = color;
+      const s = size / 7;
+      // 7x7 pixel heart matrix
+      const heart = [
+        [0, 1, 1, 0, 1, 1, 0],
+        [1, 1, 1, 1, 1, 1, 1],
+        [1, 1, 1, 1, 1, 1, 1],
+        [1, 1, 1, 1, 1, 1, 1],
+        [0, 1, 1, 1, 1, 1, 0],
+        [0, 0, 1, 1, 1, 0, 0],
+        [0, 0, 0, 1, 0, 0, 0]
+      ];
+      for (let r = 0; r < 7; r++) {
+        for (let c = 0; c < 7; c++) {
+          if (heart[r][c]) {
+            ctx.fillRect(x + c * s, y + r * s, s + 0.5, s + 0.5);
+          }
+        }
+      }
+      ctx.restore();
+    }
+
     // 3. 绘制背景
     ctx.fillStyle = (shareStyle === 'ins') ? '#FFFFFF' : tealColor; // Ins style is white overall
     if (shareStyle === 'ins') {
       roundRect(0, 0, width, height, 24 * scaleFactor);
+    } else if (isPixel) {
+      ctx.fillRect(0, 0, width, height);
+      // Pixel Border
+      ctx.strokeStyle = '#FF9EB5';
+      ctx.lineWidth = 4 * scaleFactor;
+      ctx.strokeRect(20 * scaleFactor, 20 * scaleFactor, width - 40 * scaleFactor, height - 40 * scaleFactor);
     } else {
       ctx.fillRect(0, 0, width, headerH);
       ctx.fillStyle = cardBgColor;
@@ -1024,6 +1065,10 @@ jQuery(async () => {
         ctx.fillStyle = '#fdfbfb'; // Fallback
         ctx.fillRect(0, headerH, width, totalStatsH);
       }
+    } else if (isPixel) {
+      ctx.fillStyle = '#FFFFFF';
+      const margin = 40 * scaleFactor;
+      ctx.fillRect(margin, margin, width - margin * 2, headerH - margin + 20 * scaleFactor);
     } else if (stats.length > 0) {
       ctx.fillStyle = contentAreaBg;
       const contentAreaW = 599 * scaleFactor;
@@ -1231,7 +1276,7 @@ jQuery(async () => {
     const actualStatsH = stats.length * boxH + (stats.length > 0 ? (stats.length - 1) * boxGap : 0);
     const statsStartY = (shareStyle === 'ins')
       ? (headerH + (insContentH - actualStatsH) / 2) // Vertically centered in fixed height
-      : (isModern ? (headerH + 40 * scaleFactor) : (headerH + 100 * scaleFactor + 40 * scaleFactor));
+      : (isPixel ? (headerH + 60 * scaleFactor) : (isModern ? (headerH + 40 * scaleFactor) : (headerH + 100 * scaleFactor + 40 * scaleFactor)));
 
     const boxW = 519 * scaleFactor;
     const boxX = (width - boxW) / 2;
@@ -1247,6 +1292,30 @@ jQuery(async () => {
 
         const labelText = `${stat.label}   ${stat.value} ${stat.unit || ''}`;
         ctx.fillText(labelText, 40 * scaleFactor, cy + boxH / 2 + 10 * scaleFactor);
+      } else if (isPixel) {
+        // Shadow (Pixel Style)
+        ctx.fillStyle = '#000000';
+        ctx.fillRect(boxX + 4 * scaleFactor, cy + 4 * scaleFactor, boxW, boxH);
+        // Box
+        ctx.fillStyle = statBoxColor;
+        ctx.fillRect(boxX, cy, boxW, boxH);
+        // Border
+        ctx.strokeStyle = '#B34E6C';
+        ctx.lineWidth = 2 * scaleFactor;
+        ctx.strokeRect(boxX, cy, boxW, boxH);
+
+        // Label
+        ctx.textAlign = 'left';
+        ctx.fillStyle = statLabelColor;
+        ctx.font = `400 ${28 * scaleFactor}px "DotGothic16", sans-serif`;
+        ctx.fillText(stat.label, boxX + 24 * scaleFactor, cy + boxH / 2 + 10 * scaleFactor);
+
+        // Value
+        ctx.textAlign = 'right';
+        const valueX = boxX + boxW - 24 * scaleFactor;
+        const valText = `${stat.value}${stat.unit ? ' ' + stat.unit : ''}`;
+        ctx.fillText(valText, valueX, cy + boxH / 2 + 10 * scaleFactor);
+
       } else {
         // Shadow for Modern Style
         ctx.save();
