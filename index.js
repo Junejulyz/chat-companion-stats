@@ -38,11 +38,15 @@ jQuery(async () => {
     }
   </style>`);
 
-  let shareStyle = 'modern-light';
+  // 从 localStorage 加载上次选择的风格，默认为 'modern-light'
+  let shareStyle = localStorage.getItem('ccs-share-style') || 'modern-light';
 
   // 加载HTML using dynamic path with cache buster
   const settingsHtml = await $.get(`${extensionWebPath}/settings.html?v=${Date.now()}`);
   $("#extensions_settings").append(settingsHtml);
+
+  // 同步下拉框的选择状态
+  $("#ccs-style-select").val(shareStyle);
 
   // 确保模态框初始状态是隐藏的
   $("#ccs-preview-modal").hide();
@@ -1011,7 +1015,7 @@ jQuery(async () => {
       const statsContentH = stats.length > 0 
         ? (stats.length * boxH + (stats.length - 1) * boxGap + headerToBoxGap)
         : 0;
-      totalStatsH = statsContentH + (16 * scaleFactor); // Bottom padding 16px
+      totalStatsH = statsContentH + (40 * scaleFactor); // Bottom padding increased to 40px
     } else {
       totalStatsH = (stats.length > 0 ? (stats.length * boxH + (stats.length - 1) * boxGap + 80 * scaleFactor) : 0);
     }
@@ -1600,6 +1604,7 @@ jQuery(async () => {
   // 风格切换处理 (在预览窗口中)
   $(document).on('change', '#ccs-style-select', async function () {
     shareStyle = $(this).val();
+    localStorage.setItem('ccs-share-style', shareStyle); // 保存用户选择到 localStorage
     if (DEBUG) console.log('Selected style changed (dropdown):', shareStyle);
 
     // 即时重新生成预览
