@@ -907,26 +907,6 @@ jQuery(async () => {
       img.src = url;
     });
 
-    // Helper: Make white/near-white transparent for pixel assets
-    function processPixelAsset(img) {
-      if (!img) return null;
-      const offCanvas = document.createElement('canvas');
-      offCanvas.width = img.width;
-      offCanvas.height = img.height;
-      const offCtx = offCanvas.getContext('2d');
-      offCtx.drawImage(img, 0, 0);
-      const imageData = offCtx.getImageData(0, 0, offCanvas.width, offCanvas.height);
-      const data = imageData.data;
-      for (let i = 0; i < data.length; i += 4) {
-        // If pixel is white or very close to white
-        if (data[i] > 240 && data[i+1] > 240 && data[i+2] > 240) {
-          data[i+3] = 0; // Make transparent
-        }
-      }
-      offCtx.putImageData(imageData, 0, 0);
-      return offCanvas;
-    }
-
     if (shareStyle === 'ins') {
       const v = Date.now();
       insAssets.bg = await loadAssetImg(`${extensionWebPath}/assets/mesh-bg.svg?v=${v}`);
