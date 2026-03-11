@@ -984,20 +984,23 @@ jQuery(async () => {
       stats = stats.filter(s => s.id !== 'ccs-share-start');
     }
 
-    // 2. 计算动态高度
+    // Base Values (Unscaled)
+    const baseWidth = 663;
+    const baseHeaderH_Pixel = 324;
+    const baseHeaderPadding = 16;
+    const baseBoxH_Pixel = 90;
+    const baseBoxGap_Pixel = 20;
+    const baseHeaderToBoxGap = 24;
+
     const headerW = 631 * scaleFactor;
-    const headerH_Pixel = 324 * scaleFactor;
-    const headerPadding = 16 * scaleFactor;
-    const boxH_Pixel = 90 * scaleFactor;
-    const boxGap_Pixel = 20 * scaleFactor;
-    const headerToBoxGap = 24 * scaleFactor;
-
-    const headerH = (shareStyle === 'ins' ? 144 : (isPixel ? (headerH_Pixel + headerPadding) : 214)) * scaleFactor;
+    const headerH = (shareStyle === 'ins' ? 144 : (isPixel ? (baseHeaderH_Pixel + baseHeaderPadding) : 214)) * scaleFactor;
     const footerH = (shareStyle === 'ins' ? 92 : 48) * scaleFactor;
-    const boxH = (isPixel ? boxH_Pixel : 80 * scaleFactor);
-    const boxGap = (shareStyle === 'ins' ? 24 : (isPixel ? boxGap_Pixel : 32)) * scaleFactor;
+    
+    const boxW = isPixel ? 615 * scaleFactor : 519 * scaleFactor;
+    const boxH = (isPixel ? baseBoxH_Pixel : 80) * scaleFactor;
+    const boxGap = (shareStyle === 'ins' ? 24 : (isPixel ? baseBoxGap_Pixel : 32)) * scaleFactor;
 
-    // Ins style: fixed height for content area vs others
+    // Content area positioning
     const totalStatsH = (shareStyle === 'ins')
       ? (500 * scaleFactor) // Fixed height for ins content
       : (stats.length > 0 ? (stats.length * boxH + (stats.length - 1) * boxGap + (isPixel ? headerToBoxGap : 80 * scaleFactor)) : 0);
@@ -1062,23 +1065,11 @@ jQuery(async () => {
     }
 
     // 3. 绘制背景
-    ctx.fillStyle = (shareStyle === 'ins') ? '#FFFFFF' : (isPixel ? '#F1BDC3' : tealColor); // New Pixel Pink background color
+    ctx.fillStyle = (shareStyle === 'ins') ? '#FFFFFF' : (isPixel ? '#F1BDC3' : tealColor); // Solid color background
     if (shareStyle === 'ins') {
       roundRect(0, 0, width, height, 24 * scaleFactor);
     } else {
       ctx.fillRect(0, 0, width, height); // Fill whole background
-    }
-
-    // Pixel Background Pattern (Light Gingham/Grid)
-    if (isPixel) {
-      ctx.fillStyle = '#FDF2E2'; // Slightly darker cream
-      const spacing = 15 * scaleFactor;
-      for (let x = 0; x < width; x += spacing) {
-        ctx.fillRect(x, 0, 1 * scaleFactor, height);
-      }
-      for (let y = 0; y < height; y += spacing) {
-        ctx.fillRect(0, y, width, 1 * scaleFactor);
-      }
     }
 
 
@@ -1340,9 +1331,8 @@ jQuery(async () => {
     const actualStatsH = stats.length * boxH + (stats.length > 0 ? (stats.length - 1) * boxGap : 0);
     const statsStartY = (shareStyle === 'ins')
       ? (headerH + (insContentH - actualStatsH) / 2) // Vertically centered in fixed height
-      : (isPixel ? (16 * scaleFactor + 324 * scaleFactor + 24 * scaleFactor) : (isModern ? (headerH + 40 * scaleFactor) : (headerH + 100 * scaleFactor + 40 * scaleFactor)));
+      : (isPixel ? (baseHeaderPadding + baseHeaderH_Pixel + baseHeaderToBoxGap) * scaleFactor : (isModern ? (headerH + 40 * scaleFactor) : (headerH + 100 * scaleFactor + 40 * scaleFactor)));
 
-    const boxW = isPixel ? 615 * scaleFactor : 519 * scaleFactor;
     const boxX = (width - boxW) / 2;
 
     stats.forEach((stat, i) => {
