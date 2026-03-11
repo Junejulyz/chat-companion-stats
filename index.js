@@ -1392,6 +1392,7 @@ jQuery(async () => {
     const insContentH = 500 * scaleFactor;
     const actualStatsH = statsAreaH;
     // statsStartY is already calculated above
+    const boxX = (width - boxW) / 2;
 
     stats.forEach((stat, i) => {
       const cy = statsStartY + i * (boxH + boxGap);
