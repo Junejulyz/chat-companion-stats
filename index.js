@@ -867,13 +867,13 @@ jQuery(async () => {
     const isPixel = shareStyle === 'pixel-pink';
     const isModern = !isPixel; // Adjust modern flag
 
-    // Pixel Pink Colors
-    const pixelBg = '#FFF0F3';
-    const pixelBorder = '#FF7EB3';
+    // Pixel Pink Colors (Candy Theme)
+    const pixelBg = '#FFF9FB'; // Creamy Pink
+    const pixelBorder = '#FFB7C5'; // Cherry Blossom
     const pixelHighlight = '#FFFFFF';
-    const pixelShadow = '#FFB6C1';
-    const pixelText = '#E85D8C';
-    const pixelBoxBg = '#FFDFEA';
+    const pixelShadow = '#FFDAE2';
+    const pixelText = '#FF7597';
+    const pixelBoxBg = '#FFFFFF';
     const pixelBoxBorder = '#1A1A1A';
 
     const tealColor = isDark ? '#2F3033' : '#F7F9FB';
@@ -950,7 +950,7 @@ jQuery(async () => {
     const stats = statsItems.filter(s => $(`#${s.id}`).is(":checked"));
 
     // 2. 计算动态高度
-    const headerH = (shareStyle === 'ins' ? 144 : (isPixel ? 260 : 214)) * scaleFactor;
+    const headerH = (shareStyle === 'ins' ? 144 : (isPixel ? 210 : 214)) * scaleFactor;
     const footerH = (shareStyle === 'ins' ? 92 : 48) * scaleFactor;
     const boxH = (isPixel ? 70 : 80) * scaleFactor;
     const boxGap = (shareStyle === 'ins' ? 24 : (isPixel ? 24 : 32)) * scaleFactor;
@@ -1030,7 +1030,31 @@ jQuery(async () => {
       
       ctx.fillStyle = bottomColor;
       ctx.fillRect(x, y + h - thickness, w, thickness); // Bottom
-      ctx.fillRect(x + w - thickness, y, thickness, h); // Right
+        ctx.fillRect(x + w - thickness, y, thickness, h); // Right
+    }
+
+    // Helper: Pixel Strawberry
+    function drawPixelStrawberry(sx, sy, size = 3) {
+      const p = size * scaleFactor;
+      const data = [
+        [0,0,2,2,0,0],
+        [0,1,1,1,1,0],
+        [1,1,1,1,1,1],
+        [1,1,1,1,1,1],
+        [1,1,1,1,1,1],
+        [0,1,1,1,1,0],
+        [0,0,1,1,0,0]
+      ];
+      data.forEach((row, r) => {
+        row.forEach((cell, c) => {
+          if (cell === 1) { ctx.fillStyle = '#FF5252'; ctx.fillRect(sx + c * p, sy + r * p, p, p); }
+          else if (cell === 2) { ctx.fillStyle = '#4CAF50'; ctx.fillRect(sx + c * p, sy + r * p, p, p); }
+        });
+      });
+      // Seeds
+      ctx.fillStyle = '#FFEB3B';
+      ctx.fillRect(sx + 2 * p, sy + 3 * p, p * 0.5, p * 0.5);
+      ctx.fillRect(sx + 4 * p, sy + 4 * p, p * 0.5, p * 0.5);
     }
 
     // 3. 绘制背景
@@ -1041,6 +1065,18 @@ jQuery(async () => {
       ctx.fillRect(0, 0, width, headerH);
       ctx.fillStyle = cardBgColor;
       ctx.fillRect(0, headerH, width, dynamicHeight - headerH);
+    }
+
+    // Pixel Background Pattern (Polka dots)
+    if (isPixel) {
+      ctx.fillStyle = '#FFEBEE'; // Pattern color (very light pink)
+      const dotSize = 2 * scaleFactor;
+      const spacing = 20 * scaleFactor;
+      for (let x = 0; x < width; x += spacing) {
+        for (let y = 0; y < height; y += spacing) {
+          ctx.fillRect(x, y, dotSize, dotSize);
+        }
+      }
     }
 
 
@@ -1200,7 +1236,8 @@ jQuery(async () => {
       ctx.textAlign = 'left';
       ctx.fillStyle = '#FFFFFF';
       ctx.font = `400 ${18 * scaleFactor}px "Cubic 11", sans-serif`;
-      ctx.fillText("Chat Companion Stats", titleBarX + 10 * scaleFactor, titleBarY + 26 * scaleFactor);
+      drawPixelStrawberry(titleBarX + 8 * scaleFactor, titleBarY + 12 * scaleFactor, 1.5);
+      ctx.fillText("Chat Companion Stats", titleBarX + 35 * scaleFactor, titleBarY + 26 * scaleFactor);
 
       // Control Buttons (Close, Max, Min) - Drawn as pixel art
       const btnSize = 24 * scaleFactor;
@@ -1398,7 +1435,7 @@ jQuery(async () => {
     const actualStatsH = stats.length * boxH + (stats.length > 0 ? (stats.length - 1) * boxGap : 0);
     const statsStartY = (shareStyle === 'ins')
       ? (headerH + (insContentH - actualStatsH) / 2) // Vertically centered in fixed height
-      : (isModern ? (headerH + 40 * scaleFactor) : (headerH + 100 * scaleFactor + 40 * scaleFactor));
+      : (isPixel ? (headerH + 20 * scaleFactor) : (isModern ? (headerH + 40 * scaleFactor) : (headerH + 100 * scaleFactor + 40 * scaleFactor)));
 
     const boxW = 519 * scaleFactor;
     const boxX = (width - boxW) / 2;
@@ -1515,6 +1552,10 @@ jQuery(async () => {
       }
       drawPixelStar(40 * scaleFactor, height - 80 * scaleFactor);
       drawPixelStar(width - 60 * scaleFactor, headerH + 20 * scaleFactor);
+
+      // Additional strawberries for richness
+      drawPixelStrawberry(20 * scaleFactor, height - 40 * scaleFactor, 2.5);
+      drawPixelStrawberry(width - 45 * scaleFactor, height / 2, 2);
     }
 
     // 7. 绘制底部互动栏 (Ins Style Only)
