@@ -1117,7 +1117,69 @@ jQuery(async () => {
     const showEncounterDate = $("#ccs-share-start").is(":checked");
     const centerY = headerH / 2;
 
-    if (shareStyle === 'ins') {
+    if (isPixel) {
+      const avatarW = 80 * scaleFactor;
+      const avatarH = 80 * scaleFactor;
+      const gap = 120 * scaleFactor;
+      const centerX = width / 2;
+      const avatarY = 80 * scaleFactor;
+
+      function drawPixelAvatar(img, x, y) {
+        // Pixel Shadow
+        ctx.fillStyle = '#FF9EB5';
+        ctx.fillRect(x + 4 * scaleFactor, y + 4 * scaleFactor, avatarW, avatarH);
+        // Photo Frame
+        ctx.strokeStyle = '#B34E6C';
+        ctx.lineWidth = 2 * scaleFactor;
+        ctx.strokeRect(x, y, avatarW, avatarH);
+        // Image
+        ctx.save();
+        ctx.rect(x + 1 * scaleFactor, y + 1 * scaleFactor, avatarW - 2 * scaleFactor, avatarH - 2 * scaleFactor);
+        ctx.clip();
+        if (img) {
+          const scale = Math.max(avatarW / img.width, avatarH / img.height);
+          const sw = img.width * scale;
+          const sh = img.height * scale;
+          ctx.drawImage(img, x + (avatarW - sw) / 2, y + (avatarH - sh) / 2, sw, sh);
+        } else {
+          ctx.fillStyle = '#eee';
+          ctx.fillRect(x, y, avatarW, avatarH);
+        }
+        ctx.restore();
+      }
+
+      // Connector Line
+      ctx.strokeStyle = '#FF9EB5';
+      ctx.lineWidth = 2 * scaleFactor;
+      ctx.beginPath();
+      ctx.moveTo(centerX - gap / 2, avatarY + avatarH / 2);
+      ctx.lineTo(centerX + gap / 2, avatarY + avatarH / 2);
+      ctx.stroke();
+
+      // Pixel Heart
+      const heartSize = 42 * scaleFactor;
+      drawPixelHeart(centerX - heartSize / 2, avatarY + avatarH / 2 - heartSize / 2, heartSize, '#FF9EB5');
+
+      if (showUser) {
+        drawPixelAvatar(charImg, centerX - gap / 2 - avatarW, avatarY);
+        drawPixelAvatar(userImg, centerX + gap / 2, avatarY);
+      } else {
+        drawPixelAvatar(charImg, centerX - avatarW / 2, avatarY);
+      }
+
+      // Text Info below
+      ctx.textAlign = 'center';
+      ctx.fillStyle = charNameColor;
+      ctx.font = `400 ${32 * scaleFactor}px "DotGothic16", sans-serif`;
+      ctx.fillText(charName, centerX, avatarY + avatarH + 45 * scaleFactor);
+
+      if (showEncounterDate) {
+        ctx.font = `400 ${22 * scaleFactor}px "DotGothic16", sans-serif`;
+        const dateText = `初遇于 ${$("#ccs-start").text().replace(/点/g, ':').replace(/分/g, '')}`;
+        ctx.fillText(dateText, centerX, avatarY + avatarH + 78 * scaleFactor);
+      }
+
+    } else if (shareStyle === 'ins') {
       const avatarW = 72 * scaleFactor;
       const avatarH = 72 * scaleFactor;
       const avatarY = (headerH - avatarH) / 2;
