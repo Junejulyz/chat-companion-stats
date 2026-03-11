@@ -1001,22 +1001,35 @@ jQuery(async () => {
     const boxGap = (shareStyle === 'ins' ? 24 : (isPixel ? baseBoxGap_Pixel : 32)) * scaleFactor;
 
     const headerToBoxGap = baseHeaderToBoxGap * scaleFactor;
-    const baseBottomPadding = 32; // Calculated to match 816px total height with 4 stats (16+324+24 + 4*90 + 3*20 + 32 = 816)
     
-    // Content area positioning
+    // 1. Define Style-Specific Vertical Padding (Unscaled)
+    let statsPaddingTop = 0;
+    let statsPaddingBottom = 0;
+
+    if (isPixel) {
+      statsPaddingTop = baseHeaderToBoxGap; // 24
+      statsPaddingBottom = 32; 
+    } else if (isModern) {
+      statsPaddingTop = 40;
+      statsPaddingBottom = 48; // Space for footer
+    } else if (!isModern && !isPixel && shareStyle !== 'ins') {
+      // Classic
+      statsPaddingTop = 140;
+      statsPaddingBottom = 48;
+    }
+
+    // 2. Calculate Content area positioning
+    const statsAreaH = stats.length > 0 ? (stats.length * boxH + (stats.length - 1) * boxGap) : 0;
     const totalStatsH = (shareStyle === 'ins')
       ? (500 * scaleFactor) // Fixed height for ins content
-      : (stats.length > 0 ? (stats.length * boxH + (stats.length - 1) * boxGap + headerToBoxGap) : 0);
+      : (stats.length > 0 ? (statsPaddingTop + statsPaddingBottom) * scaleFactor + statsAreaH : 0);
 
-    const height = (isPixel && stats.length > 0) 
-      ? (headerH + totalStatsH + baseBottomPadding * scaleFactor)
-      : (headerH + totalStatsH + footerH);
+    const height = headerH + totalStatsH;
     const dynamicHeight = height;
-    
-    // 现代版底色区域 (This block is now mostly for non-ins styles)
-    const contentAreaMargin = 32 * scaleFactor;
-    const contentAreaW = isModern ? 599 * scaleFactor : (540 * scaleFactor);
-    // const contentAreaH = hasStats ? (statsAreaH + 80 * scaleFactor) : 0; // Padding inside content (now totalStatsH)
+
+    const statsStartY = (shareStyle === 'ins')
+      ? (headerH + (500 * scaleFactor - statsAreaH) / 2) // Vertically centered in fixed height
+      : (headerH + statsPaddingTop * scaleFactor);
 
     canvas.width = width;
     canvas.height = dynamicHeight;
@@ -1333,12 +1346,8 @@ jQuery(async () => {
 
     // 6. 绘制统计项
     const insContentH = 500 * scaleFactor;
-    const actualStatsH = stats.length * boxH + (stats.length > 0 ? (stats.length - 1) * boxGap : 0);
-    const statsStartY = (shareStyle === 'ins')
-      ? (headerH + (insContentH - actualStatsH) / 2) // Vertically centered in fixed height
-      : (isPixel ? (baseHeaderPadding + baseHeaderH_Pixel + baseHeaderToBoxGap) * scaleFactor : (isModern ? (headerH + 40 * scaleFactor) : (headerH + 100 * scaleFactor + 40 * scaleFactor)));
-
-    const boxX = (width - boxW) / 2;
+    const actualStatsH = statsAreaH;
+    // statsStartY is already calculated above
 
     stats.forEach((stat, i) => {
       const cy = statsStartY + i * (boxH + boxGap);
