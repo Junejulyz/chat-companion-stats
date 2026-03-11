@@ -932,14 +932,16 @@ jQuery(async () => {
       if (DEBUG) console.log('Loading pixel assets...');
       const v = Date.now();
       const pixelAssetList = {
-        deco: `${extensionWebPath}/media/pixel/roses_bows.png?v=${v}`,
-        animals: `${extensionWebPath}/media/pixel/animals.png?v=${v}`,
-        floppy: `${extensionWebPath}/media/pixel/floppy.png?v=${v}`
+        header: `${extensionWebPath}/assets/headerbackground.png?v=${v}`,
+        chats: `${extensionWebPath}/assets/chats.png?v=${v}`,
+        days: `${extensionWebPath}/assets/days.png?v=${v}`,
+        characters: `${extensionWebPath}/assets/characters.png?v=${v}`,
+        size: `${extensionWebPath}/assets/size.png?v=${v}`,
+        decor: `${extensionWebPath}/assets/decor.png?v=${v}`
       };
 
       await Promise.all(Object.entries(pixelAssetList).map(async ([key, url]) => {
-        const rawImg = await loadAssetImg(url);
-        pixelAssets[key] = processPixelAsset(rawImg);
+        pixelAssets[key] = await loadAssetImg(url);
       }));
     }
 
@@ -1047,101 +1049,6 @@ jQuery(async () => {
       if (stroke) ctx.stroke();
     }
 
-    // Helper: Pixel Bezel
-    function drawPixelBezel(x, y, w, h, thickness, raised = true) {
-      const topColor = raised ? pixelHighlight : pixelShadow;
-      const bottomColor = raised ? pixelShadow : pixelHighlight;
-      
-      ctx.fillStyle = topColor;
-      ctx.fillRect(x, y, w, thickness); // Top
-      ctx.fillRect(x, y, thickness, h); // Left
-      
-      ctx.fillStyle = bottomColor;
-      ctx.fillRect(x, y + h - thickness, w, thickness); // Bottom
-        ctx.fillRect(x + w - thickness, y, thickness, h); // Right
-    }
-
-    // --- PREMIUM ASSET HELPERS ---
-    function drawAsset(key, sx, sy, sw, sh, dx, dy, dw, dh) {
-      const img = pixelAssets[key];
-      if (!img) return;
-      ctx.drawImage(img, sx, sy, sw, sh, dx, dy, dw, dh);
-    }
-
-    // Helper: Pixel Rose (From Asset)
-    function drawPixelRoseResource(rx, ry, s = 1.0) {
-      const img = pixelAssets.deco;
-      if (!img) return;
-      const sw = img.width / 2;
-      const sh = img.height;
-      const dw = 40 * scaleFactor * s;
-      const dh = (sh / sw) * dw;
-      ctx.drawImage(img, 0, 0, sw, sh, rx, ry, dw, dh);
-    }
-
-    // Helper: Pixel Bow (From Asset)
-    function drawPixelBowResource(bx, by, s = 1.0) {
-      const img = pixelAssets.deco;
-      if (!img) return;
-      const sw = img.width / 2;
-      const sh = img.height;
-      const dw = 40 * scaleFactor * s;
-      const dh = (sh / sw) * dw;
-      ctx.drawImage(img, sw, 0, sw, sh, bx, by, dw, dh);
-    }
-
-    // Helper: Pixel Peeking Animal (From Asset)
-    function drawPeekingAnimal(type, ax, ay, w = 60) {
-      const img = pixelAssets.animals;
-      if (!img) return;
-      const sw = img.width / 3;
-      const sh = img.height;
-      let sx = 0;
-      if (type === 'bunny') sx = sw;
-      if (type === 'cat') sx = sw * 2;
-      
-      const dw = w * scaleFactor;
-      const dh = (sh / sw) * dw;
-      ctx.drawImage(img, sx, 0, sw, sh, ax, ay - dh + 5*scaleFactor, dw, dh);
-    }
-
-    // Helper: Pixel Floppy Stack (From Asset)
-    function drawPixelFloppyResource(fx, fy, w = 80) {
-      const img = pixelAssets.floppy;
-      if (!img) return;
-      const dw = w * scaleFactor;
-      const dh = (img.height / img.width) * dw;
-      ctx.drawImage(img, fx, fy - dh, dw, dh);
-    }
-
-    // Helper: Pixel Heart
-    function drawPixelHeart(hx, hy, size = 4, color = '#F4A7B9') {
-      const p = size * scaleFactor;
-      const data = [
-        [0,1,1,0,1,1,0],
-        [1,1,1,1,1,1,1],
-        [1,1,1,1,1,1,1],
-        [0,1,1,1,1,1,0],
-        [0,0,1,1,1,0,0],
-        [0,0,0,1,0,0,0]
-      ];
-      ctx.fillStyle = color;
-      data.forEach((row, r) => {
-        row.forEach((cell, c) => {
-          if (cell) ctx.fillRect(hx + c * p, hy + r * p, p, p);
-        });
-      });
-    }
-
-    // Helper: Pixel Star
-    function drawPixelStar(sx, sy, size = 3, color = '#FFEB3B') {
-      const p = size * scaleFactor;
-      ctx.fillStyle = color;
-      [[1,1],[0,1],[2,1],[1,0],[1,2]].forEach(([dx, dy]) => {
-        ctx.fillRect(sx + dx * p, sy + dy * p, p, p);
-      });
-    }
-
     // 3. 绘制背景
     ctx.fillStyle = (shareStyle === 'ins') ? '#FFFFFF' : tealColor; // Ins style is white overall
     if (shareStyle === 'ins') {
@@ -1162,13 +1069,6 @@ jQuery(async () => {
       for (let y = 0; y < height; y += spacing) {
         ctx.fillRect(0, y, width, 1 * scaleFactor);
       }
-
-      // Corner Decorations
-      const pad = 30 * scaleFactor;
-      drawPixelRoseResource(pad, pad, 1.2); drawPixelBowResource(pad + 50*scaleFactor, pad - 5*scaleFactor, 0.8);
-      drawPixelRoseResource(width - pad - 60 * scaleFactor, pad, 1.2); drawPixelBowResource(width - pad - 120 * scaleFactor, pad - 5*scaleFactor, 0.8);
-      drawPixelRoseResource(pad, height - pad - 60 * scaleFactor, 1.2);
-      drawPixelRoseResource(width - pad - 60 * scaleFactor, height - pad - 60 * scaleFactor, 1.2);
     }
 
 
@@ -1306,80 +1206,35 @@ jQuery(async () => {
       ctx.restore();
 
     } else if (isPixel) {
-      // --- SCRAPBOOK HEADER ---
-      // 1. Double Border Frame
-      const framePad = 12 * scaleFactor;
-      ctx.lineWidth = 1 * scaleFactor;
-      ctx.strokeStyle = '#553311';
-      ctx.strokeRect(framePad, framePad, width - 2*framePad, height - 2*framePad);
-      ctx.strokeRect(framePad + 4*scaleFactor, framePad + 4*scaleFactor, width - 2*(framePad + 4*scaleFactor), height - 2*(framePad + 4*scaleFactor));
-
-      // 2. Avatars and Heartbeat
-      const avatarSize = 100 * scaleFactor;
-      const avatarY = 50 * scaleFactor;
-      const charAvatarX = 70 * scaleFactor;
-      const userAvatarX = width - 70 * scaleFactor - avatarSize;
-      
-      const heartY = avatarY + avatarSize / 2;
-      const heartX = (charAvatarX + avatarSize + userAvatarX) / 2;
-      
-      // Heartbeat line
-      ctx.lineWidth = 2 * scaleFactor;
-      ctx.strokeStyle = '#F4A7B9';
-      ctx.beginPath();
-      ctx.moveTo(charAvatarX + avatarSize, heartY);
-      ctx.lineTo(heartX - 35 * scaleFactor, heartY);
-      ctx.lineTo(heartX - 25 * scaleFactor, heartY - 15 * scaleFactor);
-      ctx.lineTo(heartX - 15 * scaleFactor, heartY + 20 * scaleFactor);
-      ctx.lineTo(heartX - 5 * scaleFactor, heartY);
-      ctx.stroke();
-
-      drawPixelHeart(heartX - 18 * scaleFactor, heartY - 16 * scaleFactor, 4, '#F4A7B9');
-      
-      ctx.beginPath();
-      ctx.moveTo(heartX + 18 * scaleFactor, heartY);
-      ctx.lineTo(heartX + 30 * scaleFactor, heartY);
-      ctx.lineTo(heartX + 35 * scaleFactor, heartY - 12 * scaleFactor);
-      ctx.lineTo(heartX + 45 * scaleFactor, heartY + 12 * scaleFactor);
-      ctx.lineTo(heartX + 50 * scaleFactor, heartY);
-      ctx.lineTo(userAvatarX, heartY);
-      ctx.stroke();
-
-      function drawScrapbookFrame(ax, ay, size) {
-        drawPixelBezel(ax - 6*scaleFactor, ay - 6*scaleFactor, size + 12*scaleFactor, size + 12*scaleFactor, 4*scaleFactor, '#D4AF37', '#8B4513');
-        ctx.strokeStyle = '#553311';
-        ctx.lineWidth = 1 * scaleFactor;
-        ctx.strokeRect(ax - 1, ay - 1, size + 2, size + 2);
+      // --- NEW PINK PIXEL HEADER ---
+      const headerImg = pixelAssets.header;
+      if (headerImg) {
+        ctx.drawImage(headerImg, 0, 0, width, headerH);
       }
+
+      // Avatar Slots Positioning (Measured from sample)
+      const avatarSize = 120 * scaleFactor;
+      const charAvatarX = 132 * scaleFactor;
+      const userAvatarX = 407 * scaleFactor;
+      const avatarY = 70 * scaleFactor;
       
-      drawScrapbookFrame(charAvatarX, avatarY, avatarSize);
-      drawRoundedAvatar(charImg, charAvatarX, avatarY, avatarSize, avatarSize, 0);
-      
+      // Draw Avatars in slots
+      drawRoundedAvatar(charImg, charAvatarX, avatarY, avatarSize, avatarSize, 12 * scaleFactor);
       if (showUser) {
-        drawScrapbookFrame(userAvatarX, avatarY, avatarSize);
-        drawRoundedAvatar(userImg, userAvatarX, avatarY, avatarSize, avatarSize, 0);
+        drawRoundedAvatar(userImg, userAvatarX, avatarY, avatarSize, avatarSize, 12 * scaleFactor);
       }
 
-      // 3. Name and Encounter
-      const infoY = avatarY + avatarSize + 30 * scaleFactor;
+      // Name and Encounter
       ctx.textAlign = 'center';
-      ctx.fillStyle = pixelText;
-      ctx.font = `600 ${32 * scaleFactor}px "Cubic 11", sans-serif`;
+      ctx.fillStyle = '#6B3E26'; // Cocoa Brown from design
+      ctx.font = `400 ${36 * scaleFactor}px "PING FANG SHAO HUA", sans-serif`;
       const nameText = charName || "角色名";
-      ctx.fillText(nameText, width / 2, infoY + 30 * scaleFactor);
+      ctx.fillText(nameText, width / 2, 290 * scaleFactor);
       
-      const nameW = ctx.measureText(nameText).width;
-      drawPixelRoseResource(width/2 - nameW/2 - 60*scaleFactor, infoY + 10*scaleFactor, 0.8);
-      drawPixelRoseResource(width/2 + nameW/2 + 20*scaleFactor, infoY + 10*scaleFactor, 0.8);
-
       if (showEncounterDate) {
-        ctx.font = `400 ${18 * scaleFactor}px "Cubic 11", sans-serif`;
+        ctx.font = `400 ${22 * scaleFactor}px "PING FANG SHAO HUA", sans-serif`;
         const encounterText = `初遇于 ${$("#ccs-start").text()}`;
-        ctx.fillText(encounterText, width / 2, infoY + 65 * scaleFactor);
-        const dateW = ctx.measureText(encounterText).width;
-        ctx.fillStyle = '#F47A91';
-        ctx.fillRect(width/2 - dateW/2 - 30*scaleFactor, infoY + 50*scaleFactor, 15*scaleFactor, 15*scaleFactor);
-        ctx.fillRect(width/2 + dateW/2 + 15*scaleFactor, infoY + 50*scaleFactor, 15*scaleFactor, 15*scaleFactor);
+        ctx.fillText(encounterText, width / 2, 335 * scaleFactor);
       }
 
     } else {
@@ -1489,65 +1344,35 @@ jQuery(async () => {
         ctx.fillText(labelText, 40 * scaleFactor, cy + boxH / 2 + 10 * scaleFactor);
 
       } else if (isPixel) {
-        // --- SCRAPBOOK STAT BOX DESIGN ---
-        // 1. Box with Thick Borders (Control Panel Look)
-        ctx.fillStyle = '#FFFFFF';
-        ctx.fillRect(boxX, cy, boxW, boxH);
-        drawPixelBezel(boxX, cy, boxW, boxH, 3*scaleFactor, '#E198AA', '#553311');
+        // --- NEW PINK PIXEL STAT BOX ---
+        const assetMap = {
+          '聊天对话': 'chats',
+          '相伴天数': 'days',
+          '聊天字数': 'characters',
+          '回忆大小': 'size'
+        };
+        const assetKey = assetMap[stat.label];
+        const statImg = pixelAssets[assetKey];
         
-        // 2. Control Bar (Top/Left side of box)
-        ctx.fillStyle = '#F4A7B9';
-        ctx.fillRect(boxX + 6*scaleFactor, cy + 6*scaleFactor, 220*scaleFactor, 30*scaleFactor);
-        
-        // Horizontal lines in control bar
-        ctx.fillStyle = '#553311';
-        const lineY = cy + 12*scaleFactor;
-        for(let i=0; i<3; i++) {
-          ctx.fillRect(boxX + 15*scaleFactor, lineY + i*6*scaleFactor, 25*scaleFactor, 1*scaleFactor);
+        if (statImg) {
+          ctx.drawImage(statImg, boxX, cy, boxW, boxH);
         }
-        
-        // "control" text
-        ctx.font = `400 ${10 * scaleFactor}px "Cubic 11", sans-serif`;
-        ctx.fillText("control", boxX + 110*scaleFactor, cy + 25*scaleFactor);
-        
-        // 3. Right Value Box (Dark Inset)
-        const valBoxW = 160 * scaleFactor;
-        const valBoxX = boxX + boxW - valBoxW - 15*scaleFactor;
-        const valBoxY = cy + 10*scaleFactor;
-        const valBoxH = boxH - 20*scaleFactor;
-        
-        // Dark box with blue text (Digital readout look)
-        ctx.fillStyle = '#2F3C4F';
-        ctx.fillRect(valBoxX, valBoxY, valBoxW, valBoxH);
-        drawPixelBezel(valBoxX, valBoxY, valBoxW, valBoxH, 2*scaleFactor, false);
-        
-        ctx.textAlign = 'right';
-        ctx.fillStyle = '#B3E5FC'; // Blue pixel glow
-        ctx.font = `600 ${22 * scaleFactor}px "Cubic 11", sans-serif`;
-        ctx.fillText(`${stat.value}`, valBoxX + valBoxW - 35*scaleFactor, valBoxY + valBoxH/2 + 8*scaleFactor);
-        
-        ctx.fillStyle = '#FFFFFF';
-        ctx.font = `400 ${14 * scaleFactor}px "Cubic 11", sans-serif`;
-        ctx.fillText(stat.unit || '', valBoxX + valBoxW - 10*scaleFactor, valBoxY + valBoxH/2 + 8*scaleFactor);
 
-        // 4. Label and Main Icon placeholder
+        // 1. Label Positioning
         ctx.textAlign = 'left';
-        ctx.fillStyle = '#553311';
-        ctx.font = `600 ${24 * scaleFactor}px "Cubic 11", sans-serif`;
-        ctx.fillText(stat.label, boxX + 25*scaleFactor, cy + boxH - 15*scaleFactor);
+        ctx.fillStyle = '#333333';
+        ctx.font = `400 ${28 * scaleFactor}px "PING FANG SHAO HUA", sans-serif`;
+        ctx.fillText(stat.label, boxX + 60 * scaleFactor, cy + boxH / 2 + 10 * scaleFactor);
         
-        // Large Center Icon (Abstract pixel shapes)
-        ctx.fillStyle = '#F4A7B9';
-        ctx.fillRect(boxX + 250*scaleFactor, cy + 15*scaleFactor, 40*scaleFactor, 40*scaleFactor);
-
-        // 5. Peeking Animals
-        if (i === 0) { // Bear (leftmost in sheet)
-          drawPeekingAnimal('bear', boxX - 10*scaleFactor, cy, 50);
-        } else if (i === 1) { // Bunny (middle in sheet)
-          drawPeekingAnimal('bunny', boxX + boxW - 50*scaleFactor, cy, 50);
-        } else if (i === 2) { // Cat (rightmost in sheet)
-          drawPeekingAnimal('cat', boxX + boxW - 40*scaleFactor, cy, 45);
-        }
+        // 2. Value Positioning (Inside the dark box on the right)
+        const valBoxX = boxX + 413 * scaleFactor;
+        const valBoxW = 180 * scaleFactor;
+        ctx.textAlign = 'right';
+        ctx.fillStyle = '#EFFFFF'; // Light blue-ish pixel text
+        ctx.font = `400 ${24 * scaleFactor}px "PING FANG SHAO HUA", sans-serif`;
+        
+        const fullValueText = `${stat.value} ${stat.unit || ''}`;
+        ctx.fillText(fullValueText, boxX + boxW - 35 * scaleFactor, cy + boxH / 2 + 10 * scaleFactor);
 
       } else {
         // Shadow for Modern Style
@@ -1591,17 +1416,13 @@ jQuery(async () => {
 
     // 7. Decorative Pixel Art (Pixel style only)
     if (isPixel) {
-      // Floppy Disk Stack
-      drawPixelFloppyResource(30 * scaleFactor, height - 30 * scaleFactor, 110);
-
-      // Stars
-      drawPixelStar(width - 60 * scaleFactor, headerH + 20 * scaleFactor);
-      drawPixelStar(width - 120 * scaleFactor, height - 100 * scaleFactor);
-      
-      // Little Sparkles
-      ctx.fillStyle = '#FFFFFF';
-      ctx.fillRect(width/2 + 100*scaleFactor, headerH - 50*scaleFactor, 2*scaleFactor, 2*scaleFactor);
-      ctx.fillRect(50*scaleFactor, height/2, 2*scaleFactor, 2*scaleFactor);
+      // Floppy Disk / Decor from asset
+      const decorImg = pixelAssets.decor;
+      if (decorImg) {
+        const dw = 120 * scaleFactor;
+        const dh = (decorImg.height / decorImg.width) * dw;
+        ctx.drawImage(decorImg, 20 * scaleFactor, height - dh - 20 * scaleFactor, dw, dh);
+      }
     }
 
     // 7. 绘制底部互动栏 (Ins Style Only)
