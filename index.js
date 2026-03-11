@@ -44,6 +44,9 @@ jQuery(async () => {
   const settingsHtml = await $.get(`${extensionWebPath}/settings.html?v=${Date.now()}`);
   $("#extensions_settings").append(settingsHtml);
 
+  // Load saved settings (style, checkboxes)
+  loadSettings();
+
   // 确保模态框初始状态是隐藏的
   $("#ccs-preview-modal").hide();
 
@@ -187,6 +190,47 @@ jQuery(async () => {
       return `${minutes}分钟${seconds}秒`;
     } else {
       return `${seconds}秒`;
+    }
+  }
+
+  // Persistence logic
+  function saveSettings() {
+    const settings = {
+        style: shareStyle,
+        options: {
+            start: $('#ccs-share-start').is(':checked'),
+            messages: $('#ccs-share-messages').is(':checked'),
+            words: $('#ccs-share-words').is(':checked'),
+            days: $('#ccs-share-days').is(':checked'),
+            size: $('#ccs-share-size').is(':checked'),
+            userAvatar: $('#ccs-share-user-avatar').is(':checked')
+        }
+    };
+    localStorage.setItem('st-ccs-settings', JSON.stringify(settings));
+    if (DEBUG) console.log('Settings saved:', settings);
+  }
+
+  function loadSettings() {
+    const saved = localStorage.getItem('st-ccs-settings');
+    if (saved) {
+        try {
+            const settings = JSON.parse(saved);
+            if (settings.style) {
+                shareStyle = settings.style;
+                $('#ccs-style-select').val(shareStyle);
+            }
+            if (settings.options) {
+                $('#ccs-share-start').prop('checked', settings.options.start);
+                $('#ccs-share-messages').prop('checked', settings.options.messages);
+                $('#ccs-share-words').prop('checked', settings.options.words);
+                $('#ccs-share-days').prop('checked', settings.options.days);
+                $('#ccs-share-size').prop('checked', settings.options.size);
+                $('#ccs-share-user-avatar').prop('checked', settings.options.userAvatar);
+            }
+            if (DEBUG) console.log('Settings loaded:', settings);
+        } catch (e) {
+            console.error('Failed to parse saved settings:', e);
+        }
     }
   }
 
@@ -1604,6 +1648,8 @@ jQuery(async () => {
   $(document).on('change', '#ccs-style-select', async function () {
     shareStyle = $(this).val();
     if (DEBUG) console.log('Selected style changed (dropdown):', shareStyle);
+    
+    saveSettings();
 
     // 即时重新生成预览
     const $container = $("#ccs-preview-container");
@@ -1631,6 +1677,8 @@ jQuery(async () => {
     // Re-evaluate button state based on current message count whenever options change
     const currentMessageCount = parseInt($("#ccs-messages").text(), 10) || 0;
     updateShareButtonState(currentMessageCount);
+    
+    saveSettings();
   });
 
   // Observe character selection changes to trigger auto-refresh
