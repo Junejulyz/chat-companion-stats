@@ -1000,6 +1000,8 @@ jQuery(async () => {
     const boxH = (isPixel ? baseBoxH_Pixel : 80) * scaleFactor;
     const boxGap = (shareStyle === 'ins' ? 24 : (isPixel ? baseBoxGap_Pixel : 32)) * scaleFactor;
 
+    const headerToBoxGap = baseHeaderToBoxGap * scaleFactor;
+    
     // Content area positioning
     const totalStatsH = (shareStyle === 'ins')
       ? (500 * scaleFactor) // Fixed height for ins content
