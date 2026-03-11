@@ -980,7 +980,7 @@ jQuery(async () => {
           document.fonts.load(`400 32px "LXGW Neo XiHei"`, charName + statChars + '初遇'),
           document.fonts.load(`700 32px "LXGW Neo XiHei"`, statChars),
           document.fonts.load(`400 32px "PING FANG SHAO HUA"`, statChars),
-          document.fonts.load(`400 32px "DotGothic16"`, charName + statChars + '初遇于'),
+          document.fonts.load(`normal 32px "Cubic 11"`, charName + statChars + '初遇于'),
           document.fonts.load(`400 48px "Long Cang"`, '初遇')
         ];
 
@@ -988,7 +988,7 @@ jQuery(async () => {
         const timeoutPromise = new Promise(resolve => setTimeout(() => {
           console.warn('[Pink Pixel Debug] Font loading timed out!');
           resolve();
-        }, 1500));
+        }, 3000)); // Increased timeout slightly for the new font
         
         await Promise.race([Promise.all(fontPromises), timeoutPromise]);
         console.log('[Pink Pixel Debug] Font loading completed or timed out.');
@@ -1179,11 +1179,11 @@ jQuery(async () => {
       // Text Info below
       ctx.textAlign = 'center';
       ctx.fillStyle = charNameColor;
-      ctx.font = `400 ${32 * scaleFactor}px "DotGothic16", sans-serif`;
+      ctx.font = `normal ${32 * scaleFactor}px "Cubic 11", sans-serif`;
       ctx.fillText(charName, centerX, avatarY + avatarH + 45 * scaleFactor);
 
       if (showEncounterDate) {
-        ctx.font = `400 ${22 * scaleFactor}px "DotGothic16", sans-serif`;
+        ctx.font = `normal ${22 * scaleFactor}px "Cubic 11", sans-serif`;
         const dateText = `初遇于 ${$("#ccs-start").text().replace(/点/g, ':').replace(/分/g, '')}`;
         ctx.fillText(dateText, centerX, avatarY + avatarH + 78 * scaleFactor);
       }
@@ -1378,7 +1378,7 @@ jQuery(async () => {
         // Label
         ctx.textAlign = 'left';
         ctx.fillStyle = statLabelColor;
-        ctx.font = `400 ${28 * scaleFactor}px "DotGothic16", sans-serif`;
+        ctx.font = `normal ${28 * scaleFactor}px "Cubic 11", sans-serif`;
         ctx.fillText(stat.label, boxX + 24 * scaleFactor, cy + boxH / 2 + 10 * scaleFactor);
 
         // Value
