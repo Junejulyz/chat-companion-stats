@@ -1105,6 +1105,34 @@ jQuery(async () => {
       });
     }
 
+    // Helper: Pixel Heart
+    function drawPixelHeart(hx, hy, size = 4, color = '#F4A7B9') {
+      const p = size * scaleFactor;
+      const data = [
+        [0,1,1,0,1,1,0],
+        [1,1,1,1,1,1,1],
+        [1,1,1,1,1,1,1],
+        [0,1,1,1,1,1,0],
+        [0,0,1,1,1,0,0],
+        [0,0,0,1,0,0,0]
+      ];
+      ctx.fillStyle = color;
+      data.forEach((row, r) => {
+        row.forEach((cell, c) => {
+          if (cell) ctx.fillRect(hx + c * p, hy + r * p, p, p);
+        });
+      });
+    }
+
+    // Helper: Pixel Star
+    function drawPixelStar(sx, sy, size = 3, color = '#FFEB3B') {
+      const p = size * scaleFactor;
+      ctx.fillStyle = color;
+      [[1,1],[0,1],[2,1],[1,0],[1,2]].forEach(([dx, dy]) => {
+        ctx.fillRect(sx + dx * p, sy + dy * p, p, p);
+      });
+    }
+
     // 3. 绘制背景
     ctx.fillStyle = (shareStyle === 'ins') ? '#FFFFFF' : tealColor; // Ins style is white overall
     if (shareStyle === 'ins') {
