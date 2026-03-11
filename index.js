@@ -1146,7 +1146,7 @@ jQuery(async () => {
       // Modern style header logic...
       const avatarW = 100 * scaleFactor;
       const avatarH = 100 * scaleFactor;
-      const avatarGap = -52 * scaleFactor;
+      const avatarGap = -35 * scaleFactor;
       const avatarY = (headerH - avatarH) / 2;
 
       function drawModernAvatar(img, x, y) {
