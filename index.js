@@ -866,6 +866,8 @@ jQuery(async () => {
     const isPixel = shareStyle === 'pixel-pink';
     const isModern = shareStyle.startsWith('modern-');
 
+    console.log(`[Pink Pixel Debug] Generating image. shareStyle=${shareStyle}, isPixel=${isPixel}, charName=${charName}`);
+
     const tealColor = isDark ? '#2F3033' : (isPixel ? '#FFD1DC' : '#F7F9FB');
     const cardBgColor = isDark ? '#2F3033' : (isPixel ? '#FFD1DC' : '#F7F9FB');
     const contentAreaBg = isDark ? '#1C1D1E' : (isPixel ? '#FFFFFF' : '#EFF2F4');
@@ -972,6 +974,7 @@ jQuery(async () => {
         // Extract all unique characters from stats to ensure subsetted fonts load them
         const statChars = Array.from(new Set(statsItems.map(s => (s.label + s.value + (s.unit || '')).split('')).flat())).join('');
 
+        console.log('[Pink Pixel Debug] Triggering font loading...');
         // Trigger font loading
         const fontPromises = [
           document.fonts.load(`400 32px "LXGW Neo XiHei"`, charName + statChars + '初遇'),
@@ -982,11 +985,17 @@ jQuery(async () => {
         ];
 
         // Wait for fonts to load, with a timeout to prevent hanging forever
-        const timeoutPromise = new Promise(resolve => setTimeout(resolve, 1500));
+        const timeoutPromise = new Promise(resolve => setTimeout(() => {
+          console.warn('[Pink Pixel Debug] Font loading timed out!');
+          resolve();
+        }, 1500));
+        
         await Promise.race([Promise.all(fontPromises), timeoutPromise]);
+        console.log('[Pink Pixel Debug] Font loading completed or timed out.');
       }
     } catch (e) {
       if (DEBUG) console.warn('Font load trigger failed:', e);
+      console.error('[Pink Pixel Debug] Font loading caught error:', e);
     }
 
     // Helper: Rounded Rect
