@@ -1001,15 +1001,18 @@ jQuery(async () => {
     const boxGap = (shareStyle === 'ins' ? 24 : (isPixel ? baseBoxGap_Pixel : 32)) * scaleFactor;
 
     const headerToBoxGap = baseHeaderToBoxGap * scaleFactor;
+    const baseBottomPadding = 32; // Calculated to match 816px total height with 4 stats (16+324+24 + 4*90 + 3*20 + 32 = 816)
     
     // Content area positioning
     const totalStatsH = (shareStyle === 'ins')
       ? (500 * scaleFactor) // Fixed height for ins content
-      : (stats.length > 0 ? (stats.length * boxH + (stats.length - 1) * boxGap + (isPixel ? headerToBoxGap : 80 * scaleFactor)) : 0);
+      : (stats.length > 0 ? (stats.length * boxH + (stats.length - 1) * boxGap + headerToBoxGap) : 0);
 
-    const height = isPixel ? 816 * scaleFactor : (headerH + totalStatsH + footerH);
+    const height = (isPixel && stats.length > 0) 
+      ? (headerH + totalStatsH + baseBottomPadding * scaleFactor)
+      : (headerH + totalStatsH + footerH);
     const dynamicHeight = height;
-
+    
     // 现代版底色区域 (This block is now mostly for non-ins styles)
     const contentAreaMargin = 32 * scaleFactor;
     const contentAreaW = isModern ? 599 * scaleFactor : (540 * scaleFactor);
@@ -1222,10 +1225,10 @@ jQuery(async () => {
       const userAvatarX = 415 * scaleFactor; 
       const avatarY = 70 * scaleFactor; 
       
-      // Draw Avatars
-      drawRoundedAvatar(charImg, charAvatarX, avatarY, avatarSize, avatarSize, 12 * scaleFactor);
+      // Draw Avatars (Corner radius reduced from 12 to 8)
+      drawRoundedAvatar(charImg, charAvatarX, avatarY, avatarSize, avatarSize, 8 * scaleFactor);
       if (showUser) {
-        drawRoundedAvatar(userImg, userAvatarX, avatarY, avatarSize, avatarSize, 12 * scaleFactor);
+        drawRoundedAvatar(userImg, userAvatarX, avatarY, avatarSize, avatarSize, 8 * scaleFactor);
       }
 
       // Name and Encounter
@@ -1239,8 +1242,8 @@ jQuery(async () => {
       if (showEncounterDate) {
         ctx.font = `400 ${26 * scaleFactor}px "Cubic 11", sans-serif`;
         const encounterText = `初遇于 ${$("#ccs-start").text()}`;
-        // 12px spacing below name (206 + 34 + 12 = 252)
-        ctx.fillText(encounterText, width / 2, 252 * scaleFactor);
+        // Moved down 10px (was 252, now 262)
+        ctx.fillText(encounterText, width / 2, 262 * scaleFactor);
       }
       ctx.textBaseline = 'alphabetic'; // Reset to default
 
