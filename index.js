@@ -1107,14 +1107,14 @@ jQuery(async () => {
       }
 
       if (showUser) {
-        drawInsAvatar(userImg, startX + 36 * scaleFactor, avatarY); // User RIGHT (bottom)
+        drawInsAvatar(userImg, startX + 44 * scaleFactor, avatarY); // User RIGHT (bottom), separated by 44 instead of 36
         drawInsAvatar(charImg, startX, avatarY); // Character LEFT (top)
       } else {
         drawInsAvatar(charImg, startX, avatarY);
       }
 
       // Title & Encounter
-      const textX = startX + (showUser ? (avatarW + 36 * scaleFactor + 16 * scaleFactor) : (avatarW + 16 * scaleFactor));
+      const textX = startX + (showUser ? (avatarW + 44 * scaleFactor + 16 * scaleFactor) : (avatarW + 16 * scaleFactor));
       ctx.textAlign = 'left';
 
       ctx.fillStyle = '#131313';
@@ -1146,7 +1146,7 @@ jQuery(async () => {
       // Modern style header logic...
       const avatarW = 100 * scaleFactor;
       const avatarH = 100 * scaleFactor;
-      const avatarGap = -35 * scaleFactor;
+      const avatarGap = -27 * scaleFactor; // Decreased from -35 to -27 to separate by ~8px more
       const avatarY = (headerH - avatarH) / 2;
 
       function drawModernAvatar(img, x, y) {
