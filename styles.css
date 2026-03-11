@@ -1,3 +1,10 @@
+@import url("https://fontsapi.zeoseven.com/101/main/result.css");
+
+body {
+    font-family: "Cubic 11", sans-serif;
+    font-weight: normal;
+}
+
 .example-extension-settings {
   /* 基础样式 */
 }

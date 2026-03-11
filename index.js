@@ -1218,13 +1218,13 @@ jQuery(async () => {
         ctx.drawImage(headerImg, 16 * scaleFactor, 16 * scaleFactor, 631 * scaleFactor, 324 * scaleFactor);
       }
 
-      // Avatar Slots Positioning (Measured from sample)
-      const avatarSize = 120 * scaleFactor;
-      const charAvatarX = (16 + 116) * scaleFactor; // 16px padding + measure from image
-      const userAvatarX = (16 + 391) * scaleFactor; 
-      const avatarY = (16 + 54) * scaleFactor; // 16px padding + measure from image
+      // Avatar Slots Positioning (User absolute coordinates)
+      const avatarSize = 102 * scaleFactor;
+      const charAvatarX = 45 * scaleFactor; 
+      const userAvatarX = 415 * scaleFactor; 
+      const avatarY = 70 * scaleFactor; 
       
-      // Draw Avatars in slots
+      // Draw Avatars
       drawRoundedAvatar(charImg, charAvatarX, avatarY, avatarSize, avatarSize, 12 * scaleFactor);
       if (showUser) {
         drawRoundedAvatar(userImg, userAvatarX, avatarY, avatarSize, avatarSize, 12 * scaleFactor);
@@ -1232,16 +1232,19 @@ jQuery(async () => {
 
       // Name and Encounter
       ctx.textAlign = 'center';
-      ctx.fillStyle = '#6B3E26'; // Cocoa Brown from design
-      ctx.font = `400 ${36 * scaleFactor}px "PING FANG SHAO HUA", sans-serif`;
+      ctx.textBaseline = 'top'; // Set to top for precise Y positioning
+      ctx.fillStyle = '#773831'; 
+      ctx.font = `400 ${34 * scaleFactor}px "Cubic 11", sans-serif`;
       const nameText = charName || "角色名";
-      ctx.fillText(nameText, width / 2, (16 + 274) * scaleFactor);
+      ctx.fillText(nameText, width / 2, 206 * scaleFactor);
       
       if (showEncounterDate) {
-        ctx.font = `400 ${22 * scaleFactor}px "PING FANG SHAO HUA", sans-serif`;
+        ctx.font = `400 ${26 * scaleFactor}px "Cubic 11", sans-serif`;
         const encounterText = `初遇于 ${$("#ccs-start").text()}`;
-        ctx.fillText(encounterText, width / 2, (16 + 319) * scaleFactor);
+        // 12px spacing below name (206 + 34 + 12 = 252)
+        ctx.fillText(encounterText, width / 2, 252 * scaleFactor);
       }
+      ctx.textBaseline = 'alphabetic'; // Reset to default
 
     } else {
       // Modern style header logic...
@@ -1367,18 +1370,27 @@ jQuery(async () => {
         // 1. Label Positioning
         ctx.textAlign = 'left';
         ctx.fillStyle = '#333333';
-        ctx.font = `400 ${28 * scaleFactor}px "PING FANG SHAO HUA", sans-serif`;
+        ctx.font = `400 ${30 * scaleFactor}px "Cubic 11", sans-serif`;
         ctx.fillText(stat.label, boxX + 60 * scaleFactor, cy + boxH / 2 + 10 * scaleFactor);
         
         // 2. Value Positioning (Inside the dark box on the right)
-        const valBoxX = boxX + 413 * scaleFactor;
-        const valBoxW = 180 * scaleFactor;
         ctx.textAlign = 'right';
         ctx.fillStyle = '#EFFFFF'; // Light blue-ish pixel text
-        ctx.font = `400 ${24 * scaleFactor}px "PING FANG SHAO HUA", sans-serif`;
+        const valueX = boxX + boxW - 35 * scaleFactor;
         
-        const fullValueText = `${stat.value} ${stat.unit || ''}`;
-        ctx.fillText(fullValueText, boxX + boxW - 35 * scaleFactor, cy + boxH / 2 + 10 * scaleFactor);
+        if (stat.unit) {
+          // Draw Unit first at 24px
+          ctx.font = `400 ${24 * scaleFactor}px "Cubic 11", sans-serif`;
+          ctx.fillText(stat.unit, valueX, cy + boxH / 2 + 10 * scaleFactor);
+          
+          // Measure and draw Value at 28px
+          const unitW = ctx.measureText(stat.unit).width;
+          ctx.font = `400 ${28 * scaleFactor}px "Cubic 11", sans-serif`;
+          ctx.fillText(stat.value, valueX - unitW - 8 * scaleFactor, cy + boxH / 2 + 10 * scaleFactor);
+        } else {
+          ctx.font = `400 ${28 * scaleFactor}px "Cubic 11", sans-serif`;
+          ctx.fillText(stat.value, valueX, cy + boxH / 2 + 10 * scaleFactor);
+        }
 
       } else {
         // Shadow for Modern Style
