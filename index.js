@@ -887,32 +887,60 @@ jQuery(async () => {
     const charNameColor = isPixel ? pixelText : (isDark ? '#FAFBF7' : '#131313');
     const dashColor = '#FFFFFF';
 
-    // 0. 加载 Ins 风格专属资源 (Now only Background PNG)
+    // 0. 加载资产 (Ins & Pixel Style)
     const insAssets = {};
+    const pixelAssets = {};
+    
+    const loadAssetImg = (url) => new Promise((resolve) => {
+      const img = new Image();
+      img.crossOrigin = 'anonymous';
+      const timeout = setTimeout(() => {
+        console.warn(`Asset load timeout: ${url}`);
+        resolve(null);
+      }, 5000);
+      img.onload = () => { clearTimeout(timeout); resolve(img); };
+      img.onerror = () => { clearTimeout(timeout); resolve(null); };
+      img.src = url;
+    });
+
+    // Helper: Make white/near-white transparent for pixel assets
+    function processPixelAsset(img) {
+      if (!img) return null;
+      const offCanvas = document.createElement('canvas');
+      offCanvas.width = img.width;
+      offCanvas.height = img.height;
+      const offCtx = offCanvas.getContext('2d');
+      offCtx.drawImage(img, 0, 0);
+      const imageData = offCtx.getImageData(0, 0, offCanvas.width, offCanvas.height);
+      const data = imageData.data;
+      for (let i = 0; i < data.length; i += 4) {
+        // If pixel is white or very close to white
+        if (data[i] > 240 && data[i+1] > 240 && data[i+2] > 240) {
+          data[i+3] = 0; // Make transparent
+        }
+      }
+      offCtx.putImageData(imageData, 0, 0);
+      return offCanvas;
+    }
+
     if (shareStyle === 'ins') {
-      if (DEBUG) console.log('Loading ins background...');
       const v = Date.now();
-      const assetList = {
-        bg: `${extensionWebPath}/assets/mesh-bg.svg?v=${v}`
+      insAssets.bg = await loadAssetImg(`${extensionWebPath}/assets/mesh-bg.svg?v=${v}`);
+    }
+
+    if (isPixel) {
+      if (DEBUG) console.log('Loading pixel assets...');
+      const v = Date.now();
+      const pixelAssetList = {
+        deco: `${extensionWebPath}/media/pixel/roses_bows.png?v=${v}`,
+        animals: `${extensionWebPath}/media/pixel/animals.png?v=${v}`,
+        floppy: `${extensionWebPath}/media/pixel/floppy.png?v=${v}`
       };
 
-      const loadAssetImg = (url) => new Promise((resolve) => {
-        const img = new Image();
-        img.crossOrigin = 'anonymous';
-        const timeout = setTimeout(() => {
-          console.warn(`Asset load timeout: ${url}`);
-          resolve(null);
-        }, 3000);
-        img.onload = () => { clearTimeout(timeout); resolve(img); };
-        img.onerror = () => { clearTimeout(timeout); resolve(null); };
-        img.src = url;
-      });
-
-      await Promise.all(Object.entries(assetList).map(async ([key, url]) => {
-        insAssets[key] = await loadAssetImg(url);
-        if (DEBUG && !insAssets[key]) console.warn(`Failed to load asset: ${key} (${url})`);
+      await Promise.all(Object.entries(pixelAssetList).map(async ([key, url]) => {
+        const rawImg = await loadAssetImg(url);
+        pixelAssets[key] = processPixelAsset(rawImg);
       }));
-      if (DEBUG) console.log('Ins background loaded status:', !!insAssets.bg);
     }
 
     // Instagram Icons from Figma (SVG Paths)
@@ -1033,104 +1061,57 @@ jQuery(async () => {
         ctx.fillRect(x + w - thickness, y, thickness, h); // Right
     }
 
-    // Helper: Pixel Rose
-    function drawPixelRose(rx, ry, s = 2) {
-      const p = s * scaleFactor;
-      const petals = [
-        [0,0,1,1,0,0],[0,1,1,1,1,0],[1,1,2,2,1,1],[1,1,2,2,1,1],[0,1,1,1,1,0],[0,0,1,1,0,0]
-      ];
-      petals.forEach((row, ri) => {
-        row.forEach((cell, ci) => {
-          if (cell === 1) { ctx.fillStyle = '#F4A7B9'; ctx.fillRect(rx + ci*p, ry + ri*p, p, p); }
-          else if (cell === 2) { ctx.fillStyle = '#FFFFFF'; ctx.fillRect(rx + ci*p, ry + ri*p, p, p); }
-        });
-      });
-      // Leaves (small green pixels)
-      ctx.fillStyle = '#A8D8B9';
-      ctx.fillRect(rx - p, ry + 2*p, p, p);
-      ctx.fillRect(rx + 6*p, ry + 1*p, p, p);
+    // --- PREMIUM ASSET HELPERS ---
+    function drawAsset(key, sx, sy, sw, sh, dx, dy, dw, dh) {
+      const img = pixelAssets[key];
+      if (!img) return;
+      ctx.drawImage(img, sx, sy, sw, sh, dx, dy, dw, dh);
     }
 
-    // Helper: Pixel Bow
-    function drawPixelBow(bx, by, s = 2) {
-      const p = s * scaleFactor;
-      const data = [
-        [1,1,0,0,1,1],[1,1,1,1,1,1],[0,1,1,1,1,0],[0,0,1,1,0,0],[0,1,0,0,1,0],[1,0,0,0,0,1]
-      ];
-      ctx.fillStyle = '#F4A7B9';
-      data.forEach((row, ri) => {
-        row.forEach((cell, ci) => {
-          if (cell === 1) ctx.fillRect(bx + ci*p, by + ri*p, p, p);
-        });
-      });
+    // Helper: Pixel Rose (From Asset)
+    function drawPixelRoseResource(rx, ry, s = 1.0) {
+      const img = pixelAssets.deco;
+      if (!img) return;
+      const sw = img.width / 2;
+      const sh = img.height;
+      const dw = 40 * scaleFactor * s;
+      const dh = (sh / sw) * dw;
+      ctx.drawImage(img, 0, 0, sw, sh, rx, ry, dw, dh);
     }
 
-    // Helper: Pixel Strawberry
-    function drawPixelStrawberry(sx, sy, size = 3) {
-      const p = size * scaleFactor;
-      const data = [
-        [0,0,2,2,0,0],
-        [0,1,1,1,1,0],
-        [1,1,1,1,1,1],
-        [1,1,1,1,1,1],
-        [1,1,1,1,1,1],
-        [0,1,1,1,1,0],
-        [0,0,1,1,0,0]
-      ];
-      data.forEach((row, r) => {
-        row.forEach((cell, c) => {
-          if (cell === 1) { ctx.fillStyle = '#FF5252'; ctx.fillRect(sx + c * p, sy + r * p, p, p); }
-          else if (cell === 2) { ctx.fillStyle = '#4CAF50'; ctx.fillRect(sx + c * p, sy + r * p, p, p); }
-        });
-      });
-      // Seeds
-      ctx.fillStyle = '#FFEB3B';
-      ctx.fillRect(sx + 2 * p, sy + 3 * p, p * 0.5, p * 0.5);
-      ctx.fillRect(sx + 4 * p, sy + 4 * p, p * 0.5, p * 0.5);
+    // Helper: Pixel Bow (From Asset)
+    function drawPixelBowResource(bx, by, s = 1.0) {
+      const img = pixelAssets.deco;
+      if (!img) return;
+      const sw = img.width / 2;
+      const sh = img.height;
+      const dw = 40 * scaleFactor * s;
+      const dh = (sh / sw) * dw;
+      ctx.drawImage(img, sw, 0, sw, sh, bx, by, dw, dh);
     }
 
-    // Helper: Pixel Floppy Stack
-    function drawPixelFloppyStack(fx, fy, s = 2) {
-      const p = s * scaleFactor;
-      const colors = ['#F4A7B9', '#B3E5FC', '#A8D8B9', '#FFEB3B'];
-      colors.forEach((color, i) => {
-        const ox = i * 2 * p;
-        const oy = -i * 2 * p;
-        ctx.fillStyle = '#553311'; // Dark brown outline
-        ctx.fillRect(fx + ox, fy + oy, 30*p, 28*p);
-        ctx.fillStyle = color;
-        ctx.fillRect(fx + ox + p, fy + oy + p, 28*p, 26*p);
-        ctx.fillStyle = '#FFFFFF';
-        ctx.fillRect(fx + ox + 6*p, fy + oy + 4*p, 18*p, 12*p);
-      });
+    // Helper: Pixel Peeking Animal (From Asset)
+    function drawPeekingAnimal(type, ax, ay, w = 60) {
+      const img = pixelAssets.animals;
+      if (!img) return;
+      const sw = img.width / 3;
+      const sh = img.height;
+      let sx = 0;
+      if (type === 'bunny') sx = sw;
+      if (type === 'cat') sx = sw * 2;
+      
+      const dw = w * scaleFactor;
+      const dh = (sh / sw) * dw;
+      ctx.drawImage(img, sx, 0, sw, sh, ax, ay - dh + 5*scaleFactor, dw, dh);
     }
 
-    // Helper: Pixel Heart
-    function drawPixelHeart(hx, hy, size = 4, color = '#F4A7B9') {
-      const p = size * scaleFactor;
-      const data = [
-        [0,1,1,0,1,1,0],
-        [1,1,1,1,1,1,1],
-        [1,1,1,1,1,1,1],
-        [0,1,1,1,1,1,0],
-        [0,0,1,1,1,0,0],
-        [0,0,0,1,0,0,0]
-      ];
-      ctx.fillStyle = color;
-      data.forEach((row, r) => {
-        row.forEach((cell, c) => {
-          if (cell) ctx.fillRect(hx + c * p, hy + r * p, p, p);
-        });
-      });
-    }
-
-    // Helper: Pixel Star
-    function drawPixelStar(sx, sy, size = 3, color = '#FFEB3B') {
-      const p = size * scaleFactor;
-      ctx.fillStyle = color;
-      [[1,1],[0,1],[2,1],[1,0],[1,2]].forEach(([dx, dy]) => {
-        ctx.fillRect(sx + dx * p, sy + dy * p, p, p);
-      });
+    // Helper: Pixel Floppy Stack (From Asset)
+    function drawPixelFloppyResource(fx, fy, w = 80) {
+      const img = pixelAssets.floppy;
+      if (!img) return;
+      const dw = w * scaleFactor;
+      const dh = (img.height / img.width) * dw;
+      ctx.drawImage(img, fx, fy - dh, dw, dh);
     }
 
     // 3. 绘制背景
@@ -1156,10 +1137,10 @@ jQuery(async () => {
 
       // Corner Decorations
       const pad = 30 * scaleFactor;
-      drawPixelRose(pad, pad); drawPixelBow(pad + 25*scaleFactor, pad - 5*scaleFactor);
-      drawPixelRose(width - pad - 12*scaleFactor, pad); drawPixelBow(width - pad - 35*scaleFactor, pad - 5*scaleFactor);
-      drawPixelRose(pad, height - pad - 15*scaleFactor);
-      drawPixelRose(width - pad - 12*scaleFactor, height - pad - 15*scaleFactor);
+      drawPixelRoseResource(pad, pad, 1.2); drawPixelBowResource(pad + 50*scaleFactor, pad - 5*scaleFactor, 0.8);
+      drawPixelRoseResource(width - pad - 60 * scaleFactor, pad, 1.2); drawPixelBowResource(width - pad - 120 * scaleFactor, pad - 5*scaleFactor, 0.8);
+      drawPixelRoseResource(pad, height - pad - 60 * scaleFactor, 1.2);
+      drawPixelRoseResource(width - pad - 60 * scaleFactor, height - pad - 60 * scaleFactor, 1.2);
     }
 
 
@@ -1360,8 +1341,8 @@ jQuery(async () => {
       ctx.fillText(nameText, width / 2, infoY + 30 * scaleFactor);
       
       const nameW = ctx.measureText(nameText).width;
-      drawPixelRose(width/2 - nameW/2 - 45*scaleFactor, infoY + 10*scaleFactor, 1.8);
-      drawPixelRose(width/2 + nameW/2 + 15*scaleFactor, infoY + 10*scaleFactor, 1.8);
+      drawPixelRoseResource(width/2 - nameW/2 - 60*scaleFactor, infoY + 10*scaleFactor, 0.8);
+      drawPixelRoseResource(width/2 + nameW/2 + 20*scaleFactor, infoY + 10*scaleFactor, 0.8);
 
       if (showEncounterDate) {
         ctx.font = `400 ${18 * scaleFactor}px "Cubic 11", sans-serif`;
@@ -1532,19 +1513,12 @@ jQuery(async () => {
         ctx.fillRect(boxX + 250*scaleFactor, cy + 15*scaleFactor, 40*scaleFactor, 40*scaleFactor);
 
         // 5. Peeking Animals
-        if (i === 0) { // Cat
-          ctx.fillStyle = '#B08968'; 
-          ctx.fillRect(boxX - 5*scaleFactor, cy - 15*scaleFactor, 25*scaleFactor, 15*scaleFactor); 
-          ctx.fillRect(boxX - 2*scaleFactor, cy - 20*scaleFactor, 5*scaleFactor, 5*scaleFactor); 
-          ctx.fillRect(boxX + 15*scaleFactor, cy - 20*scaleFactor, 5*scaleFactor, 5*scaleFactor); 
-        } else if (i === 1) { // Bunny
-          ctx.fillStyle = '#FFFFFF';
-          ctx.fillRect(boxX + boxW - 25*scaleFactor, cy - 25*scaleFactor, 22*scaleFactor, 25*scaleFactor);
-          ctx.fillRect(boxX + boxW - 25*scaleFactor, cy - 40*scaleFactor, 5*scaleFactor, 15*scaleFactor);
-          ctx.fillRect(boxX + boxW - 10*scaleFactor, cy - 40*scaleFactor, 5*scaleFactor, 15*scaleFactor);
-        } else if (i === 2) { // Bear
-          ctx.fillStyle = '#6B3E26';
-          ctx.fillRect(boxX + boxW + 2*scaleFactor, cy + 10*scaleFactor, 18*scaleFactor, 22*scaleFactor);
+        if (i === 0) { // Bear (leftmost in sheet)
+          drawPeekingAnimal('bear', boxX - 10*scaleFactor, cy, 50);
+        } else if (i === 1) { // Bunny (middle in sheet)
+          drawPeekingAnimal('bunny', boxX + boxW - 50*scaleFactor, cy, 50);
+        } else if (i === 2) { // Cat (rightmost in sheet)
+          drawPeekingAnimal('cat', boxX + boxW - 40*scaleFactor, cy, 45);
         }
 
       } else {
@@ -1590,7 +1564,7 @@ jQuery(async () => {
     // 7. Decorative Pixel Art (Pixel style only)
     if (isPixel) {
       // Floppy Disk Stack
-      drawPixelFloppyStack(30 * scaleFactor, height - 70 * scaleFactor, 1.8);
+      drawPixelFloppyResource(30 * scaleFactor, height - 30 * scaleFactor, 110);
 
       // Stars
       drawPixelStar(width - 60 * scaleFactor, headerH + 20 * scaleFactor);
