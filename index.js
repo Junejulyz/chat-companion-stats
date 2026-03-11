@@ -867,14 +867,14 @@ jQuery(async () => {
     const isPixel = shareStyle === 'pixel-pink';
     const isModern = !isPixel; // Adjust modern flag
 
-    // Pixel Pink Colors (Candy Theme)
-    const pixelBg = '#FFF9FB'; // Creamy Pink
-    const pixelBorder = '#FFB7C5'; // Cherry Blossom
+    // Scrapbook Pixel Colors
+    const pixelBg = '#FEF9F0'; // Warm Cream
+    const pixelBorder = '#F4A7B9'; // Antique Rose
     const pixelHighlight = '#FFFFFF';
-    const pixelShadow = '#FFDAE2';
-    const pixelText = '#FF7597';
+    const pixelShadow = '#E198AA';
+    const pixelText = '#6B3E26'; // Cocoa Brown/Dark Pink
     const pixelBoxBg = '#FFFFFF';
-    const pixelBoxBorder = '#1A1A1A';
+    const pixelBoxBorder = '#553311';
 
     const tealColor = isDark ? '#2F3033' : '#F7F9FB';
     const cardBgColor = isPixel ? pixelBg : (isDark ? '#2F3033' : '#F7F9FB');
@@ -1033,6 +1033,38 @@ jQuery(async () => {
         ctx.fillRect(x + w - thickness, y, thickness, h); // Right
     }
 
+    // Helper: Pixel Rose
+    function drawPixelRose(rx, ry, s = 2) {
+      const p = s * scaleFactor;
+      const petals = [
+        [0,0,1,1,0,0],[0,1,1,1,1,0],[1,1,2,2,1,1],[1,1,2,2,1,1],[0,1,1,1,1,0],[0,0,1,1,0,0]
+      ];
+      petals.forEach((row, ri) => {
+        row.forEach((cell, ci) => {
+          if (cell === 1) { ctx.fillStyle = '#F4A7B9'; ctx.fillRect(rx + ci*p, ry + ri*p, p, p); }
+          else if (cell === 2) { ctx.fillStyle = '#FFFFFF'; ctx.fillRect(rx + ci*p, ry + ri*p, p, p); }
+        });
+      });
+      // Leaves (small green pixels)
+      ctx.fillStyle = '#A8D8B9';
+      ctx.fillRect(rx - p, ry + 2*p, p, p);
+      ctx.fillRect(rx + 6*p, ry + 1*p, p, p);
+    }
+
+    // Helper: Pixel Bow
+    function drawPixelBow(bx, by, s = 2) {
+      const p = s * scaleFactor;
+      const data = [
+        [1,1,0,0,1,1],[1,1,1,1,1,1],[0,1,1,1,1,0],[0,0,1,1,0,0],[0,1,0,0,1,0],[1,0,0,0,0,1]
+      ];
+      ctx.fillStyle = '#F4A7B9';
+      data.forEach((row, ri) => {
+        row.forEach((cell, ci) => {
+          if (cell === 1) ctx.fillRect(bx + ci*p, by + ri*p, p, p);
+        });
+      });
+    }
+
     // Helper: Pixel Strawberry
     function drawPixelStrawberry(sx, sy, size = 3) {
       const p = size * scaleFactor;
@@ -1057,6 +1089,22 @@ jQuery(async () => {
       ctx.fillRect(sx + 4 * p, sy + 4 * p, p * 0.5, p * 0.5);
     }
 
+    // Helper: Pixel Floppy Stack
+    function drawPixelFloppyStack(fx, fy, s = 2) {
+      const p = s * scaleFactor;
+      const colors = ['#F4A7B9', '#B3E5FC', '#A8D8B9', '#FFEB3B'];
+      colors.forEach((color, i) => {
+        const ox = i * 2 * p;
+        const oy = -i * 2 * p;
+        ctx.fillStyle = '#553311'; // Dark brown outline
+        ctx.fillRect(fx + ox, fy + oy, 30*p, 28*p);
+        ctx.fillStyle = color;
+        ctx.fillRect(fx + ox + p, fy + oy + p, 28*p, 26*p);
+        ctx.fillStyle = '#FFFFFF';
+        ctx.fillRect(fx + ox + 6*p, fy + oy + 4*p, 18*p, 12*p);
+      });
+    }
+
     // 3. 绘制背景
     ctx.fillStyle = (shareStyle === 'ins') ? '#FFFFFF' : tealColor; // Ins style is white overall
     if (shareStyle === 'ins') {
@@ -1067,16 +1115,23 @@ jQuery(async () => {
       ctx.fillRect(0, headerH, width, dynamicHeight - headerH);
     }
 
-    // Pixel Background Pattern (Polka dots)
+    // Pixel Background Pattern (Light Gingham/Grid)
     if (isPixel) {
-      ctx.fillStyle = '#FFEBEE'; // Pattern color (very light pink)
-      const dotSize = 2 * scaleFactor;
-      const spacing = 20 * scaleFactor;
+      ctx.fillStyle = '#FDF2E2'; // Slightly darker cream
+      const spacing = 15 * scaleFactor;
       for (let x = 0; x < width; x += spacing) {
-        for (let y = 0; y < height; y += spacing) {
-          ctx.fillRect(x, y, dotSize, dotSize);
-        }
+        ctx.fillRect(x, 0, 1 * scaleFactor, height);
       }
+      for (let y = 0; y < height; y += spacing) {
+        ctx.fillRect(0, y, width, 1 * scaleFactor);
+      }
+
+      // Corner Decorations
+      const pad = 30 * scaleFactor;
+      drawPixelRose(pad, pad); drawPixelBow(pad + 25*scaleFactor, pad - 5*scaleFactor);
+      drawPixelRose(width - pad - 12*scaleFactor, pad); drawPixelBow(width - pad - 35*scaleFactor, pad - 5*scaleFactor);
+      drawPixelRose(pad, height - pad - 15*scaleFactor);
+      drawPixelRose(width - pad - 12*scaleFactor, height - pad - 15*scaleFactor);
     }
 
 
@@ -1214,136 +1269,80 @@ jQuery(async () => {
       ctx.restore();
 
     } else if (isPixel) {
-      // Pixel Retro OS Window Frame (Outer Bezel)
-      drawPixelBezel(0, 0, width, height, 4 * scaleFactor, true);
+      // --- SCRAPBOOK HEADER ---
+      // 1. Double Border Frame
+      const framePad = 12 * scaleFactor;
+      ctx.lineWidth = 1 * scaleFactor;
+      ctx.strokeStyle = '#553311';
+      ctx.strokeRect(framePad, framePad, width - 2*framePad, height - 2*framePad);
+      ctx.strokeRect(framePad + 4*scaleFactor, framePad + 4*scaleFactor, width - 2*(framePad + 4*scaleFactor), height - 2*(framePad + 4*scaleFactor));
 
-      // Window Title Bar
-      const titleBarH = 40 * scaleFactor;
-      const titleBarX = 6 * scaleFactor;
-      const titleBarY = 6 * scaleFactor;
-      const titleBarW = width - 12 * scaleFactor;
-
-      ctx.fillStyle = pixelBorder; // Title bar color
-      ctx.fillRect(titleBarX, titleBarY, titleBarW, titleBarH);
+      // 2. Avatars and Heartbeat
+      const avatarSize = 100 * scaleFactor;
+      const avatarY = 50 * scaleFactor;
+      const charAvatarX = 70 * scaleFactor;
+      const userAvatarX = width - 70 * scaleFactor - avatarSize;
       
-      // Title Bar Shading (Top highlight, Bottom shadow)
-      ctx.fillStyle = pixelHighlight;
-      ctx.fillRect(titleBarX, titleBarY, titleBarW, 2 * scaleFactor);
-      ctx.fillStyle = pixelShadow;
-      ctx.fillRect(titleBarX, titleBarY + titleBarH - 2 * scaleFactor, titleBarW, 2 * scaleFactor);
-
-      // Title Text
-      ctx.textAlign = 'left';
-      ctx.fillStyle = '#FFFFFF';
-      ctx.font = `400 ${18 * scaleFactor}px "Cubic 11", sans-serif`;
-      drawPixelStrawberry(titleBarX + 8 * scaleFactor, titleBarY + 12 * scaleFactor, 1.5);
-      ctx.fillText("Chat Companion Stats", titleBarX + 35 * scaleFactor, titleBarY + 26 * scaleFactor);
-
-      // Control Buttons (Close, Max, Min) - Drawn as pixel art
-      const btnSize = 24 * scaleFactor;
-      const btnY = titleBarY + (titleBarH - btnSize) / 2;
+      const heartY = avatarY + avatarSize / 2;
+      const heartX = (charAvatarX + avatarSize + userAvatarX) / 2;
       
-      function drawPixelButton(bx, by, type) {
-        // Button Box (Raised)
-        ctx.fillStyle = pixelBg;
-        ctx.fillRect(bx, by, btnSize, btnSize);
-        drawPixelBezel(bx, by, btnSize, btnSize, 2 * scaleFactor, true);
-        
-        ctx.fillStyle = '#000000';
-        if (type === 'close') {
-          // X
-          ctx.fillRect(bx + 6 * scaleFactor, by + 6 * scaleFactor, 2 * scaleFactor, 2 * scaleFactor);
-          ctx.fillRect(bx + btnSize - 8 * scaleFactor, by + 6 * scaleFactor, 2 * scaleFactor, 2 * scaleFactor);
-          ctx.fillRect(bx + 10 * scaleFactor, by + 10 * scaleFactor, 4 * scaleFactor, 4 * scaleFactor);
-          ctx.fillRect(bx + 6 * scaleFactor, by + btnSize - 8 * scaleFactor, 2 * scaleFactor, 2 * scaleFactor);
-          ctx.fillRect(bx + btnSize - 8 * scaleFactor, by + btnSize - 8 * scaleFactor, 2 * scaleFactor, 2 * scaleFactor);
-        } else if (type === 'max') {
-          // Square
-          ctx.strokeRect(bx + 6 * scaleFactor, by + 6 * scaleFactor, btnSize - 12 * scaleFactor, btnSize - 12 * scaleFactor);
-        } else if (type === 'min') {
-          // Line
-          ctx.fillRect(bx + 6 * scaleFactor, by + btnSize - 8 * scaleFactor, btnSize - 12 * scaleFactor, 2 * scaleFactor);
-        }
-      }
-
-      drawPixelButton(titleBarX + titleBarW - 30 * scaleFactor, btnY, 'close');
-      drawPixelButton(titleBarX + titleBarW - 60 * scaleFactor, btnY, 'max');
-      drawPixelButton(titleBarX + titleBarW - 90 * scaleFactor, btnY, 'min');
-
-      // Content Logic (Avatars, Heart)
-      const avatarW = 90 * scaleFactor;
-      const avatarH = 90 * scaleFactor;
-      const avatarY = titleBarY + titleBarH + 40 * scaleFactor;
-      const leftAvatarX = 70 * scaleFactor;
-      const rightAvatarX = width - 70 * scaleFactor - avatarW;
-
-      function drawPixelAvatar(img, x, y) {
-        // Image Shadow (Recessed look)
-        drawPixelBezel(x - 4 * scaleFactor, y - 4 * scaleFactor, avatarW + 8 * scaleFactor, avatarH + 8 * scaleFactor, 4 * scaleFactor, false);
-
-        // Image
-        ctx.save();
-        ctx.beginPath();
-        ctx.rect(x, y, avatarW, avatarH);
-        ctx.clip();
-        if (img) {
-          const scale = Math.max(avatarW / img.width, avatarH / img.height);
-          const sw = img.width * scale;
-          const sh = img.height * scale;
-          ctx.drawImage(img, x + (avatarW - sw) / 2, y + (avatarH - sh) / 2, sw, sh);
-        } else {
-          ctx.fillStyle = '#ddd';
-          ctx.fillRect(x, y, avatarW, avatarH);
-        }
-        ctx.restore();
-      }
-
-      drawPixelAvatar(charImg, leftAvatarX, avatarY);
-      if (showUser) {
-        drawPixelAvatar(userImg, rightAvatarX, avatarY);
-      }
-
-      // Connecting Line and Pixel Heart
-      const lineY = avatarY + avatarH / 2;
-      ctx.strokeStyle = pixelBorder;
-      ctx.lineWidth = 3 * scaleFactor;
+      // Heartbeat line
+      ctx.lineWidth = 2 * scaleFactor;
+      ctx.strokeStyle = '#F4A7B9';
       ctx.beginPath();
-      ctx.moveTo(leftAvatarX + avatarW, lineY);
-      ctx.lineTo(showUser ? rightAvatarX : width / 2 + 50 * scaleFactor, lineY);
+      ctx.moveTo(charAvatarX + avatarSize, heartY);
+      ctx.lineTo(heartX - 35 * scaleFactor, heartY);
+      ctx.lineTo(heartX - 25 * scaleFactor, heartY - 15 * scaleFactor);
+      ctx.lineTo(heartX - 15 * scaleFactor, heartY + 20 * scaleFactor);
+      ctx.lineTo(heartX - 5 * scaleFactor, heartY);
       ctx.stroke();
 
-      // Draw Pixel Heart
-      const heartSize = 6 * scaleFactor;
-      const hx = (showUser ? (leftAvatarX + avatarW + rightAvatarX) / 2 : width / 2) - 4.5 * heartSize;
-      const hy = lineY - 4 * heartSize;
+      drawPixelHeart(heartX - 18 * scaleFactor, heartY - 16 * scaleFactor, 4, '#F4A7B9');
       
-      const heartData = [
-        [0,0,1,1,0,1,1,0,0],
-        [0,1,1,1,1,1,1,1,0],
-        [1,1,1,1,1,1,1,1,1],
-        [1,1,1,1,1,1,1,1,1],
-        [0,1,1,1,1,1,1,1,0],
-        [0,0,1,1,1,1,1,0,0],
-        [0,0,0,1,1,1,0,0,0],
-        [0,0,0,0,1,0,0,0,0]
-      ];
-      
-      ctx.fillStyle = pixelBorder;
-      heartData.forEach((row, r) => {
-        row.forEach((cell, c) => {
-          if (cell) ctx.fillRect(hx + c * heartSize, hy + r * heartSize, heartSize, heartSize);
-        });
-      });
+      ctx.beginPath();
+      ctx.moveTo(heartX + 18 * scaleFactor, heartY);
+      ctx.lineTo(heartX + 30 * scaleFactor, heartY);
+      ctx.lineTo(heartX + 35 * scaleFactor, heartY - 12 * scaleFactor);
+      ctx.lineTo(heartX + 45 * scaleFactor, heartY + 12 * scaleFactor);
+      ctx.lineTo(heartX + 50 * scaleFactor, heartY);
+      ctx.lineTo(userAvatarX, heartY);
+      ctx.stroke();
 
-      // Name and Date
+      function drawScrapbookFrame(ax, ay, size) {
+        drawPixelBezel(ax - 6*scaleFactor, ay - 6*scaleFactor, size + 12*scaleFactor, size + 12*scaleFactor, 4*scaleFactor, '#D4AF37', '#8B4513');
+        ctx.strokeStyle = '#553311';
+        ctx.lineWidth = 1 * scaleFactor;
+        ctx.strokeRect(ax - 1, ay - 1, size + 2, size + 2);
+      }
+      
+      drawScrapbookFrame(charAvatarX, avatarY, avatarSize);
+      drawRoundedAvatar(charImg, charAvatarX, avatarY, avatarSize, avatarSize, 0);
+      
+      if (showUser) {
+        drawScrapbookFrame(userAvatarX, avatarY, avatarSize);
+        drawRoundedAvatar(userImg, userAvatarX, avatarY, avatarSize, avatarSize, 0);
+      }
+
+      // 3. Name and Encounter
+      const infoY = avatarY + avatarSize + 30 * scaleFactor;
       ctx.textAlign = 'center';
       ctx.fillStyle = pixelText;
-      ctx.font = `400 ${36 * scaleFactor}px "Cubic 11", sans-serif`;
-      ctx.fillText(charName, width / 2, avatarY + avatarH + 45 * scaleFactor);
+      ctx.font = `600 ${32 * scaleFactor}px "Cubic 11", sans-serif`;
+      const nameText = charName || "角色名";
+      ctx.fillText(nameText, width / 2, infoY + 30 * scaleFactor);
+      
+      const nameW = ctx.measureText(nameText).width;
+      drawPixelRose(width/2 - nameW/2 - 45*scaleFactor, infoY + 10*scaleFactor, 1.8);
+      drawPixelRose(width/2 + nameW/2 + 15*scaleFactor, infoY + 10*scaleFactor, 1.8);
 
       if (showEncounterDate) {
-        ctx.font = `400 ${22 * scaleFactor}px "Cubic 11", sans-serif`;
-        ctx.fillText(`初遇于 ${$("#ccs-start").text()}`, width / 2, avatarY + avatarH + 75 * scaleFactor);
+        ctx.font = `400 ${18 * scaleFactor}px "Cubic 11", sans-serif`;
+        const encounterText = `初遇于 ${$("#ccs-start").text()}`;
+        ctx.fillText(encounterText, width / 2, infoY + 65 * scaleFactor);
+        const dateW = ctx.measureText(encounterText).width;
+        ctx.fillStyle = '#F47A91';
+        ctx.fillRect(width/2 - dateW/2 - 30*scaleFactor, infoY + 50*scaleFactor, 15*scaleFactor, 15*scaleFactor);
+        ctx.fillRect(width/2 + dateW/2 + 15*scaleFactor, infoY + 50*scaleFactor, 15*scaleFactor, 15*scaleFactor);
       }
 
     } else {
@@ -1453,21 +1452,72 @@ jQuery(async () => {
         ctx.fillText(labelText, 40 * scaleFactor, cy + boxH / 2 + 10 * scaleFactor);
 
       } else if (isPixel) {
-        // Pixel Retro OS recessed Panel for Stats
-        drawPixelBezel(boxX, cy, boxW, boxH, 3 * scaleFactor, false); // Inset
-        ctx.fillStyle = statBoxColor;
-        ctx.fillRect(boxX + 3 * scaleFactor, cy + 3 * scaleFactor, boxW - 6 * scaleFactor, boxH - 6 * scaleFactor);
-
-        // Label
-        ctx.textAlign = 'left';
-        ctx.fillStyle = '#1A1A1A';
-        ctx.font = `400 ${28 * scaleFactor}px "Cubic 11", sans-serif`;
-        ctx.fillText(stat.label, boxX + 24 * scaleFactor, cy + boxH / 2 + 6 * scaleFactor);
-
-        // Value
+        // --- SCRAPBOOK STAT BOX DESIGN ---
+        // 1. Box with Thick Borders (Control Panel Look)
+        ctx.fillStyle = '#FFFFFF';
+        ctx.fillRect(boxX, cy, boxW, boxH);
+        drawPixelBezel(boxX, cy, boxW, boxH, 3*scaleFactor, '#E198AA', '#553311');
+        
+        // 2. Control Bar (Top/Left side of box)
+        ctx.fillStyle = '#F4A7B9';
+        ctx.fillRect(boxX + 6*scaleFactor, cy + 6*scaleFactor, 220*scaleFactor, 30*scaleFactor);
+        
+        // Horizontal lines in control bar
+        ctx.fillStyle = '#553311';
+        const lineY = cy + 12*scaleFactor;
+        for(let i=0; i<3; i++) {
+          ctx.fillRect(boxX + 15*scaleFactor, lineY + i*6*scaleFactor, 25*scaleFactor, 1*scaleFactor);
+        }
+        
+        // "control" text
+        ctx.font = `400 ${10 * scaleFactor}px "Cubic 11", sans-serif`;
+        ctx.fillText("control", boxX + 110*scaleFactor, cy + 25*scaleFactor);
+        
+        // 3. Right Value Box (Dark Inset)
+        const valBoxW = 160 * scaleFactor;
+        const valBoxX = boxX + boxW - valBoxW - 15*scaleFactor;
+        const valBoxY = cy + 10*scaleFactor;
+        const valBoxH = boxH - 20*scaleFactor;
+        
+        // Dark box with blue text (Digital readout look)
+        ctx.fillStyle = '#2F3C4F';
+        ctx.fillRect(valBoxX, valBoxY, valBoxW, valBoxH);
+        drawPixelBezel(valBoxX, valBoxY, valBoxW, valBoxH, 2*scaleFactor, false);
+        
         ctx.textAlign = 'right';
-        const displayValue = `${stat.value} ${stat.unit || ''}`;
-        ctx.fillText(displayValue, boxX + boxW - 24 * scaleFactor, cy + boxH / 2 + 6 * scaleFactor);
+        ctx.fillStyle = '#B3E5FC'; // Blue pixel glow
+        ctx.font = `600 ${22 * scaleFactor}px "Cubic 11", sans-serif`;
+        ctx.fillText(`${stat.value}`, valBoxX + valBoxW - 35*scaleFactor, valBoxY + valBoxH/2 + 8*scaleFactor);
+        
+        ctx.fillStyle = '#FFFFFF';
+        ctx.font = `400 ${14 * scaleFactor}px "Cubic 11", sans-serif`;
+        ctx.fillText(stat.unit || '', valBoxX + valBoxW - 10*scaleFactor, valBoxY + valBoxH/2 + 8*scaleFactor);
+
+        // 4. Label and Main Icon placeholder
+        ctx.textAlign = 'left';
+        ctx.fillStyle = '#553311';
+        ctx.font = `600 ${24 * scaleFactor}px "Cubic 11", sans-serif`;
+        ctx.fillText(stat.label, boxX + 25*scaleFactor, cy + boxH - 15*scaleFactor);
+        
+        // Large Center Icon (Abstract pixel shapes)
+        ctx.fillStyle = '#F4A7B9';
+        ctx.fillRect(boxX + 250*scaleFactor, cy + 15*scaleFactor, 40*scaleFactor, 40*scaleFactor);
+
+        // 5. Peeking Animals
+        if (i === 0) { // Cat
+          ctx.fillStyle = '#B08968'; 
+          ctx.fillRect(boxX - 5*scaleFactor, cy - 15*scaleFactor, 25*scaleFactor, 15*scaleFactor); 
+          ctx.fillRect(boxX - 2*scaleFactor, cy - 20*scaleFactor, 5*scaleFactor, 5*scaleFactor); 
+          ctx.fillRect(boxX + 15*scaleFactor, cy - 20*scaleFactor, 5*scaleFactor, 5*scaleFactor); 
+        } else if (i === 1) { // Bunny
+          ctx.fillStyle = '#FFFFFF';
+          ctx.fillRect(boxX + boxW - 25*scaleFactor, cy - 25*scaleFactor, 22*scaleFactor, 25*scaleFactor);
+          ctx.fillRect(boxX + boxW - 25*scaleFactor, cy - 40*scaleFactor, 5*scaleFactor, 15*scaleFactor);
+          ctx.fillRect(boxX + boxW - 10*scaleFactor, cy - 40*scaleFactor, 5*scaleFactor, 15*scaleFactor);
+        } else if (i === 2) { // Bear
+          ctx.fillStyle = '#6B3E26';
+          ctx.fillRect(boxX + boxW + 2*scaleFactor, cy + 10*scaleFactor, 18*scaleFactor, 22*scaleFactor);
+        }
 
       } else {
         // Shadow for Modern Style
@@ -1511,51 +1561,17 @@ jQuery(async () => {
 
     // 7. Decorative Pixel Art (Pixel style only)
     if (isPixel) {
-      // Pixel Mouse Cursor
-      const cursorX = width - 100 * scaleFactor;
-      const cursorY = height - 120 * scaleFactor;
-      
-      const cursorData = [
-        [1,0,0,0,0,0,0],
-        [1,1,0,0,0,0,0],
-        [1,1,1,0,0,0,0],
-        [1,1,1,1,0,0,0],
-        [1,1,1,1,1,0,0],
-        [1,1,1,1,1,1,0],
-        [1,1,1,1,1,1,1],
-        [1,1,1,1,1,0,0],
-        [1,1,0,1,1,0,0],
-        [1,0,0,1,1,0,0]
-      ];
-      
-      const ps = 4 * scaleFactor;
-      ctx.fillStyle = '#FFFFFF';
-      cursorData.forEach((row, r) => {
-        row.forEach((cell, c) => {
-          if (cell) {
-            ctx.fillRect(cursorX + c * ps, cursorY + r * ps, ps, ps);
-            // Black outline
-            ctx.strokeStyle = '#000000';
-            ctx.lineWidth = 0.5 * scaleFactor;
-            ctx.strokeRect(cursorX + c * ps, cursorY + r * ps, ps, ps);
-          }
-        });
-      });
+      // Floppy Disk Stack
+      drawPixelFloppyStack(30 * scaleFactor, height - 70 * scaleFactor, 1.8);
 
-      // Simple Pixel Star
-      function drawPixelStar(sx, sy) {
-        const p = 3 * scaleFactor;
-        ctx.fillStyle = '#FFEB3B';
-        [[1,1],[0,1],[2,1],[1,0],[1,2]].forEach(([dx, dy]) => {
-          ctx.fillRect(sx + dx * p, sy + dy * p, p, p);
-        });
-      }
-      drawPixelStar(40 * scaleFactor, height - 80 * scaleFactor);
+      // Stars
       drawPixelStar(width - 60 * scaleFactor, headerH + 20 * scaleFactor);
-
-      // Additional strawberries for richness
-      drawPixelStrawberry(20 * scaleFactor, height - 40 * scaleFactor, 2.5);
-      drawPixelStrawberry(width - 45 * scaleFactor, height / 2, 2);
+      drawPixelStar(width - 120 * scaleFactor, height - 100 * scaleFactor);
+      
+      // Little Sparkles
+      ctx.fillStyle = '#FFFFFF';
+      ctx.fillRect(width/2 + 100*scaleFactor, headerH - 50*scaleFactor, 2*scaleFactor, 2*scaleFactor);
+      ctx.fillRect(50*scaleFactor, height/2, 2*scaleFactor, 2*scaleFactor);
     }
 
     // 7. 绘制底部互动栏 (Ins Style Only)
