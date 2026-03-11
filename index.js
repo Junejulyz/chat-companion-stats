@@ -44,9 +44,6 @@ jQuery(async () => {
   const settingsHtml = await $.get(`${extensionWebPath}/settings.html?v=${Date.now()}`);
   $("#extensions_settings").append(settingsHtml);
 
-  // Load saved settings (style, checkboxes)
-  loadSettings();
-
   // 确保模态框初始状态是隐藏的
   $("#ccs-preview-modal").hide();
 
@@ -190,47 +187,6 @@ jQuery(async () => {
       return `${minutes}分钟${seconds}秒`;
     } else {
       return `${seconds}秒`;
-    }
-  }
-
-  // Persistence logic
-  function saveSettings() {
-    const settings = {
-        style: shareStyle,
-        options: {
-            start: $('#ccs-share-start').is(':checked'),
-            messages: $('#ccs-share-messages').is(':checked'),
-            words: $('#ccs-share-words').is(':checked'),
-            days: $('#ccs-share-days').is(':checked'),
-            size: $('#ccs-share-size').is(':checked'),
-            userAvatar: $('#ccs-share-user-avatar').is(':checked')
-        }
-    };
-    localStorage.setItem('st-ccs-settings', JSON.stringify(settings));
-    if (DEBUG) console.log('Settings saved:', settings);
-  }
-
-  function loadSettings() {
-    const saved = localStorage.getItem('st-ccs-settings');
-    if (saved) {
-        try {
-            const settings = JSON.parse(saved);
-            if (settings.style) {
-                shareStyle = settings.style;
-                $('#ccs-style-select').val(shareStyle);
-            }
-            if (settings.options) {
-                $('#ccs-share-start').prop('checked', settings.options.start);
-                $('#ccs-share-messages').prop('checked', settings.options.messages);
-                $('#ccs-share-words').prop('checked', settings.options.words);
-                $('#ccs-share-days').prop('checked', settings.options.days);
-                $('#ccs-share-size').prop('checked', settings.options.size);
-                $('#ccs-share-user-avatar').prop('checked', settings.options.userAvatar);
-            }
-            if (DEBUG) console.log('Settings loaded:', settings);
-        } catch (e) {
-            console.error('Failed to parse saved settings:', e);
-        }
     }
   }
 
@@ -1046,34 +1002,27 @@ jQuery(async () => {
 
     const headerToBoxGap = baseHeaderToBoxGap * scaleFactor;
     
-    // 1. Define Style-Specific Vertical Padding (Unscaled)
-    let statsPaddingTop = 0;
-    let statsPaddingBottom = 0;
-
-    if (isPixel) {
-      statsPaddingTop = baseHeaderToBoxGap; // 24
-      statsPaddingBottom = 32; 
-    } else if (isModern) {
-      statsPaddingTop = 40;
-      statsPaddingBottom = 48; // Space for footer
-    } else if (!isModern && !isPixel && shareStyle !== 'ins') {
-      // Classic
-      statsPaddingTop = 140;
-      statsPaddingBottom = 48;
+    // Content area positioning
+    let totalStatsH;
+    if (shareStyle === 'ins') {
+      totalStatsH = 500 * scaleFactor; // Fixed height for ins content
+    } else if (isPixel) {
+      // Dynamic height for Pixel style: 24px gap + stats
+      const statsContentH = stats.length > 0 
+        ? (stats.length * boxH + (stats.length - 1) * boxGap + headerToBoxGap)
+        : 0;
+      totalStatsH = statsContentH + (16 * scaleFactor); // Bottom padding 16px
+    } else {
+      totalStatsH = (stats.length > 0 ? (stats.length * boxH + (stats.length - 1) * boxGap + 80 * scaleFactor) : 0);
     }
 
-    // 2. Calculate Content area positioning
-    const statsAreaH = stats.length > 0 ? (stats.length * boxH + (stats.length - 1) * boxGap) : 0;
-    const totalStatsH = (shareStyle === 'ins')
-      ? (500 * scaleFactor) // Fixed height for ins content
-      : (stats.length > 0 ? (statsPaddingTop + statsPaddingBottom) * scaleFactor + statsAreaH : 0);
-
-    const height = headerH + totalStatsH;
+    const height = headerH + totalStatsH + (isPixel ? 0 : footerH);
     const dynamicHeight = height;
 
-    const statsStartY = (shareStyle === 'ins')
-      ? (headerH + (500 * scaleFactor - statsAreaH) / 2) // Vertically centered in fixed height
-      : (headerH + statsPaddingTop * scaleFactor);
+    // 现代版底色区域 (This block is now mostly for non-ins styles)
+    const contentAreaMargin = 32 * scaleFactor;
+    const contentAreaW = isModern ? 599 * scaleFactor : (540 * scaleFactor);
+    // const contentAreaH = hasStats ? (statsAreaH + 80 * scaleFactor) : 0; // Padding inside content (now totalStatsH)
 
     canvas.width = width;
     canvas.height = dynamicHeight;
@@ -1282,10 +1231,10 @@ jQuery(async () => {
       const userAvatarX = 415 * scaleFactor; 
       const avatarY = 70 * scaleFactor; 
       
-      // Draw Avatars (Corner radius reduced from 12 to 8)
-      drawRoundedAvatar(charImg, charAvatarX, avatarY, avatarSize, avatarSize, 8 * scaleFactor);
+      // Draw Avatars - Corner radius reduced to 5 for sharper look
+      drawRoundedAvatar(charImg, charAvatarX, avatarY, avatarSize, avatarSize, 5 * scaleFactor);
       if (showUser) {
-        drawRoundedAvatar(userImg, userAvatarX, avatarY, avatarSize, avatarSize, 8 * scaleFactor);
+        drawRoundedAvatar(userImg, userAvatarX, avatarY, avatarSize, avatarSize, 5 * scaleFactor);
       }
 
       // Name and Encounter
@@ -1299,8 +1248,8 @@ jQuery(async () => {
       if (showEncounterDate) {
         ctx.font = `400 ${26 * scaleFactor}px "Cubic 11", sans-serif`;
         const encounterText = `初遇于 ${$("#ccs-start").text()}`;
-        // Moved down 10px (was 252, now 262)
-        ctx.fillText(encounterText, width / 2, 262 * scaleFactor);
+        // Nudged down slightly to 258px
+        ctx.fillText(encounterText, width / 2, 258 * scaleFactor);
       }
       ctx.textBaseline = 'alphabetic'; // Reset to default
 
@@ -1390,8 +1339,11 @@ jQuery(async () => {
 
     // 6. 绘制统计项
     const insContentH = 500 * scaleFactor;
-    const actualStatsH = statsAreaH;
-    // statsStartY is already calculated above
+    const actualStatsH = stats.length * boxH + (stats.length > 0 ? (stats.length - 1) * boxGap : 0);
+    const statsStartY = (shareStyle === 'ins')
+      ? (headerH + (insContentH - actualStatsH) / 2) // Vertically centered in fixed height
+      : (isPixel ? (baseHeaderPadding + baseHeaderH_Pixel + baseHeaderToBoxGap) * scaleFactor : (isModern ? (headerH + 40 * scaleFactor) : (headerH + 100 * scaleFactor + 40 * scaleFactor)));
+
     const boxX = (width - boxW) / 2;
 
     stats.forEach((stat, i) => {
@@ -1649,8 +1601,6 @@ jQuery(async () => {
   $(document).on('change', '#ccs-style-select', async function () {
     shareStyle = $(this).val();
     if (DEBUG) console.log('Selected style changed (dropdown):', shareStyle);
-    
-    saveSettings();
 
     // 即时重新生成预览
     const $container = $("#ccs-preview-container");
@@ -1678,8 +1628,6 @@ jQuery(async () => {
     // Re-evaluate button state based on current message count whenever options change
     const currentMessageCount = parseInt($("#ccs-messages").text(), 10) || 0;
     updateShareButtonState(currentMessageCount);
-    
-    saveSettings();
   });
 
   // Observe character selection changes to trigger auto-refresh
