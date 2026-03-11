@@ -980,17 +980,24 @@ jQuery(async () => {
     const stats = statsItems.filter(s => $(`#${s.id}`).is(":checked"));
 
     // 2. 计算动态高度
-    const headerH = (shareStyle === 'ins' ? 144 : (isPixel ? 210 : 214)) * scaleFactor;
+    const headerW = 631 * scaleFactor;
+    const headerH_Pixel = 324 * scaleFactor;
+    const headerPadding = 16 * scaleFactor;
+    const boxH_Pixel = 90 * scaleFactor;
+    const boxGap_Pixel = 20 * scaleFactor;
+    const headerToBoxGap = 24 * scaleFactor;
+
+    const headerH = (shareStyle === 'ins' ? 144 : (isPixel ? (headerH_Pixel + headerPadding) : 214)) * scaleFactor;
     const footerH = (shareStyle === 'ins' ? 92 : 48) * scaleFactor;
-    const boxH = (isPixel ? 70 : 80) * scaleFactor;
-    const boxGap = (shareStyle === 'ins' ? 24 : (isPixel ? 24 : 32)) * scaleFactor;
+    const boxH = (isPixel ? boxH_Pixel : 80 * scaleFactor);
+    const boxGap = (shareStyle === 'ins' ? 24 : (isPixel ? boxGap_Pixel : 32)) * scaleFactor;
 
     // Ins style: fixed height for content area vs others
     const totalStatsH = (shareStyle === 'ins')
       ? (500 * scaleFactor) // Fixed height for ins content
-      : (stats.length > 0 ? (stats.length * boxH + (stats.length - 1) * boxGap + 80 * scaleFactor) : 0);
+      : (stats.length > 0 ? (stats.length * boxH + (stats.length - 1) * boxGap + (isPixel ? headerToBoxGap : 80 * scaleFactor)) : 0);
 
-    const height = headerH + totalStatsH + footerH;
+    const height = isPixel ? 816 * scaleFactor : (headerH + totalStatsH + footerH);
     const dynamicHeight = height;
 
     // 现代版底色区域 (This block is now mostly for non-ins styles)
@@ -1050,13 +1057,11 @@ jQuery(async () => {
     }
 
     // 3. 绘制背景
-    ctx.fillStyle = (shareStyle === 'ins') ? '#FFFFFF' : tealColor; // Ins style is white overall
+    ctx.fillStyle = (shareStyle === 'ins') ? '#FFFFFF' : (isPixel ? '#F1BDC3' : tealColor); // New Pixel Pink background color
     if (shareStyle === 'ins') {
       roundRect(0, 0, width, height, 24 * scaleFactor);
     } else {
-      ctx.fillRect(0, 0, width, headerH);
-      ctx.fillStyle = cardBgColor;
-      ctx.fillRect(0, headerH, width, dynamicHeight - headerH);
+      ctx.fillRect(0, 0, width, height); // Fill whole background
     }
 
     // Pixel Background Pattern (Light Gingham/Grid)
@@ -1209,14 +1214,15 @@ jQuery(async () => {
       // --- NEW PINK PIXEL HEADER ---
       const headerImg = pixelAssets.header;
       if (headerImg) {
-        ctx.drawImage(headerImg, 0, 0, width, headerH);
+        // Precise positioning: 16px from top, 16px from left
+        ctx.drawImage(headerImg, 16 * scaleFactor, 16 * scaleFactor, 631 * scaleFactor, 324 * scaleFactor);
       }
 
       // Avatar Slots Positioning (Measured from sample)
       const avatarSize = 120 * scaleFactor;
-      const charAvatarX = 132 * scaleFactor;
-      const userAvatarX = 407 * scaleFactor;
-      const avatarY = 70 * scaleFactor;
+      const charAvatarX = (16 + 116) * scaleFactor; // 16px padding + measure from image
+      const userAvatarX = (16 + 391) * scaleFactor; 
+      const avatarY = (16 + 54) * scaleFactor; // 16px padding + measure from image
       
       // Draw Avatars in slots
       drawRoundedAvatar(charImg, charAvatarX, avatarY, avatarSize, avatarSize, 12 * scaleFactor);
@@ -1229,12 +1235,12 @@ jQuery(async () => {
       ctx.fillStyle = '#6B3E26'; // Cocoa Brown from design
       ctx.font = `400 ${36 * scaleFactor}px "PING FANG SHAO HUA", sans-serif`;
       const nameText = charName || "角色名";
-      ctx.fillText(nameText, width / 2, 290 * scaleFactor);
+      ctx.fillText(nameText, width / 2, (16 + 274) * scaleFactor);
       
       if (showEncounterDate) {
         ctx.font = `400 ${22 * scaleFactor}px "PING FANG SHAO HUA", sans-serif`;
         const encounterText = `初遇于 ${$("#ccs-start").text()}`;
-        ctx.fillText(encounterText, width / 2, 335 * scaleFactor);
+        ctx.fillText(encounterText, width / 2, (16 + 319) * scaleFactor);
       }
 
     } else {
@@ -1326,9 +1332,9 @@ jQuery(async () => {
     const actualStatsH = stats.length * boxH + (stats.length > 0 ? (stats.length - 1) * boxGap : 0);
     const statsStartY = (shareStyle === 'ins')
       ? (headerH + (insContentH - actualStatsH) / 2) // Vertically centered in fixed height
-      : (isPixel ? (headerH + 20 * scaleFactor) : (isModern ? (headerH + 40 * scaleFactor) : (headerH + 100 * scaleFactor + 40 * scaleFactor)));
+      : (isPixel ? (16 * scaleFactor + 324 * scaleFactor + 24 * scaleFactor) : (isModern ? (headerH + 40 * scaleFactor) : (headerH + 100 * scaleFactor + 40 * scaleFactor)));
 
-    const boxW = 519 * scaleFactor;
+    const boxW = isPixel ? 615 * scaleFactor : 519 * scaleFactor;
     const boxX = (width - boxW) / 2;
 
     stats.forEach((stat, i) => {
