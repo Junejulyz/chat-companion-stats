@@ -1479,8 +1479,8 @@ jQuery(async () => {
   async function generateGlobalShareImage(dataList, tab) {
     if (!dataList || dataList.length === 0) return null;
     
-    // 取前 10
-    const topList = dataList.slice(0, 10);
+    // 取前 5
+    const topList = dataList.slice(0, 5);
     
     // Canvas 配置
     const scaleFactor = 2; // Retina 
@@ -1520,18 +1520,18 @@ jQuery(async () => {
     if (tab === 'days') tabName = '相伴天数';
     if (tab === 'size') tabName = '回忆大小';
     
-    ctx.fillStyle = textColor;
-    ctx.font = `bold ${32 * scaleFactor}px "LXGW Neo XiHei", "PingFang SC", sans-serif`;
+    const iconEl = document.querySelector('.ccs-global-title-icon');
+    const iconColor = iconEl ? getComputedStyle(iconEl).color : textColor;
+    
+    ctx.fillStyle = iconColor;
+    ctx.font = `900 ${26 * scaleFactor}px "Font Awesome 6 Free", "Font Awesome 5 Free", "FontAwesome"`;
     ctx.textAlign = 'left';
     ctx.textBaseline = 'middle';
-    ctx.fillText(`🏆 ${tabName}排行`, padding * scaleFactor, padding * scaleFactor + 30 * scaleFactor);
+    ctx.fillText('\uf521', padding * scaleFactor, padding * scaleFactor + 30 * scaleFactor);
     
-    ctx.globalAlpha = 0.6;
     ctx.fillStyle = textColor;
-    ctx.font = `bold ${20 * scaleFactor}px "LXGW Neo XiHei", "PingFang SC", sans-serif`;
-    ctx.textAlign = 'right';
-    ctx.fillText(`Top 10`, width - padding * scaleFactor, padding * scaleFactor + 30 * scaleFactor);
-    ctx.globalAlpha = 1.0;
+    ctx.font = `bold ${28 * scaleFactor}px "LXGW Neo XiHei", "PingFang SC", sans-serif`;
+    ctx.fillText(`${tabName}排行`, padding * scaleFactor + 36 * scaleFactor, padding * scaleFactor + 30 * scaleFactor);
     
     // Function to draw rounded rect
     function drawRoundedRect(x, y, w, h, r, fillStyle) {
@@ -1585,36 +1585,42 @@ jQuery(async () => {
       }
       drawRoundedRect(itemX, itemY, itemW, itemH, 16 * scaleFactor, itemBg);
       
-      // Rank Badge
+      // Rank Badge (Circle for top 3, text for rest)
       const badgeSize = 34 * scaleFactor;
-      const badgeX = itemX + 16 * scaleFactor;
+      const badgeX = itemX + 12 * scaleFactor; // inner padding roughly 12px
       const badgeY = itemY + (itemH - badgeSize) / 2;
       
-      let badgeColor = 'rgba(128, 128, 128, 0.2)';
-      if (index === 0) {
-        const grad = ctx.createLinearGradient(badgeX, badgeY, badgeX + badgeSize, badgeY + badgeSize);
-        grad.addColorStop(0, '#FFE169');
-        grad.addColorStop(1, '#F5A623');
-        badgeColor = grad;
-      } else if (index === 1) {
-        const grad = ctx.createLinearGradient(badgeX, badgeY, badgeX + badgeSize, badgeY + badgeSize);
-        grad.addColorStop(0, '#E2E2E2');
-        grad.addColorStop(1, '#9B9B9B');
-        badgeColor = grad;
-      } else if (index === 2) {
-        const grad = ctx.createLinearGradient(badgeX, badgeY, badgeX + badgeSize, badgeY + badgeSize);
-        grad.addColorStop(0, '#F5C695');
-        grad.addColorStop(1, '#C07C41');
-        badgeColor = grad;
+      if (index < 3) {
+        let badgeColor = 'rgba(128, 128, 128, 0.2)';
+        if (index === 0) {
+          const grad = ctx.createLinearGradient(badgeX, badgeY, badgeX + badgeSize, badgeY + badgeSize);
+          grad.addColorStop(0, '#FFE169');
+          grad.addColorStop(1, '#F5A623');
+          badgeColor = grad;
+        } else if (index === 1) {
+          const grad = ctx.createLinearGradient(badgeX, badgeY, badgeX + badgeSize, badgeY + badgeSize);
+          grad.addColorStop(0, '#E2E2E2');
+          grad.addColorStop(1, '#9B9B9B');
+          badgeColor = grad;
+        } else if (index === 2) {
+          const grad = ctx.createLinearGradient(badgeX, badgeY, badgeX + badgeSize, badgeY + badgeSize);
+          grad.addColorStop(0, '#F5C695');
+          grad.addColorStop(1, '#C07C41');
+          badgeColor = grad;
+        }
+        
+        ctx.beginPath();
+        ctx.arc(badgeX + badgeSize/2, badgeY + badgeSize/2, badgeSize/2, 0, Math.PI * 2);
+        ctx.fillStyle = badgeColor;
+        ctx.fill();
+        
+        ctx.fillStyle = '#FFFFFF';
+        ctx.globalAlpha = 1.0;
+      } else {
+        ctx.fillStyle = textColor;
+        ctx.globalAlpha = 0.6;
       }
       
-      ctx.beginPath();
-      ctx.arc(badgeX + badgeSize/2, badgeY + badgeSize/2, badgeSize/2, 0, Math.PI * 2);
-      ctx.fillStyle = badgeColor;
-      ctx.fill();
-      
-      ctx.fillStyle = index < 3 ? '#FFFFFF' : textColor;
-      ctx.globalAlpha = index < 3 ? 1.0 : 0.6;
       ctx.font = `bold ${16 * scaleFactor}px "LXGW Neo XiHei", "PingFang SC", sans-serif`;
       ctx.textAlign = 'center';
       ctx.fillText((index + 1).toString(), badgeX + badgeSize/2, badgeY + badgeSize/2 + 2*scaleFactor);
