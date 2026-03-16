@@ -1545,7 +1545,7 @@ jQuery(async () => {
     
     ctx.fillStyle = textColor;
     ctx.font = `bold ${26 * scaleFactor}px ${baseFontFamily}`;
-    ctx.fillText(`${tabName}排行`, padding * scaleFactor + 34 * scaleFactor, padding * scaleFactor + 25 * scaleFactor);
+    ctx.fillText(`${tabName}`, padding * scaleFactor + 34 * scaleFactor, padding * scaleFactor + 25 * scaleFactor);
     
     // Function to draw rounded rect
     function drawRoundedRect(x, y, w, h, r, fillStyle) {
