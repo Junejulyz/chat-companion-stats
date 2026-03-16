@@ -1476,7 +1476,206 @@ jQuery(async () => {
     return canvas.toDataURL('image/png');
   }
 
-  function showPreview(imageData) {
+  async function generateGlobalShareImage(dataList, tab) {
+    if (!dataList || dataList.length === 0) return null;
+    
+    // 取前 10
+    const topList = dataList.slice(0, 10);
+    
+    // Canvas 配置
+    const scaleFactor = 2; // Retina 
+    const baseWidth = 600;
+    const headerHeight = 110;
+    const itemHeight = 84;
+    const spacing = 12;
+    const padding = 24;
+    
+    const baseHeight = headerHeight + topList.length * (itemHeight + spacing) + padding;
+    
+    const width = baseWidth * scaleFactor;
+    const height = baseHeight * scaleFactor;
+    
+    const canvas = document.createElement('canvas');
+    canvas.width = width;
+    canvas.height = height;
+    const ctx = canvas.getContext('2d');
+    
+    // 背景
+    const bgGradient = ctx.createLinearGradient(0, 0, width, height);
+    bgGradient.addColorStop(0, '#2A2D34');
+    bgGradient.addColorStop(1, '#1A1C23');
+    ctx.fillStyle = bgGradient;
+    ctx.fillRect(0, 0, width, height);
+    
+    // Header
+    let tabName = '对话总数';
+    if (tab === 'days') tabName = '相伴天数';
+    if (tab === 'size') tabName = '回忆大小';
+    
+    ctx.fillStyle = '#FFFFFF';
+    ctx.font = `bold ${32 * scaleFactor}px "LXGW Neo XiHei", "PingFang SC", sans-serif`;
+    ctx.textAlign = 'left';
+    ctx.textBaseline = 'middle';
+    ctx.fillText('🏆 羁绊排行', padding * scaleFactor, padding * scaleFactor + 30 * scaleFactor);
+    
+    ctx.fillStyle = 'rgba(255, 255, 255, 0.6)';
+    ctx.font = `bold ${20 * scaleFactor}px "LXGW Neo XiHei", "PingFang SC", sans-serif`;
+    ctx.textAlign = 'right';
+    ctx.fillText(`Top 10 - ${tabName}`, width - padding * scaleFactor, padding * scaleFactor + 30 * scaleFactor);
+    
+    // Function to draw rounded rect
+    function drawRoundedRect(x, y, w, h, r, fillStyle) {
+      ctx.beginPath();
+      ctx.moveTo(x + r, y);
+      ctx.lineTo(x + w - r, y);
+      ctx.arcTo(x + w, y, x + w, y + r, r);
+      ctx.lineTo(x + w, y + h - r);
+      ctx.arcTo(x + w, y + h, x + w - r, y + h, r);
+      ctx.lineTo(x + r, y + h);
+      ctx.arcTo(x, y + h, x, y + h - r, r);
+      ctx.lineTo(x, y + r);
+      ctx.arcTo(x, y, x + r, y, r);
+      ctx.closePath();
+      if (fillStyle) {
+        ctx.fillStyle = fillStyle;
+        ctx.fill();
+      }
+    }
+    
+    // Items
+    let currentY = headerHeight * scaleFactor;
+    
+    // Load avatars
+    const avatars = await Promise.all(topList.map(async (stat) => {
+      return new Promise((resolve) => {
+        const img = new Image();
+        img.crossOrigin = 'Anonymous';
+        img.onload = () => resolve(img);
+        img.onerror = () => {
+          const defaultImg = new Image();
+          defaultImg.src = '../img/char-default.png';
+          defaultImg.onload = () => resolve(defaultImg);
+          defaultImg.onerror = () => resolve(null);
+        };
+        img.src = stat.avatar;
+      });
+    }));
+    
+    topList.forEach((stat, index) => {
+      const itemX = padding * scaleFactor;
+      const itemY = currentY;
+      const itemW = width - padding * 2 * scaleFactor;
+      const itemH = itemHeight * scaleFactor;
+      
+      // Card bg
+      drawRoundedRect(itemX, itemY, itemW, itemH, 16 * scaleFactor, 'rgba(255, 255, 255, 0.05)');
+      
+      // Rank Badge
+      const badgeSize = 34 * scaleFactor;
+      const badgeX = itemX + 16 * scaleFactor;
+      const badgeY = itemY + (itemH - badgeSize) / 2;
+      
+      let badgeColor = 'rgba(255, 255, 255, 0.1)';
+      if (index === 0) {
+        const grad = ctx.createLinearGradient(badgeX, badgeY, badgeX + badgeSize, badgeY + badgeSize);
+        grad.addColorStop(0, '#FFE169');
+        grad.addColorStop(1, '#F5A623');
+        badgeColor = grad;
+      } else if (index === 1) {
+        const grad = ctx.createLinearGradient(badgeX, badgeY, badgeX + badgeSize, badgeY + badgeSize);
+        grad.addColorStop(0, '#E2E2E2');
+        grad.addColorStop(1, '#9B9B9B');
+        badgeColor = grad;
+      } else if (index === 2) {
+        const grad = ctx.createLinearGradient(badgeX, badgeY, badgeX + badgeSize, badgeY + badgeSize);
+        grad.addColorStop(0, '#F5C695');
+        grad.addColorStop(1, '#C07C41');
+        badgeColor = grad;
+      }
+      
+      ctx.beginPath();
+      ctx.arc(badgeX + badgeSize/2, badgeY + badgeSize/2, badgeSize/2, 0, Math.PI * 2);
+      ctx.fillStyle = badgeColor;
+      ctx.fill();
+      
+      ctx.fillStyle = index < 3 ? '#FFFFFF' : 'rgba(255,255,255,0.6)';
+      ctx.font = `bold ${16 * scaleFactor}px "LXGW Neo XiHei", "PingFang SC", sans-serif`;
+      ctx.textAlign = 'center';
+      ctx.fillText((index + 1).toString(), badgeX + badgeSize/2, badgeY + badgeSize/2 + 2*scaleFactor);
+      
+      // Avatar
+      const avatarSize = 50 * scaleFactor;
+      const avatarX = badgeX + badgeSize + 16 * scaleFactor;
+      const avatarY = itemY + (itemH - avatarSize) / 2;
+      
+      const img = avatars[index];
+      if (img) {
+        ctx.save();
+        ctx.beginPath();
+        ctx.arc(avatarX + avatarSize/2, avatarY + avatarSize/2, avatarSize/2, 0, Math.PI * 2);
+        ctx.clip();
+        ctx.drawImage(img, avatarX, avatarY, avatarSize, avatarSize);
+        ctx.restore();
+      }
+      
+      // Text logic
+      let valueHtml = '';
+      let descHtml = '';
+      let unitHtml = '';
+      
+      if (tab === 'messages') {
+        valueHtml = stat.messages.toString();
+        unitHtml = '条';
+        descHtml = `陪伴 ${stat.days} 天`;
+      } else if (tab === 'days') {
+        valueHtml = stat.days.toString();
+        unitHtml = '天';
+        let firstMeetStr = '未知';
+        if (stat.firstTimeRaw) {
+          const dt = new Date(stat.firstTimeRaw);
+          if (!isNaN(dt.getTime())) {
+            firstMeetStr = `${dt.getFullYear()}.${Math.floor(dt.getMonth() + 1).toString().padStart(2, '0')}.${Math.floor(dt.getDate()).toString().padStart(2, '0')}`;
+          }
+        }
+        descHtml = `初遇 ${firstMeetStr}`;
+      } else if (tab === 'size') {
+        const sizeParts = stat.formattedSize.split(' ');
+        valueHtml = sizeParts[0] || '0';
+        unitHtml = sizeParts[1] || 'B';
+        descHtml = `${stat.messages} 条对话`;
+      }
+      
+      // Name
+      const textX = avatarX + avatarSize + 16 * scaleFactor;
+      ctx.fillStyle = '#FFFFFF';
+      ctx.font = `bold ${18 * scaleFactor}px "LXGW Neo XiHei", "PingFang SC", sans-serif`;
+      ctx.textAlign = 'left';
+      ctx.fillText(stat.name, textX, itemY + itemH/2 - 10 * scaleFactor);
+      
+      // Desc
+      ctx.fillStyle = 'rgba(255, 255, 255, 0.6)';
+      ctx.font = `400 ${14 * scaleFactor}px "LXGW Neo XiHei", "PingFang SC", sans-serif`;
+      ctx.fillText(descHtml, textX, itemY + itemH/2 + 14 * scaleFactor);
+      
+      // Value & Unit
+      const rightPadding = itemW - parseInt(20 * scaleFactor);
+      ctx.fillStyle = 'rgba(255, 255, 255, 0.6)';
+      ctx.font = `400 ${16 * scaleFactor}px "LXGW Neo XiHei", "PingFang SC", sans-serif`;
+      ctx.textAlign = 'right';
+      ctx.fillText(unitHtml, itemX + rightPadding, itemY + itemH/2 + 2 * scaleFactor);
+      
+      const unitWidth = ctx.measureText(unitHtml).width;
+      ctx.fillStyle = '#FFFFFF';
+      ctx.font = `bold ${22 * scaleFactor}px "LXGW Neo XiHei", "PingFang SC", sans-serif`;
+      ctx.fillText(valueHtml, itemX + rightPadding - unitWidth - 6 * scaleFactor, itemY + itemH/2 + 2 * scaleFactor);
+      
+      currentY += (itemHeight + spacing) * scaleFactor;
+    });
+    
+    return { dataUrl: canvas.toDataURL('image/png'), filename: `羁绊排行_${tabName}.png` };
+  }
+
+  function showPreview(imageData, customFilename) {
     const $modal = $("#ccs-preview-modal");
     const $container = $("#ccs-preview-container");
 
@@ -1496,6 +1695,16 @@ jQuery(async () => {
     // 显示模态框
     $modal.css('display', 'flex');
     $('body, #rm_extensions_block').css('overflow', 'hidden'); // 阻止背景滚动
+    
+    // Store filename
+    $("#ccs-download").data('filename', customFilename || '');
+    
+    // Hide UI elements not relevant for global share
+    if (customFilename && customFilename.includes('排行')) {
+      $("#ccs-style-select").hide();
+    } else {
+      $("#ccs-style-select").show();
+    }
   }
 
   // 添加刷新按钮事件处理
@@ -1543,7 +1752,8 @@ jQuery(async () => {
       // Wait a tiny bit extra just in case
       await new Promise(r => setTimeout(r, 100));
       $container.removeClass('loading-preview');
-      showPreview(imageData);
+      const characterName = getCurrentCharacterName();
+      showPreview(imageData, `羁绊卡片_${characterName}.png`);
       $button.val('已生成');
     } catch (error) {
       console.error('生成分享图片失败:', error);
@@ -1564,9 +1774,9 @@ jQuery(async () => {
 
   // 添加保存按钮事件
   $("#ccs-download").on("click", function () {
-    const characterName = getCurrentCharacterName();
+    const filename = $(this).data('filename') || '羁绊卡片.png';
     const link = document.createElement('a');
-    link.download = `羁绊卡片_${characterName}.png`;
+    link.download = filename;
     link.href = $("#ccs-preview-container img").attr('src');
     link.click();
   });
@@ -1896,6 +2106,39 @@ jQuery(async () => {
     
     if (statsData) {
       renderGlobalStats(statsData, targetTab);
+    }
+  });
+
+  // 绑定全局排行分享按钮事件
+  $(document).on('click', '#ccs-global-share-btn', async function () {
+    const $button = $(this);
+    if ($button.hasClass('loading')) return;
+    
+    const targetTab = $('.ccs-tab.active').data('tab');
+    const statsData = $('#ccs-global-modal').data('tempStatsData');
+    if (!statsData || statsData.length === 0) return;
+    
+    $button.addClass('loading').css('opacity', '0.5');
+    
+    // 打开预览模块，并清空容器
+    const $modal = $("#ccs-preview-modal");
+    const $container = $("#ccs-preview-container");
+    $container.empty().addClass('loading-preview');
+    $modal.css('display', 'flex');
+    $('body, #rm_extensions_block').css('overflow', 'hidden');
+    
+    try {
+      const result = await generateGlobalShareImage(statsData, targetTab);
+      if (result) {
+        $container.removeClass('loading-preview');
+        showPreview(result.dataUrl, result.filename);
+      }
+    } catch (e) {
+      console.error('Failed to generate global share image:', e);
+      $container.removeClass('loading-preview');
+      $container.html('<p style="color:red; padding: 20px;">生成分享图片失败，请检查控制台。</p>');
+    } finally {
+      $button.removeClass('loading').css('opacity', '');
     }
   });
 

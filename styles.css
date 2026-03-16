@@ -224,15 +224,23 @@
   font-size: 1.1rem;
 }
 
-#ccs-global-close {
-  cursor: pointer;
-  font-size: 1.2rem;
-  opacity: 0.7;
-  transition: opacity 0.2s;
+.ccs-global-actions {
+  display: flex;
+  align-items: center;
+  gap: 16px;
 }
 
-#ccs-global-close:hover {
+.ccs-global-icon-btn {
+  cursor: pointer;
+  font-size: 1.2rem;
+  opacity: 0.6;
+  transition: opacity 0.2s, transform 0.2s;
+  color: var(--SmartThemeBodyColor);
+}
+
+.ccs-global-icon-btn:hover {
   opacity: 1;
+  transform: scale(1.1);
 }
 
 .ccs-global-tabs {
