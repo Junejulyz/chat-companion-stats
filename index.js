@@ -1500,11 +1500,19 @@ jQuery(async () => {
     canvas.height = height;
     const ctx = canvas.getContext('2d');
     
-    // 背景
-    const bgGradient = ctx.createLinearGradient(0, 0, width, height);
-    bgGradient.addColorStop(0, '#2A2D34');
-    bgGradient.addColorStop(1, '#1A1C23');
-    ctx.fillStyle = bgGradient;
+    // 获取当前模态框样式
+    const modalEl = document.querySelector('.ccs-global-modal-content');
+    const computedStyles = modalEl ? getComputedStyle(modalEl) : null;
+    const modalBg = computedStyles ? computedStyles.backgroundColor : 'rgba(0,0,0,0.8)';
+    const textColor = computedStyles ? computedStyles.color : '#FFFFFF';
+    
+    // 背景兜底 (抓取 body 颜色防止全透明长图发黑)
+    const bodyBg = getComputedStyle(document.body).backgroundColor || '#2A2D34';
+    ctx.fillStyle = bodyBg;
+    ctx.fillRect(0, 0, width, height);
+    
+    // 叠加模态框实际背景
+    ctx.fillStyle = modalBg;
     ctx.fillRect(0, 0, width, height);
     
     // Header
@@ -1512,16 +1520,18 @@ jQuery(async () => {
     if (tab === 'days') tabName = '相伴天数';
     if (tab === 'size') tabName = '回忆大小';
     
-    ctx.fillStyle = '#FFFFFF';
+    ctx.fillStyle = textColor;
     ctx.font = `bold ${32 * scaleFactor}px "LXGW Neo XiHei", "PingFang SC", sans-serif`;
     ctx.textAlign = 'left';
     ctx.textBaseline = 'middle';
-    ctx.fillText('🏆 羁绊排行', padding * scaleFactor, padding * scaleFactor + 30 * scaleFactor);
+    ctx.fillText(`🏆 ${tabName}排行`, padding * scaleFactor, padding * scaleFactor + 30 * scaleFactor);
     
-    ctx.fillStyle = 'rgba(255, 255, 255, 0.6)';
+    ctx.globalAlpha = 0.6;
+    ctx.fillStyle = textColor;
     ctx.font = `bold ${20 * scaleFactor}px "LXGW Neo XiHei", "PingFang SC", sans-serif`;
     ctx.textAlign = 'right';
-    ctx.fillText(`Top 10 - ${tabName}`, width - padding * scaleFactor, padding * scaleFactor + 30 * scaleFactor);
+    ctx.fillText(`Top 10`, width - padding * scaleFactor, padding * scaleFactor + 30 * scaleFactor);
+    ctx.globalAlpha = 1.0;
     
     // Function to draw rounded rect
     function drawRoundedRect(x, y, w, h, r, fillStyle) {
@@ -1568,14 +1578,19 @@ jQuery(async () => {
       const itemH = itemHeight * scaleFactor;
       
       // Card bg
-      drawRoundedRect(itemX, itemY, itemW, itemH, 16 * scaleFactor, 'rgba(255, 255, 255, 0.05)');
+      let itemBg = 'rgba(128, 128, 128, 0.08)';
+      const rankItemExample = document.querySelector('.ccs-rank-item');
+      if (rankItemExample) {
+        itemBg = getComputedStyle(rankItemExample).backgroundColor;
+      }
+      drawRoundedRect(itemX, itemY, itemW, itemH, 16 * scaleFactor, itemBg);
       
       // Rank Badge
       const badgeSize = 34 * scaleFactor;
       const badgeX = itemX + 16 * scaleFactor;
       const badgeY = itemY + (itemH - badgeSize) / 2;
       
-      let badgeColor = 'rgba(255, 255, 255, 0.1)';
+      let badgeColor = 'rgba(128, 128, 128, 0.2)';
       if (index === 0) {
         const grad = ctx.createLinearGradient(badgeX, badgeY, badgeX + badgeSize, badgeY + badgeSize);
         grad.addColorStop(0, '#FFE169');
@@ -1598,12 +1613,14 @@ jQuery(async () => {
       ctx.fillStyle = badgeColor;
       ctx.fill();
       
-      ctx.fillStyle = index < 3 ? '#FFFFFF' : 'rgba(255,255,255,0.6)';
+      ctx.fillStyle = index < 3 ? '#FFFFFF' : textColor;
+      ctx.globalAlpha = index < 3 ? 1.0 : 0.6;
       ctx.font = `bold ${16 * scaleFactor}px "LXGW Neo XiHei", "PingFang SC", sans-serif`;
       ctx.textAlign = 'center';
       ctx.fillText((index + 1).toString(), badgeX + badgeSize/2, badgeY + badgeSize/2 + 2*scaleFactor);
+      ctx.globalAlpha = 1.0;
       
-      // Avatar
+      // Avatar (object-fit cover equivalent)
       const avatarSize = 50 * scaleFactor;
       const avatarX = badgeX + badgeSize + 16 * scaleFactor;
       const avatarY = itemY + (itemH - avatarSize) / 2;
@@ -1614,7 +1631,24 @@ jQuery(async () => {
         ctx.beginPath();
         ctx.arc(avatarX + avatarSize/2, avatarY + avatarSize/2, avatarSize/2, 0, Math.PI * 2);
         ctx.clip();
-        ctx.drawImage(img, avatarX, avatarY, avatarSize, avatarSize);
+        
+        let drawW = avatarSize;
+        let drawH = avatarSize;
+        let offsetX = 0;
+        let offsetY = 0;
+        
+        if (img.width > 0 && img.height > 0) {
+          const imgAspect = img.width / img.height;
+          if (imgAspect > 1) { // wider
+            drawW = avatarSize * imgAspect;
+            offsetX = -(drawW - avatarSize) / 2;
+          } else { // taller or square
+            drawH = avatarSize / imgAspect;
+            offsetY = -(drawH - avatarSize) / 2;
+          }
+        }
+        
+        ctx.drawImage(img, avatarX + offsetX, avatarY + offsetY, drawW, drawH);
         ctx.restore();
       }
       
@@ -1647,25 +1681,25 @@ jQuery(async () => {
       
       // Name
       const textX = avatarX + avatarSize + 16 * scaleFactor;
-      ctx.fillStyle = '#FFFFFF';
+      ctx.fillStyle = textColor;
       ctx.font = `bold ${18 * scaleFactor}px "LXGW Neo XiHei", "PingFang SC", sans-serif`;
       ctx.textAlign = 'left';
       ctx.fillText(stat.name, textX, itemY + itemH/2 - 10 * scaleFactor);
       
       // Desc
-      ctx.fillStyle = 'rgba(255, 255, 255, 0.6)';
+      ctx.globalAlpha = 0.6;
+      ctx.fillStyle = textColor;
       ctx.font = `400 ${14 * scaleFactor}px "LXGW Neo XiHei", "PingFang SC", sans-serif`;
       ctx.fillText(descHtml, textX, itemY + itemH/2 + 14 * scaleFactor);
       
       // Value & Unit
       const rightPadding = itemW - parseInt(20 * scaleFactor);
-      ctx.fillStyle = 'rgba(255, 255, 255, 0.6)';
       ctx.font = `400 ${16 * scaleFactor}px "LXGW Neo XiHei", "PingFang SC", sans-serif`;
       ctx.textAlign = 'right';
       ctx.fillText(unitHtml, itemX + rightPadding, itemY + itemH/2 + 2 * scaleFactor);
+      ctx.globalAlpha = 1.0;
       
       const unitWidth = ctx.measureText(unitHtml).width;
-      ctx.fillStyle = '#FFFFFF';
       ctx.font = `bold ${22 * scaleFactor}px "LXGW Neo XiHei", "PingFang SC", sans-serif`;
       ctx.fillText(valueHtml, itemX + rightPadding - unitWidth - 6 * scaleFactor, itemY + itemH/2 + 2 * scaleFactor);
       
