@@ -862,8 +862,9 @@ jQuery(async () => {
     // 强制等待所有字体加载完毕，防止 Canvas 渲染时回退到默认字体
     await document.fonts.ready;
     
-    // 动态获取 SillyTavern 当前使用的真实 UI 字体
-    const baseFontFamily = getComputedStyle(document.body).fontFamily || '"LXGW Neo XiHei", "PingFang SC", sans-serif';
+    // 终极策略：直接从已排版好的标题元素抓取真实计算字体，绕过全局变量和 body 的潜在覆盖
+    const sampleEl = document.querySelector('.ccs-global-title') || document.body;
+    const baseFontFamily = getComputedStyle(sampleEl).fontFamily || '"LXGW Neo XiHei", "PingFang SC", sans-serif';
 
     const canvas = document.getElementById('ccs-canvas');
     const ctx = canvas.getContext('2d');
@@ -1488,8 +1489,9 @@ jQuery(async () => {
     // 强制等待所有字体加载完毕
     await document.fonts.ready;
     
-    // 动态获取 SillyTavern 当前使用的真实 UI 字体
-    const baseFontFamily = getComputedStyle(document.body).fontFamily || '"LXGW Neo XiHei", "PingFang SC", sans-serif';
+    // 终极策略：直接从已排版好的标题元素抓取真实计算字体
+    const sampleEl = document.querySelector('.ccs-global-title') || document.body;
+    const baseFontFamily = getComputedStyle(sampleEl).fontFamily || '"LXGW Neo XiHei", "PingFang SC", sans-serif';
     
     // 取前 5
     const topList = dataList.slice(0, 5);
