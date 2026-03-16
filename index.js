@@ -1820,17 +1820,21 @@ jQuery(async () => {
         descHtml = `陪伴 ${stat.days} 天`;
       } else if (tab === 'days') {
         valueHtml = `${stat.days} <span style="font-size: 0.8em; opacity: 0.7;">天</span>`;
-        // Format firstTime to YYYY年MM月DD日
+        // Format firstTime to YYYY.MM.DD
         let firstMeetStr = '未知';
         if (stat.firstTimeRaw) {
           const dt = new Date(stat.firstTimeRaw);
           if (!isNaN(dt.getTime())) {
-            firstMeetStr = `${dt.getFullYear()}年${Math.floor(dt.getMonth() + 1).toString().padStart(2, '0')}月${Math.floor(dt.getDate()).toString().padStart(2, '0')}日`;
+            firstMeetStr = `${dt.getFullYear()}.${Math.floor(dt.getMonth() + 1).toString().padStart(2, '0')}.${Math.floor(dt.getDate()).toString().padStart(2, '0')}`;
           }
         }
         descHtml = `初遇 ${firstMeetStr}`;
       } else if (tab === 'size') {
-        valueHtml = stat.formattedSize;
+        // Extract the number and the unit from stat.formattedSize (e.g., "1.23 MB" -> "1.23", "MB")
+        const sizeParts = stat.formattedSize.split(' ');
+        const numericVal = sizeParts[0] || '0';
+        const unitVal = sizeParts[1] || 'B';
+        valueHtml = `${numericVal} <span style="font-size: 0.8em; opacity: 0.7;">${unitVal}</span>`;
         descHtml = `${stat.messages} 条对话`;
       }
 
