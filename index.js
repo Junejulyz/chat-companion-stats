@@ -1652,16 +1652,27 @@ jQuery(async () => {
   // =========================================================================
 
   async function fetchAllCharactersStats() {
+    console.log("--- DEBUG GLOBAL STATS ---");
     const context = getContext();
-    let charsSource = context.characters || window.characters;
+    console.log("Context from getContext():", context);
+    
+    // We need to hunt down the characters array in SillyTavern global scope.
+    let charsSource = context.characters || window.characters || window.characters_data;
+    console.log("Initial charsSource:", charsSource);
 
+    // Some versions of ST keep characters in localstorage or need it fetched differently, 
+    // but window.characters is the standard since 1.X. Let's inspect window keys.
     if (!charsSource) {
-      if (DEBUG) console.warn("Cannot find characters array in getContext().characters or window.characters.");
+      console.warn("Could not find standard characters object. Listing window keys with 'char':");
+      const charKeys = Object.keys(window).filter(k => k.toLowerCase().includes('char'));
+      console.log(charKeys);
       return [];
     }
 
     // 适配数组或对象格式
-    const charsArray = Array.isArray(charsSource) ? charsSource : Object.values(charsSource);
+    let charsArray = Array.isArray(charsSource) ? charsSource : Object.values(charsSource);
+    console.log("Parsed charsArray length:", charsArray.length);
+    console.log("First character item sample:", charsArray[0]);
 
     if (charsArray.length === 0) {
       if (DEBUG) console.warn("Characters array is empty.");
@@ -1677,6 +1688,7 @@ jQuery(async () => {
     const batchSize = 20; 
     for (let i = 0; i < charsArray.length; i += batchSize) {
       const batch = charsArray.slice(i, i + batchSize);
+      console.log(`Processing batch ${i} to ${i + batchSize}...`);
       
       const batchResults = await Promise.all(batch.map(async (char) => {
         // Skip default/empty characters if any
