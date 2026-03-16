@@ -1683,26 +1683,30 @@ jQuery(async () => {
     const now = new Date();
     const utcNow = Date.UTC(now.getFullYear(), now.getMonth(), now.getDate());
 
-    // 并发请求所有角色的聊天元数据
-    // 采用批处理防止瞬间请求过多卡死浏览器
-    const batchSize = 20; 
-    for (let i = 0; i < charsArray.length; i += batchSize) {
-      const batch = charsArray.slice(i, i + batchSize);
-      console.log(`Processing batch ${i} to ${i + batchSize}...`);
-      
-      const batchResults = await Promise.all(batch.map(async (char) => {
-        // Skip default/empty characters if any
+    // Fetch sequentially to prevent hitting ST server concurrency limits or deadlocks
+    const $spinner = $('#ccs-global-spinner');
+    const totalChars = charsArray.length;
+
+    for (let i = 0; i < totalChars; i++) {
+        const char = charsArray[i];
+        
+        if ($spinner.length) {
+            $spinner.html(`<i class="fa-solid fa-spinner fa-spin"></i> 正在读取回忆... (${i + 1}/${totalChars})`);
+        }
+
+        // Skip default/empty characters
         if (!char || !char.avatar) {
-            console.log(`[GlobalStats] Skipping undefined char or missing avatar...`);
-            return null;
+            console.log(`[GlobalStats] Skipping index ${i} - missing avatar.`);
+            continue;
         }
 
         try {
-          console.log(`[GlobalStats] Fetching chats for ${char.name} (Avatar: ${char.avatar})`);
+          console.log(`[GlobalStats] [${i+1}/${charsArray.length}] Fetching chats for ${char.name} (Avatar: ${char.avatar})`);
           const chats = await getPastCharacterChats(char.avatar);
+          
           if (!chats || chats.length === 0) {
-              console.log(`[GlobalStats] => No chats found or array is empty for: ${char.name}`);
-              return null;
+              console.log(`[GlobalStats] => No chats found for: ${char.name}`);
+              continue;
           }
           console.log(`[GlobalStats] => Found ${chats.length} chat items for: ${char.name}`, chats);
 
@@ -1743,7 +1747,10 @@ jQuery(async () => {
           });
 
           // Only include characters with actual interaction
-          if (totalMessages <= 1 && totalSizeBytesRaw < 1024) return null;
+          if (totalMessages <= 1 && totalSizeBytesRaw < 1024) {
+             console.log(`[GlobalStats] => Interactions too low for ${char.name}, skipping.`);
+             continue;
+          }
 
           let days = 0;
           if (earliestTime) {
@@ -1764,23 +1771,18 @@ jQuery(async () => {
             else formattedSize = `${Math.round(totalSizeBytesRaw)} B`;
           }
 
-          return {
+          statsList.push({
             name: char.name || '未知角色',
             avatar: `/characters/${char.avatar}`,
             messages: totalMessages,
             days: days,
             sizeRaw: totalSizeBytesRaw,
             formattedSize: formattedSize
-          };
+          });
 
         } catch (err) {
           if (DEBUG) console.error(`Error fetching stats for char ${char.name}:`, err);
-          return null;
         }
-      }));
-
-      // 滤除无数据或异常的角色
-      statsList.push(...batchResults.filter(Boolean));
     }
 
     return statsList;
