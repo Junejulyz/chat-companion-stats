@@ -1672,12 +1672,12 @@ jQuery(async () => {
     // DEBUG: Understand how getPastCharacterChats works internally in ST
     console.log("getPastCharacterChats signature:", getPastCharacterChats.toString());
 
-    // 适配数组或对象格式
-    let charsArray = Array.isArray(charsSource) ? charsSource : Object.values(charsSource);
-    console.log("Parsed charsArray length:", charsArray.length);
-    console.log("First character item sample:", charsArray[0]);
+    // 使用 entries 来保留角色的原始 ID (Key 或数组 Index)
+    const charsEntries = Object.entries(charsSource);
+    console.log("Parsed charsEntries length:", charsEntries.length);
+    console.log("First character item sample:", charsEntries[0]);
 
-    if (charsArray.length === 0) {
+    if (charsEntries.length === 0) {
       if (DEBUG) console.warn("Characters array is empty.");
       return [];
     }
@@ -1688,10 +1688,10 @@ jQuery(async () => {
 
     // Fetch sequentially to prevent hitting ST server concurrency limits or deadlocks
     const $spinner = $('#ccs-global-spinner');
-    const totalChars = charsArray.length;
+    const totalChars = charsEntries.length;
 
     for (let i = 0; i < totalChars; i++) {
-        const char = charsArray[i];
+        const [charId, char] = charsEntries[i];
         
         if ($spinner.length) {
             $spinner.html(`<i class="fa-solid fa-spinner fa-spin"></i> 正在读取回忆... (${i + 1}/${totalChars})`);
@@ -1699,13 +1699,14 @@ jQuery(async () => {
 
         // Skip default/empty characters
         if (!char || !char.avatar) {
-            console.log(`[GlobalStats] Skipping index ${i} - missing avatar.`);
+            console.log(`[GlobalStats] Skipping index ${charId} - missing avatar.`);
             continue;
         }
 
         try {
-          console.log(`[GlobalStats] [${i+1}/${charsArray.length}] Fetching chats for ${char.name} (Avatar: ${char.avatar})`);
-          const chats = await getPastCharacterChats(char.avatar);
+          console.log(`[GlobalStats] [${i+1}/${totalChars}] Fetching chats for ${char.name} (ID: ${charId})`);
+          // 致命 Bug 修复：SillyTavern 原生 API 接受的是 characterId (即在 characters 数组里的 Index/Key)，而不是 avatar 名字！
+          const chats = await getPastCharacterChats(charId);
           
           if (!chats || chats.length === 0) {
               console.log(`[GlobalStats] => No chats found for: ${char.name}`);
