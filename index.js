@@ -1652,8 +1652,19 @@ jQuery(async () => {
   // =========================================================================
 
   async function fetchAllCharactersStats() {
-    if (!window.characters || !Array.isArray(window.characters)) {
-      if (DEBUG) console.warn("Cannot find window.characters array.");
+    const context = getContext();
+    let charsSource = context.characters || window.characters;
+
+    if (!charsSource) {
+      if (DEBUG) console.warn("Cannot find characters array in getContext().characters or window.characters.");
+      return [];
+    }
+
+    // 适配数组或对象格式
+    const charsArray = Array.isArray(charsSource) ? charsSource : Object.values(charsSource);
+
+    if (charsArray.length === 0) {
+      if (DEBUG) console.warn("Characters array is empty.");
       return [];
     }
 
@@ -1664,8 +1675,8 @@ jQuery(async () => {
     // 并发请求所有角色的聊天元数据
     // 采用批处理防止瞬间请求过多卡死浏览器
     const batchSize = 20; 
-    for (let i = 0; i < window.characters.length; i += batchSize) {
-      const batch = window.characters.slice(i, i + batchSize);
+    for (let i = 0; i < charsArray.length; i += batchSize) {
+      const batch = charsArray.slice(i, i + batchSize);
       
       const batchResults = await Promise.all(batch.map(async (char) => {
         // Skip default/empty characters if any
