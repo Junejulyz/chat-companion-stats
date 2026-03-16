@@ -1750,8 +1750,8 @@ jQuery(async () => {
             }
           });
 
-          // Only include characters with actual interaction
-          if (totalMessages <= 1 && totalSizeBytesRaw < 1024) {
+          // Only include characters with actual interaction (more than just the greeting)
+          if (totalMessages <= 1) {
              console.log(`[GlobalStats] => Interactions too low for ${char.name}, skipping.`);
              continue;
           }
@@ -1828,7 +1828,7 @@ jQuery(async () => {
             firstMeetStr = `${dt.getFullYear()}年${Math.floor(dt.getMonth() + 1).toString().padStart(2, '0')}月${Math.floor(dt.getDate()).toString().padStart(2, '0')}日`;
           }
         }
-        descHtml = `初遇: ${firstMeetStr}`;
+        descHtml = `初遇 ${firstMeetStr}`;
       } else if (tab === 'size') {
         valueHtml = stat.formattedSize;
         descHtml = `${stat.messages} 条对话`;
