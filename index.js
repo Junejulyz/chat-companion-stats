@@ -9,9 +9,6 @@ jQuery(async () => {
   // 加载CSS文件 using dynamic path
   $('head').append(`<link rel="stylesheet" type="text/css" href="${extensionWebPath}/styles.css">`);
 
-  // 动态获取 SillyTavern 当前使用的 UI 字体，确保分享图片与用户界面一致
-  const baseFontFamily = getComputedStyle(document.body).fontFamily || '"LXGW Neo XiHei", "PingFang SC", sans-serif';
-
   // 加载自定义字体 (Added handwritten and PING FANG SHAO HUA font)
   $('head').append(`<style>
     @import url("https://fontsapi.zeoseven.com/19/main/result.css");
@@ -862,6 +859,12 @@ jQuery(async () => {
   }
 
   async function generateShareImage() {
+    // 强制等待所有字体加载完毕，防止 Canvas 渲染时回退到默认字体
+    await document.fonts.ready;
+    
+    // 动态获取 SillyTavern 当前使用的真实 UI 字体
+    const baseFontFamily = getComputedStyle(document.body).fontFamily || '"LXGW Neo XiHei", "PingFang SC", sans-serif';
+
     const canvas = document.getElementById('ccs-canvas');
     const ctx = canvas.getContext('2d');
     const charName = getCurrentCharacterName();
@@ -1481,6 +1484,12 @@ jQuery(async () => {
 
   async function generateGlobalShareImage(dataList, tab) {
     if (!dataList || dataList.length === 0) return null;
+    
+    // 强制等待所有字体加载完毕
+    await document.fonts.ready;
+    
+    // 动态获取 SillyTavern 当前使用的真实 UI 字体
+    const baseFontFamily = getComputedStyle(document.body).fontFamily || '"LXGW Neo XiHei", "PingFang SC", sans-serif';
     
     // 取前 5
     const topList = dataList.slice(0, 5);
