@@ -52,6 +52,7 @@
         <div class="flex-container">
           <input id="ccs-refresh" type="button" class="menu_button" value="刷新" />
           <input id="ccs-share" type="button" class="menu_button" value="分享" />
+          <input id="ccs-global-stats" type="button" class="menu_button" value="全局羁绊" />
         </div>
         <!-- 用于生成分享图片的隐藏canvas -->
         <canvas id="ccs-canvas" style="display: none;"></canvas>
@@ -71,6 +72,27 @@
         </select>
         <input id="ccs-download" type="button" class="menu_button" value="保存图片" />
         <input id="ccs-cancel" type="button" class="menu_button" value="取消" />
+      </div>
+    </div>
+  </div>
+  
+  <!-- 全局羁绊模态框 (完全独立) -->
+  <div id="ccs-global-modal" style="display: none;">
+    <div class="ccs-global-modal-content">
+      <div class="ccs-global-header">
+        <div class="ccs-global-title">🏆 全局羁绊排行</div>
+        <div id="ccs-global-close" class="fa-solid fa-xmark"></div>
+      </div>
+      <div class="ccs-global-tabs">
+        <div class="ccs-tab active" data-tab="messages">💬 对话总数</div>
+        <div class="ccs-tab" data-tab="days">⏱️ 相伴天数</div>
+        <div class="ccs-tab" data-tab="size">💾 记忆容量</div>
+      </div>
+      <div id="ccs-global-spinner" class="ccs-global-spinner" style="display: none;">
+        <i class="fa-solid fa-spinner fa-spin"></i> 正在读取回忆...
+      </div>
+      <div id="ccs-global-list">
+        <!-- 列表内容动态生成 -->
       </div>
     </div>
   </div>

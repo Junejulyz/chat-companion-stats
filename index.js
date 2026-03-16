@@ -1646,5 +1646,227 @@ jQuery(async () => {
   // // 定期更新 (Removed interval-based update)
   // setInterval(updateStats, 30000);
 
+  // =========================================================================
+  // 全局羁绊排行 (Global Leaderboard) 逻辑
+  // 设计核心：极速提取元数据，零全局变量，阅后即焚（极致省内存）
+  // =========================================================================
+
+  async function fetchAllCharactersStats() {
+    if (!window.characters || !Array.isArray(window.characters)) {
+      if (DEBUG) console.warn("Cannot find window.characters array.");
+      return [];
+    }
+
+    const statsList = [];
+    const now = new Date();
+    const utcNow = Date.UTC(now.getFullYear(), now.getMonth(), now.getDate());
+
+    // 并发请求所有角色的聊天元数据
+    // 采用批处理防止瞬间请求过多卡死浏览器
+    const batchSize = 20; 
+    for (let i = 0; i < window.characters.length; i += batchSize) {
+      const batch = window.characters.slice(i, i + batchSize);
+      
+      const batchResults = await Promise.all(batch.map(async (char) => {
+        // Skip default/empty characters if any
+        if (!char || !char.avatar) return null;
+
+        try {
+          const chats = await getPastCharacterChats(char.avatar);
+          if (!chats || chats.length === 0) return null;
+
+          let totalMessages = 0;
+          let totalSizeBytesRaw = 0;
+          let earliestTime = null;
+
+          chats.forEach(chat => {
+            // Count messages
+            totalMessages += (parseInt(chat.chat_items) || 0);
+
+            // Calculate size
+            const sizeMatchKB = chat.file_size?.match(/([\d.]+)\s*KB/i);
+            const sizeMatchMB = chat.file_size?.match(/([\d.]+)\s*MB/i);
+            const sizeAsNumber = parseFloat(chat.file_size);
+
+            if (sizeMatchMB) {
+              totalSizeBytesRaw += parseFloat(sizeMatchMB[1]) * 1024 * 1024;
+            } else if (sizeMatchKB) {
+              totalSizeBytesRaw += parseFloat(sizeMatchKB[1]) * 1024;
+            } else if (!isNaN(sizeAsNumber)) {
+              totalSizeBytesRaw += sizeAsNumber;
+            }
+
+            // Find earliest date
+            if (chat.file_name) {
+              const timeInfo = parseTimeFromFilename(chat.file_name);
+              if (timeInfo && timeInfo.dateObject && (!earliestTime || timeInfo.dateObject < earliestTime)) {
+                earliestTime = timeInfo.dateObject;
+              }
+            }
+            if (chat.last_mes) {
+              const date = parseSillyTavernDate(chat.last_mes);
+              if (date && (!earliestTime || date < earliestTime)) {
+                earliestTime = date;
+              }
+            }
+          });
+
+          // Only include characters with actual interaction
+          if (totalMessages <= 1 && totalSizeBytesRaw < 1024) return null;
+
+          let days = 0;
+          if (earliestTime) {
+            const firstTimeDate = earliestTime instanceof Date ? earliestTime : new Date(earliestTime);
+            if (!isNaN(firstTimeDate.getTime())) {
+              const utcFirstTime = Date.UTC(firstTimeDate.getFullYear(), firstTimeDate.getMonth(), firstTimeDate.getDate());
+              const diffTime = Math.abs(utcNow - utcFirstTime);
+              days = Math.ceil(diffTime / (1000 * 60 * 60 * 24)) + 1;
+            }
+          }
+
+          let formattedSize = '0 B';
+          if (totalSizeBytesRaw > 0) {
+            const kb = totalSizeBytesRaw / 1024;
+            const mb = kb / 1024;
+            if (mb >= 1) formattedSize = `${mb.toFixed(2)} MB`;
+            else if (kb >= 1) formattedSize = `${kb.toFixed(2)} KB`;
+            else formattedSize = `${Math.round(totalSizeBytesRaw)} B`;
+          }
+
+          return {
+            name: char.name || '未知角色',
+            avatar: `/characters/${char.avatar}`,
+            messages: totalMessages,
+            days: days,
+            sizeRaw: totalSizeBytesRaw,
+            formattedSize: formattedSize
+          };
+
+        } catch (err) {
+          if (DEBUG) console.error(`Error fetching stats for char ${char.name}:`, err);
+          return null;
+        }
+      }));
+
+      // 滤除无数据或异常的角色
+      statsList.push(...batchResults.filter(Boolean));
+    }
+
+    return statsList;
+  }
+
+  function renderGlobalStats(dataList, tab) {
+    const $list = $('#ccs-global-list');
+    $list.empty(); // 防重叠，并清空旧 DOM 辅助 GC
+
+    if (!dataList || dataList.length === 0) {
+      $list.html('<div style="text-align: center; padding: 40px; opacity: 0.6;">暂无羁绊数据</div>');
+      return;
+    }
+
+    // 根据 Tab 类型排序
+    dataList.sort((a, b) => {
+      if (tab === 'messages') return b.messages - a.messages;
+      if (tab === 'days') return b.days - a.days;
+      if (tab === 'size') return b.sizeRaw - a.sizeRaw;
+      return 0;
+    });
+
+    // 取前 10 名
+    const top10 = dataList.slice(0, 10);
+
+    const htmlFragments = top10.map((stat, index) => {
+      const topClass = index < 3 ? `top-${index + 1}` : '';
+      let valueHtml = '';
+      let descHtml = '';
+      
+      if (tab === 'messages') {
+        valueHtml = `${stat.messages} <span style="font-size: 0.8em; opacity: 0.7;">条</span>`;
+        descHtml = `陪伴 ${stat.days} 天`;
+      } else if (tab === 'days') {
+        valueHtml = `${stat.days} <span style="font-size: 0.8em; opacity: 0.7;">天</span>`;
+        descHtml = `${stat.messages} 条对话`;
+      } else if (tab === 'size') {
+        valueHtml = stat.formattedSize;
+        descHtml = `${stat.messages} 条对话`;
+      }
+
+      return `
+        <div class="ccs-rank-item ${topClass}">
+          <div class="ccs-rank-number">${index + 1}</div>
+          <img class="ccs-rank-avatar" src="${stat.avatar}" onerror="this.src='../img/char-default.png'" />
+          <div class="ccs-rank-info">
+            <div class="ccs-rank-name">${stat.name}</div>
+            <div class="ccs-rank-desc">${descHtml}</div>
+          </div>
+          <div class="ccs-rank-value">${valueHtml}</div>
+        </div>
+      `;
+    });
+
+    $list.html(htmlFragments.join(''));
+  }
+
+  // 绑定“全局羁绊”打开事件
+  $(document).on('click', '#ccs-global-stats', async function () {
+    const $modal = $('#ccs-global-modal');
+    const $spinner = $('#ccs-global-spinner');
+    const $list = $('#ccs-global-list');
+    
+    // 初始化 UI
+    $('.ccs-tab').removeClass('active');
+    $('.ccs-tab[data-tab="messages"]').addClass('active'); // 默认选中"对话总数"
+    $list.empty();
+    $spinner.show();
+    $modal.fadeIn(200);
+
+    // 获取数据（无全局缓存记录）
+    const statsData = await fetchAllCharactersStats();
+    
+    // 极短时间把数据挂载在 DOM 自身属性上供切 Tab 时使用
+    // 这样当 DOM 被释放时，数据也能被 GC 自动清扫
+    $modal.data('tempStatsData', statsData);
+
+    $spinner.hide();
+    renderGlobalStats(statsData, 'messages');
+  });
+
+  // 绑定 Tab 切换事件
+  $(document).on('click', '.ccs-tab', function () {
+    if ($(this).hasClass('active')) return;
+    
+    $('.ccs-tab').removeClass('active');
+    $(this).addClass('active');
+    
+    const targetTab = $(this).data('tab');
+    const statsData = $('#ccs-global-modal').data('tempStatsData');
+    
+    if (statsData) {
+      renderGlobalStats(statsData, targetTab);
+    }
+  });
+
+  // 绑定关闭事件与内存释放（Garbage Collection Optimization）
+  function closeAndClearGlobalModal() {
+    const $modal = $('#ccs-global-modal');
+    $modal.fadeOut(200, function() {
+      // 动画结束后，彻底清空内部所有 DOM 节点，断开引用
+      $('#ccs-global-list').empty();
+      // 删除 jQuery data 上挂载的临时排行榜数据
+      $modal.removeData('tempStatsData');
+    });
+  }
+
+  $(document).on('click', '#ccs-global-close', closeAndClearGlobalModal);
+  
+  // 点击遮罩层空白处关闭
+  $(document).on('click', '#ccs-global-modal', function (e) {
+    if (e.target === this) {
+      closeAndClearGlobalModal();
+    }
+  });
+
+  // =========================================================================
+
   if (DEBUG) console.log("✅ 聊天陪伴统计插件已加载 (自动刷新已启用)");
 });
