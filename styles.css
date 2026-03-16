@@ -377,3 +377,21 @@
   text-align: right;
   color: var(--SmartThemeEmColor);
 }
+
+/* Mobile typography adjustments for leaderboard */
+@media (max-width: 600px) {
+  .ccs-rank-name {
+    font-size: 0.95rem;
+  }
+  .ccs-rank-value {
+    font-size: 0.95rem;
+  }
+  .ccs-rank-desc {
+    font-size: 0.75rem;
+  }
+  .ccs-rank-avatar {
+    width: 38px;
+    height: 38px;
+    margin-right: 12px;
+  }
+}

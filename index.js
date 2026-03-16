@@ -1800,6 +1800,7 @@ jQuery(async () => {
   function renderGlobalStats(dataList, tab) {
     const $list = $('#ccs-global-list');
     $list.empty(); // 防重叠，并清空旧 DOM 辅助 GC
+    $list.scrollTop(0); // 切换 Tab 时重置滚动条
 
     if (!dataList || dataList.length === 0) {
       $list.html('<div style="text-align: center; padding: 40px; opacity: 0.6;">暂无羁绊数据</div>');
