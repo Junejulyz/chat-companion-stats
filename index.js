@@ -1495,7 +1495,7 @@ jQuery(async () => {
 
     // 显示模态框
     $modal.css('display', 'flex');
-    $('body').css('overflow', 'hidden'); // 阻止背景滚动
+    $('body, #rm_extensions_block').css('overflow', 'hidden'); // 阻止背景滚动
   }
 
   // 添加刷新按钮事件处理
@@ -1536,7 +1536,7 @@ jQuery(async () => {
     const $container = $("#ccs-preview-container");
     $container.empty().addClass('loading-preview');
     $modal.css('display', 'flex');
-    $('body').css('overflow', 'hidden'); // 阻止背景滚动
+    $('body, #rm_extensions_block').css('overflow', 'hidden'); // 阻止背景滚动
 
     try {
       const imageData = await generateShareImage();
@@ -1559,7 +1559,7 @@ jQuery(async () => {
   // 添加取消按钮事件处理
   $("#ccs-cancel").on("click", function () {
     $("#ccs-preview-modal").hide();
-    $('body').css('overflow', ''); // 恢复背景滚动
+    $('body, #rm_extensions_block').css('overflow', ''); // 恢复背景滚动
   });
 
   // 添加保存按钮事件
@@ -1575,7 +1575,7 @@ jQuery(async () => {
   $("#ccs-preview-modal").on("click", function (e) {
     if (e.target === this) {
       $(this).hide();
-      $('body').css('overflow', ''); // 恢复背景滚动
+      $('body, #rm_extensions_block').css('overflow', ''); // 恢复背景滚动
     }
   });
 
@@ -1870,7 +1870,7 @@ jQuery(async () => {
     $list.empty();
     $spinner.show();
     $modal.fadeIn(200);
-    $('body').css('overflow', 'hidden'); // 阻止背景滚动
+    $('body, #rm_extensions_block').css('overflow', 'hidden'); // 阻止背景滚动
 
     // 获取数据（无全局缓存记录）
     const statsData = await fetchAllCharactersStats();
@@ -1901,7 +1901,7 @@ jQuery(async () => {
   // 绑定关闭事件与内存释放（Garbage Collection Optimization）
   function closeAndClearGlobalModal() {
     const $modal = $('#ccs-global-modal');
-    $('body').css('overflow', ''); // 恢复背景滚动
+    $('body, #rm_extensions_block').css('overflow', ''); // 恢复背景滚动
     $modal.fadeOut(200, function() {
       // 动画结束后，彻底清空内部所有 DOM 节点，断开引用
       $('#ccs-global-list').empty();
