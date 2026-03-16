@@ -9,6 +9,8 @@ jQuery(async () => {
   // 加载CSS文件 using dynamic path
   $('head').append(`<link rel="stylesheet" type="text/css" href="${extensionWebPath}/styles.css">`);
 
+  const baseFontFamily = '"LXGW Neo XiHei", "PingFang SC", sans-serif';
+
   // 加载自定义字体 (Added handwritten and PING FANG SHAO HUA font)
   $('head').append(`<style>
     @import url("https://fontsapi.zeoseven.com/19/main/result.css");
@@ -1307,7 +1309,7 @@ jQuery(async () => {
 
         // Name
         ctx.fillStyle = charNameColor;
-        ctx.font = `400 ${31 * scaleFactor}px "LXGW Neo XiHei", "PingFang SC", sans-serif`; // Reverted to 400
+        ctx.font = `400 ${31 * scaleFactor}px ${baseFontFamily}`; // Reverted to 400
         ctx.fillText(charName, infoX, infoY - 12 * scaleFactor); // Moved up slightly
 
         // Encounter Info
@@ -1315,7 +1317,7 @@ jQuery(async () => {
         ctx.save();
         ctx.globalAlpha = 0.7; // 70% opacity per request
         ctx.fillStyle = statLabelColor;
-        ctx.font = `400 ${25 * scaleFactor}px "LXGW Neo XiHei", "PingFang SC", sans-serif`; // Reverted to 400
+        ctx.font = `400 ${25 * scaleFactor}px ${baseFontFamily}`; // Reverted to 400
         ctx.fillText(encounterText, infoX, infoY + 36 * scaleFactor); // Moved down slightly (+32 -> +36)
         ctx.restore();
       }
@@ -1396,7 +1398,7 @@ jQuery(async () => {
         // Label
         ctx.textAlign = 'left';
         ctx.fillStyle = statLabelColor;
-        ctx.font = `400 ${28 * scaleFactor}px "LXGW Neo XiHei", "PingFang SC", sans-serif`; // Reverted to 400
+        ctx.font = `400 ${28 * scaleFactor}px ${baseFontFamily}`; // Reverted to 400
         ctx.fillText(stat.label, boxX + 32 * scaleFactor, cy + boxH / 2 + 8 * scaleFactor);
 
         // Value & Unit
@@ -1407,17 +1409,17 @@ jQuery(async () => {
           ctx.save();
           ctx.globalAlpha = 0.7; // 70% opacity for units
           ctx.fillStyle = statLabelColor;
-          ctx.font = `400 ${24 * scaleFactor}px "LXGW Neo XiHei", "PingFang SC", sans-serif`; // Reverted to 400
+          ctx.font = `400 ${24 * scaleFactor}px ${baseFontFamily}`; // Reverted to 400
           ctx.fillText(stat.unit, valueX, cy + boxH / 2 + 8 * scaleFactor);
           ctx.restore();
 
           const unitWidth = ctx.measureText(stat.unit).width;
           ctx.fillStyle = statValueColor;
-          ctx.font = `700 ${28 * scaleFactor}px "LXGW Neo XiHei", "PingFang SC", sans-serif`; // Weight Bold
+          ctx.font = `700 ${28 * scaleFactor}px ${baseFontFamily}`; // Weight Bold
           ctx.fillText(stat.value, valueX - unitWidth - 8 * scaleFactor, cy + boxH / 2 + 8 * scaleFactor);
         } else {
           ctx.fillStyle = statValueColor;
-          ctx.font = `700 ${28 * scaleFactor}px "LXGW Neo XiHei", "PingFang SC", sans-serif`;
+          ctx.font = `700 ${28 * scaleFactor}px ${baseFontFamily}`;
           ctx.fillText(stat.value, valueX, cy + boxH / 2 + 8 * scaleFactor);
         }
       }
@@ -1530,7 +1532,7 @@ jQuery(async () => {
     ctx.fillText('\uf521', padding * scaleFactor, padding * scaleFactor + 25 * scaleFactor);
     
     ctx.fillStyle = textColor;
-    ctx.font = `bold ${26 * scaleFactor}px "LXGW Neo XiHei", "PingFang SC", sans-serif`;
+    ctx.font = `bold ${26 * scaleFactor}px ${baseFontFamily}`;
     ctx.fillText(`${tabName}排行`, padding * scaleFactor + 34 * scaleFactor, padding * scaleFactor + 25 * scaleFactor);
     
     // Function to draw rounded rect
@@ -1577,13 +1579,46 @@ jQuery(async () => {
       const itemW = width - padding * 2 * scaleFactor;
       const itemH = itemHeight * scaleFactor;
       
-      // Card bg
+      // Card bg (Base + subtle gradient for Top 3)
       let itemBg = 'rgba(128, 128, 128, 0.08)';
       const rankItemExample = document.querySelector('.ccs-rank-item');
       if (rankItemExample) {
         itemBg = getComputedStyle(rankItemExample).backgroundColor;
       }
+      
+      // Draw Base Background
       drawRoundedRect(itemX, itemY, itemW, itemH, 16 * scaleFactor, itemBg);
+      
+      // Draw Subtle Gradient Highlight for Top 3 (matching CSS)
+      if (index < 3) {
+        let gradColor = 'rgba(245, 166, 35, 0.08)'; // Default Top 1
+        if (index === 1) gradColor = 'rgba(155, 155, 155, 0.08)';
+        if (index === 2) gradColor = 'rgba(192, 124, 65, 0.08)';
+        
+        ctx.save();
+        const sideGrad = ctx.createLinearGradient(itemX, itemY, itemX + itemW, itemY);
+        sideGrad.addColorStop(0, gradColor);
+        sideGrad.addColorStop(1, 'rgba(0, 0, 0, 0)');
+        
+        // Clip to the rounded rect used for the card
+        ctx.beginPath();
+        const r = 16 * scaleFactor;
+        ctx.moveTo(itemX + r, itemY);
+        ctx.lineTo(itemX + itemW - r, itemY);
+        ctx.arcTo(itemX + itemW, itemY, itemX + itemW, itemY + r, r);
+        ctx.lineTo(itemX + itemW, itemY + itemH - r);
+        ctx.arcTo(itemX + itemW, itemY + itemH, itemX + itemW - r, itemY + itemH, r);
+        ctx.lineTo(itemX + r, itemY + itemH);
+        ctx.arcTo(itemX, itemY + itemH, itemX, itemY + itemH - r, r);
+        ctx.lineTo(itemX, itemY + r);
+        ctx.arcTo(itemX, itemY, itemX + r, itemY, r);
+        ctx.closePath();
+        ctx.clip();
+        
+        ctx.fillStyle = sideGrad;
+        ctx.fillRect(itemX, itemY, itemW, itemH);
+        ctx.restore();
+      }
       
       // Rank Badge (Circle for top 3, text for rest)
       const badgeSize = 34 * scaleFactor;
@@ -1629,7 +1664,7 @@ jQuery(async () => {
         badgeOffsetX = -2 * scaleFactor;
       }
       
-      ctx.font = `bold ${badgeFontSize * scaleFactor}px "LXGW Neo XiHei", "PingFang SC", sans-serif`;
+      ctx.font = `bold ${badgeFontSize * scaleFactor}px ${baseFontFamily}`;
       ctx.textAlign = 'center';
       // using alphabetic baseline can be more precise for numbers vertically if math is right
       ctx.textBaseline = 'middle';
@@ -1698,28 +1733,30 @@ jQuery(async () => {
       // Name
       const textX = avatarX + avatarSize + 16 * scaleFactor;
       ctx.fillStyle = textColor;
-      // .ccs-character-name: bump scale up
-      ctx.font = `bold ${19 * scaleFactor}px "LXGW Neo XiHei", "PingFang SC", sans-serif`;
+      // Name (Increased)
+      ctx.font = `bold ${21 * scaleFactor}px ${baseFontFamily}`;
       ctx.textAlign = 'left';
       ctx.textBaseline = 'alphabetic';
       ctx.fillText(stat.name, textX, itemY + itemH/2 - 6 * scaleFactor);
       
-      // Desc
+      // Desc (Increased)
       ctx.globalAlpha = 0.6;
       ctx.fillStyle = textColor;
-      ctx.font = `400 ${15 * scaleFactor}px "LXGW Neo XiHei", "PingFang SC", sans-serif`;
+      ctx.font = `400 ${16.5 * scaleFactor}px ${baseFontFamily}`;
       ctx.fillText(descHtml, textX, itemY + itemH/2 + 16 * scaleFactor);
       
-      // Value & Unit
-      const rightPadding = itemW - parseInt(16 * scaleFactor); // match internal flex margin
-      ctx.font = `400 ${15 * scaleFactor}px "LXGW Neo XiHei", "PingFang SC", sans-serif`;
+      // Value & Unit (Balanced proportions)
+      const rightPadding = itemW - parseInt(16 * scaleFactor);
+      // Unit (Increased slightly from before)
+      ctx.font = `400 ${16 * scaleFactor}px ${baseFontFamily}`;
       ctx.textAlign = 'right';
       ctx.textBaseline = 'alphabetic';
       ctx.fillText(unitHtml, itemX + rightPadding, itemY + itemH/2 + 6 * scaleFactor);
       ctx.globalAlpha = 1.0;
       
       const unitWidth = ctx.measureText(unitHtml).width;
-      ctx.font = `bold ${24 * scaleFactor}px "LXGW Neo XiHei", "PingFang SC", sans-serif`;
+      // Value (Decreased slightly to balance with unit)
+      ctx.font = `bold ${21 * scaleFactor}px ${baseFontFamily}`;
       ctx.fillText(valueHtml, itemX + rightPadding - unitWidth - 4 * scaleFactor, itemY + itemH/2 + 6 * scaleFactor);
       
       currentY += (itemHeight + spacing) * scaleFactor;

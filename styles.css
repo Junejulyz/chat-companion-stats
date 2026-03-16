@@ -239,7 +239,8 @@
 }
 
 #ccs-global-share-btn {
-  font-size: 1.15rem; /* Reduced size based on user feedback */
+  font-size: 1rem; /* Further reduced from 1.15rem */
+  margin-right: 4px; /* Ensure a bit of breathing room from close button */
 }
 
 #ccs-global-share-btn.disabled {
