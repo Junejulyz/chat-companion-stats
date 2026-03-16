@@ -239,7 +239,7 @@
 }
 
 #ccs-global-share-btn {
-  font-size: 1.35rem; /* Visually match fa-xmark */
+  font-size: 1.15rem; /* Reduced size based on user feedback */
 }
 
 #ccs-global-share-btn.disabled {
