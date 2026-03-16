@@ -1485,8 +1485,8 @@ jQuery(async () => {
     // Canvas 配置 (严格对应CSS像素)
     const scaleFactor = 2; // Retina 
     const baseWidth = 500;
-    const headerHeight = 110;
-    const itemHeight = 72; // padding 12*2 + avatar 48
+    const headerHeight = 90;
+    const itemHeight = 68; // padding 12*2 + avatar 44
     const spacing = 10; // margin-bottom 10
     const padding = 24; // modal padding
     
@@ -1524,14 +1524,14 @@ jQuery(async () => {
     const iconColor = iconEl ? getComputedStyle(iconEl).color : textColor;
     
     ctx.fillStyle = iconColor;
-    ctx.font = `900 ${26 * scaleFactor}px "Font Awesome 6 Free", "Font Awesome 5 Free", "FontAwesome"`;
+    ctx.font = `900 ${22 * scaleFactor}px "Font Awesome 6 Free", "Font Awesome 5 Free", "FontAwesome"`;
     ctx.textAlign = 'left';
     ctx.textBaseline = 'middle';
-    ctx.fillText('\uf521', padding * scaleFactor, padding * scaleFactor + 30 * scaleFactor);
+    ctx.fillText('\uf521', padding * scaleFactor, padding * scaleFactor + 25 * scaleFactor);
     
     ctx.fillStyle = textColor;
-    ctx.font = `bold ${28 * scaleFactor}px "LXGW Neo XiHei", "PingFang SC", sans-serif`;
-    ctx.fillText(`${tabName}排行`, padding * scaleFactor + 36 * scaleFactor, padding * scaleFactor + 30 * scaleFactor);
+    ctx.font = `bold ${22 * scaleFactor}px "LXGW Neo XiHei", "PingFang SC", sans-serif`;
+    ctx.fillText(`${tabName}排行`, padding * scaleFactor + 32 * scaleFactor, padding * scaleFactor + 25 * scaleFactor);
     
     // Function to draw rounded rect
     function drawRoundedRect(x, y, w, h, r, fillStyle) {
@@ -1590,6 +1590,10 @@ jQuery(async () => {
       const badgeX = itemX + 12 * scaleFactor; // inner padding 12px
       const badgeY = itemY + (itemH - badgeSize) / 2;
       
+      let badgeFontSize = 16.8; // default 1.05rem * 16px
+      let badgeOffsetX = 0;
+      let badgeOffsetY = 2; // minor visual tweak for middle baseline
+      
       if (index < 3) {
         let badgeColor = 'rgba(128, 128, 128, 0.2)';
         if (index === 0) {
@@ -1597,16 +1601,19 @@ jQuery(async () => {
           grad.addColorStop(0, '#FFE169');
           grad.addColorStop(1, '#F5A623');
           badgeColor = grad;
+          badgeFontSize = 18.4; // 1.15rem
         } else if (index === 1) {
           const grad = ctx.createLinearGradient(badgeX, badgeY, badgeX + badgeSize, badgeY + badgeSize);
           grad.addColorStop(0, '#E2E2E2');
           grad.addColorStop(1, '#9B9B9B');
           badgeColor = grad;
+          badgeFontSize = 17.6; // 1.1rem
         } else if (index === 2) {
           const grad = ctx.createLinearGradient(badgeX, badgeY, badgeX + badgeSize, badgeY + badgeSize);
           grad.addColorStop(0, '#F5C695');
           grad.addColorStop(1, '#C07C41');
           badgeColor = grad;
+          badgeFontSize = 17.6; // 1.1rem
         }
         
         ctx.beginPath();
@@ -1616,20 +1623,21 @@ jQuery(async () => {
         
         ctx.fillStyle = '#FFFFFF';
         ctx.globalAlpha = 1.0;
-        ctx.font = `bold ${1.15 * 16 * scaleFactor}px "LXGW Neo XiHei", "PingFang SC", sans-serif`;
       } else {
         ctx.fillStyle = textColor;
         ctx.globalAlpha = 0.5;
-        ctx.font = `bold ${1.05 * 16 * scaleFactor}px "LXGW Neo XiHei", "PingFang SC", sans-serif`;
+        // Adjust x offset slightly to center the raw text better when there is no circle background
+        badgeOffsetX = -2 * scaleFactor;
       }
       
+      ctx.font = `bold ${badgeFontSize * scaleFactor}px "LXGW Neo XiHei", "PingFang SC", sans-serif`;
       ctx.textAlign = 'center';
       ctx.textBaseline = 'middle';
-      ctx.fillText((index + 1).toString(), badgeX + badgeSize/2, badgeY + badgeSize/2 + 2*scaleFactor);
+      ctx.fillText((index + 1).toString(), badgeX + badgeSize/2 + badgeOffsetX, badgeY + badgeSize/2 + badgeOffsetY * scaleFactor);
       ctx.globalAlpha = 1.0;
       
       // Avatar (object-fit cover equivalent)
-      const avatarSize = 48 * scaleFactor;
+      const avatarSize = 44 * scaleFactor; // exactly match CSS width 44px
       const avatarX = badgeX + badgeSize + 16 * scaleFactor; // margin-right 16px
       const avatarY = itemY + (itemH - avatarSize) / 2;
       
@@ -1690,28 +1698,32 @@ jQuery(async () => {
       // Name
       const textX = avatarX + avatarSize + 16 * scaleFactor;
       ctx.fillStyle = textColor;
-      ctx.font = `bold ${1.1 * 16 * scaleFactor}px "LXGW Neo XiHei", "PingFang SC", sans-serif`;
+      // .ccs-character-name: font-size 1rem (16px), font-weight bold
+      ctx.font = `bold ${16 * scaleFactor}px "LXGW Neo XiHei", "PingFang SC", sans-serif`;
       ctx.textAlign = 'left';
       ctx.textBaseline = 'alphabetic';
-      ctx.fillText(stat.name, textX, itemY + itemH/2 - 6 * scaleFactor);
+      ctx.fillText(stat.name, textX, itemY + itemH/2 - 4 * scaleFactor);
       
       // Desc
       ctx.globalAlpha = 0.6;
       ctx.fillStyle = textColor;
-      ctx.font = `400 ${0.85 * 16 * scaleFactor}px "LXGW Neo XiHei", "PingFang SC", sans-serif`;
+      // .ccs-total-messages: font-size 0.85em (~13.6px)
+      ctx.font = `400 ${13.6 * scaleFactor}px "LXGW Neo XiHei", "PingFang SC", sans-serif`;
       ctx.fillText(descHtml, textX, itemY + itemH/2 + 14 * scaleFactor);
       
       // Value & Unit
-      const rightPadding = itemW - parseInt(16 * scaleFactor); // match right margin
-      ctx.font = `400 ${0.85 * 16 * scaleFactor}px "LXGW Neo XiHei", "PingFang SC", sans-serif`;
+      const rightPadding = itemW - parseInt(12 * scaleFactor); // match internal flex margin
+      // Unit uses 0.8em inside value string in DOM (~12.8px)
+      ctx.font = `400 ${12.8 * scaleFactor}px "LXGW Neo XiHei", "PingFang SC", sans-serif`;
       ctx.textAlign = 'right';
       ctx.textBaseline = 'alphabetic';
-      ctx.fillText(unitHtml, itemX + rightPadding, itemY + itemH/2 + 6 * scaleFactor);
+      ctx.fillText(unitHtml, itemX + rightPadding, itemY + itemH/2 + 4 * scaleFactor);
       ctx.globalAlpha = 1.0;
       
       const unitWidth = ctx.measureText(unitHtml).width;
-      ctx.font = `bold ${1.6 * 16 * scaleFactor}px "LXGW Neo XiHei", "PingFang SC", sans-serif`;
-      ctx.fillText(valueHtml, itemX + rightPadding - unitWidth - 6 * scaleFactor, itemY + itemH/2 + 6 * scaleFactor);
+      // Value uses 1.1rem in DOM (17.6px)
+      ctx.font = `bold ${17.6 * scaleFactor}px "LXGW Neo XiHei", "PingFang SC", sans-serif`;
+      ctx.fillText(valueHtml, itemX + rightPadding - unitWidth - 4 * scaleFactor, itemY + itemH/2 + 4 * scaleFactor);
       
       currentY += (itemHeight + spacing) * scaleFactor;
     });
