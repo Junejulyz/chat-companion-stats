@@ -1668,6 +1668,9 @@ jQuery(async () => {
       console.log(charKeys);
       return [];
     }
+    
+    // DEBUG: Understand how getPastCharacterChats works internally in ST
+    console.log("getPastCharacterChats signature:", getPastCharacterChats.toString());
 
     // 适配数组或对象格式
     let charsArray = Array.isArray(charsSource) ? charsSource : Object.values(charsSource);
