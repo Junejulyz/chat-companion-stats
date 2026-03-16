@@ -9,7 +9,8 @@ jQuery(async () => {
   // 加载CSS文件 using dynamic path
   $('head').append(`<link rel="stylesheet" type="text/css" href="${extensionWebPath}/styles.css">`);
 
-  const baseFontFamily = '"LXGW Neo XiHei", "PingFang SC", sans-serif';
+  // 动态获取 SillyTavern 当前使用的 UI 字体，确保分享图片与用户界面一致
+  const baseFontFamily = getComputedStyle(document.body).fontFamily || '"LXGW Neo XiHei", "PingFang SC", sans-serif';
 
   // 加载自定义字体 (Added handwritten and PING FANG SHAO HUA font)
   $('head').append(`<style>
