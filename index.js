@@ -1482,13 +1482,13 @@ jQuery(async () => {
     // 取前 5
     const topList = dataList.slice(0, 5);
     
-    // Canvas 配置
+    // Canvas 配置 (严格对应CSS像素)
     const scaleFactor = 2; // Retina 
-    const baseWidth = 600;
+    const baseWidth = 500;
     const headerHeight = 110;
-    const itemHeight = 84;
-    const spacing = 12;
-    const padding = 24;
+    const itemHeight = 72; // padding 12*2 + avatar 48
+    const spacing = 10; // margin-bottom 10
+    const padding = 24; // modal padding
     
     const baseHeight = headerHeight + topList.length * (itemHeight + spacing) + padding;
     
@@ -1586,8 +1586,8 @@ jQuery(async () => {
       drawRoundedRect(itemX, itemY, itemW, itemH, 16 * scaleFactor, itemBg);
       
       // Rank Badge (Circle for top 3, text for rest)
-      const badgeSize = 34 * scaleFactor;
-      const badgeX = itemX + 12 * scaleFactor; // inner padding roughly 12px
+      const badgeSize = 28 * scaleFactor;
+      const badgeX = itemX + 12 * scaleFactor; // inner padding 12px
       const badgeY = itemY + (itemH - badgeSize) / 2;
       
       if (index < 3) {
@@ -1616,19 +1616,21 @@ jQuery(async () => {
         
         ctx.fillStyle = '#FFFFFF';
         ctx.globalAlpha = 1.0;
+        ctx.font = `bold ${1.15 * 16 * scaleFactor}px "LXGW Neo XiHei", "PingFang SC", sans-serif`;
       } else {
         ctx.fillStyle = textColor;
-        ctx.globalAlpha = 0.6;
+        ctx.globalAlpha = 0.5;
+        ctx.font = `bold ${1.05 * 16 * scaleFactor}px "LXGW Neo XiHei", "PingFang SC", sans-serif`;
       }
       
-      ctx.font = `bold ${16 * scaleFactor}px "LXGW Neo XiHei", "PingFang SC", sans-serif`;
       ctx.textAlign = 'center';
+      ctx.textBaseline = 'middle';
       ctx.fillText((index + 1).toString(), badgeX + badgeSize/2, badgeY + badgeSize/2 + 2*scaleFactor);
       ctx.globalAlpha = 1.0;
       
       // Avatar (object-fit cover equivalent)
-      const avatarSize = 50 * scaleFactor;
-      const avatarX = badgeX + badgeSize + 16 * scaleFactor;
+      const avatarSize = 48 * scaleFactor;
+      const avatarX = badgeX + badgeSize + 16 * scaleFactor; // margin-right 16px
       const avatarY = itemY + (itemH - avatarSize) / 2;
       
       const img = avatars[index];
@@ -1688,26 +1690,28 @@ jQuery(async () => {
       // Name
       const textX = avatarX + avatarSize + 16 * scaleFactor;
       ctx.fillStyle = textColor;
-      ctx.font = `bold ${18 * scaleFactor}px "LXGW Neo XiHei", "PingFang SC", sans-serif`;
+      ctx.font = `bold ${1.1 * 16 * scaleFactor}px "LXGW Neo XiHei", "PingFang SC", sans-serif`;
       ctx.textAlign = 'left';
-      ctx.fillText(stat.name, textX, itemY + itemH/2 - 10 * scaleFactor);
+      ctx.textBaseline = 'alphabetic';
+      ctx.fillText(stat.name, textX, itemY + itemH/2 - 6 * scaleFactor);
       
       // Desc
       ctx.globalAlpha = 0.6;
       ctx.fillStyle = textColor;
-      ctx.font = `400 ${14 * scaleFactor}px "LXGW Neo XiHei", "PingFang SC", sans-serif`;
+      ctx.font = `400 ${0.85 * 16 * scaleFactor}px "LXGW Neo XiHei", "PingFang SC", sans-serif`;
       ctx.fillText(descHtml, textX, itemY + itemH/2 + 14 * scaleFactor);
       
       // Value & Unit
-      const rightPadding = itemW - parseInt(20 * scaleFactor);
-      ctx.font = `400 ${16 * scaleFactor}px "LXGW Neo XiHei", "PingFang SC", sans-serif`;
+      const rightPadding = itemW - parseInt(16 * scaleFactor); // match right margin
+      ctx.font = `400 ${0.85 * 16 * scaleFactor}px "LXGW Neo XiHei", "PingFang SC", sans-serif`;
       ctx.textAlign = 'right';
-      ctx.fillText(unitHtml, itemX + rightPadding, itemY + itemH/2 + 2 * scaleFactor);
+      ctx.textBaseline = 'alphabetic';
+      ctx.fillText(unitHtml, itemX + rightPadding, itemY + itemH/2 + 6 * scaleFactor);
       ctx.globalAlpha = 1.0;
       
       const unitWidth = ctx.measureText(unitHtml).width;
-      ctx.font = `bold ${22 * scaleFactor}px "LXGW Neo XiHei", "PingFang SC", sans-serif`;
-      ctx.fillText(valueHtml, itemX + rightPadding - unitWidth - 6 * scaleFactor, itemY + itemH/2 + 2 * scaleFactor);
+      ctx.font = `bold ${1.6 * 16 * scaleFactor}px "LXGW Neo XiHei", "PingFang SC", sans-serif`;
+      ctx.fillText(valueHtml, itemX + rightPadding - unitWidth - 6 * scaleFactor, itemY + itemH/2 + 6 * scaleFactor);
       
       currentY += (itemHeight + spacing) * scaleFactor;
     });

@@ -238,6 +238,10 @@
   color: var(--SmartThemeBodyColor);
 }
 
+#ccs-global-share-btn {
+  font-size: 1.35rem; /* Visually match fa-xmark */
+}
+
 .ccs-global-icon-btn:hover {
   opacity: 1;
   transform: scale(1.1);
