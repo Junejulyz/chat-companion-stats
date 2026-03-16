@@ -1692,11 +1692,19 @@ jQuery(async () => {
       
       const batchResults = await Promise.all(batch.map(async (char) => {
         // Skip default/empty characters if any
-        if (!char || !char.avatar) return null;
+        if (!char || !char.avatar) {
+            console.log(`[GlobalStats] Skipping undefined char or missing avatar...`);
+            return null;
+        }
 
         try {
+          console.log(`[GlobalStats] Fetching chats for ${char.name} (Avatar: ${char.avatar})`);
           const chats = await getPastCharacterChats(char.avatar);
-          if (!chats || chats.length === 0) return null;
+          if (!chats || chats.length === 0) {
+              console.log(`[GlobalStats] => No chats found or array is empty for: ${char.name}`);
+              return null;
+          }
+          console.log(`[GlobalStats] => Found ${chats.length} chat items for: ${char.name}`, chats);
 
           let totalMessages = 0;
           let totalSizeBytesRaw = 0;
