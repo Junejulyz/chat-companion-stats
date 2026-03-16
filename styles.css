@@ -242,6 +242,12 @@
   font-size: 1.35rem; /* Visually match fa-xmark */
 }
 
+#ccs-global-share-btn.disabled {
+  opacity: 0.2;
+  cursor: not-allowed;
+  pointer-events: none;
+}
+
 .ccs-global-icon-btn:hover {
   opacity: 1;
   transform: scale(1.1);

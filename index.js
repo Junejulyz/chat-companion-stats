@@ -2065,12 +2065,20 @@ jQuery(async () => {
 
   function renderGlobalStats(dataList, tab) {
     const $list = $('#ccs-global-list');
+    const $shareBtn = $('#ccs-global-share-btn');
     $list.empty(); // 防重叠，并清空旧 DOM 辅助 GC
     $list.scrollTop(0); // 切换 Tab 时重置滚动条
 
     if (!dataList || dataList.length === 0) {
       $list.html('<div style="text-align: center; padding: 40px; opacity: 0.6;">暂无羁绊数据</div>');
+      $shareBtn.addClass('disabled').attr('title', '数据不足，无法生成排行榜');
       return;
+    }
+    
+    if (dataList.length <= 1) {
+      $shareBtn.addClass('disabled').attr('title', '数据不足，无法生成排行榜');
+    } else {
+      $shareBtn.removeClass('disabled').removeAttr('title');
     }
 
     // 根据 Tab 类型排序
@@ -2168,7 +2176,7 @@ jQuery(async () => {
   // 绑定全局排行分享按钮事件
   $(document).on('click', '#ccs-global-share-btn', async function () {
     const $button = $(this);
-    if ($button.hasClass('loading')) return;
+    if ($button.hasClass('loading') || $button.hasClass('disabled')) return;
     
     const targetTab = $('.ccs-tab.active').data('tab');
     const statsData = $('#ccs-global-modal').data('tempStatsData');
