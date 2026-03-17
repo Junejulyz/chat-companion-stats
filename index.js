@@ -346,6 +346,14 @@ jQuery(async () => {
       text = await fetchChatFile(`/chats/${encodeURIComponent(characterName)}/${encodedFileName}`);
     }
 
+    // 尝试方式 3: 基于当前页面显示的名称
+    if (!text) {
+      const currentName = getCurrentCharacterName();
+      if (currentName) {
+        text = await fetchChatFile(`/chats/${encodeURIComponent(currentName)}/${encodedFileName}`);
+      }
+    }
+
     if (!text) return { words: 0, count: 0, userCount: 0, earliestUserTime: null };
 
     try {
@@ -572,7 +580,7 @@ jQuery(async () => {
       if (totalSizeKB > 10240) { // > 10MB
         if (DEBUG) console.log(`[Performance Check] 体积过大(${totalSizeKB.toFixed(2)}KB)，启用「高速估算模式」以保护内存。`);
         return {
-          messageCount: totalMessagesFromChats,
+          messageCount: totalMessagesFromChats > 0 ? totalMessagesFromChats : Math.max(2, Math.round(totalSizeKB * 1.5)),
           wordCount: estimatedWords,
           firstTime: earliestTime,
           totalDuration: totalDurationSeconds,
@@ -646,7 +654,13 @@ jQuery(async () => {
       }
 
       // 回退逻辑 (如果全量统计失败，且元数据也没有显示任何有实质内容的会话)
-      if (maxMessagesInSingleChat <= 1) {
+      let finalMessageCount = totalMessagesFromChats;
+      if (maxMessagesInSingleChat <= 1 && (totalSizeKB / (chatFilesCount || 1)) > 5) {
+        // 如果 ST 没有返回 chat_items (导致 max <= 1)，
+        // 但文件平均体积较大 (>5KB/文件)，说明肯定有互动
+        finalMessageCount = Math.max(2, Math.round(totalSizeKB * 1.5));
+      } else if (maxMessagesInSingleChat <= 1 && chatFilesCount <= 1) {
+        // 只有单文件且体积极小，才判断为无互动
         return {
           messageCount: 0,
           wordCount: 0,
@@ -658,7 +672,7 @@ jQuery(async () => {
       }
 
       return {
-        messageCount: totalMessagesFromChats,
+        messageCount: finalMessageCount > 0 ? finalMessageCount : Math.max(2, chatFilesCount),
         wordCount: estimatedWords,
         firstTime: earliestTime,
         totalDuration: totalDurationSeconds,
@@ -776,15 +790,22 @@ jQuery(async () => {
 
         // 使用 UTC 日期来避免时区问题
         const utcNow = Date.UTC(now.getFullYear(), now.getMonth(), now.getDate());
-        const utcFirstTime = Date.UTC(firstTimeDate.getFullYear(), firstTimeDate.getMonth(), firstTimeDate.getDate());
-
-        // 计算天数：从第一次互动到现在的天数（包括今天）
-        const diffTime = Math.abs(utcNow - utcFirstTime);
-        const days = Math.ceil(diffTime / (1000 * 60 * 60 * 24)) + 1; // 加1确保包括今天
+        
+        let days = 0;
+        let firstTimeFormatted = "未知时间";
+        if (isNaN(firstTimeDate.getTime())) {
+            // Invalid date
+            days = 0;
+            if (DEBUG) console.log('firstTimeDate is Invalid Date');
+        } else {
+            const utcFirstTime = Date.UTC(firstTimeDate.getFullYear(), firstTimeDate.getMonth(), firstTimeDate.getDate());
+            // 计算天数：从第一次互动到现在的天数（包括今天）
+            const diffTime = Math.abs(utcNow - utcFirstTime);
+            days = Math.ceil(diffTime / (1000 * 60 * 60 * 24)) + 1; // 加1确保包括今天
+            firstTimeFormatted = formatDateTime(stats.firstTime);
+        }
+        
         if (DEBUG) console.log('Calculated days:', days);
-
-        // 格式化初遇时间
-        const firstTimeFormatted = formatDateTime(stats.firstTime);
         if (DEBUG) console.log('Formatted first time:', firstTimeFormatted);
 
         $("#ccs-start").text(firstTimeFormatted);
@@ -792,8 +813,6 @@ jQuery(async () => {
         // Pass messageCount to the state function
         updateShareButtonState(stats.messageCount);
       }
-      // Removed the stray 'else' block that was here
-
 
       if (DEBUG) {
         console.log('Stats UI updated:', {
@@ -806,6 +825,13 @@ jQuery(async () => {
 
     } catch (error) {
       console.error('更新统计数据失败:', error);
+      try {
+          // Attempt to show error utilizing ST's toastr
+          if (typeof toastr !== 'undefined' && toastr.error) {
+              toastr.error('陪伴卡：获取角色统计数据失败，详情请看控制台。', '读取出错');
+          }
+      } catch (e) {}
+      
       // 显示错误状态
       $("#ccs-messages").text('--');
       $("#ccs-words").text('--');
@@ -2079,6 +2105,9 @@ jQuery(async () => {
               const utcFirstTime = Date.UTC(firstTimeDate.getFullYear(), firstTimeDate.getMonth(), firstTimeDate.getDate());
               const diffTime = Math.abs(utcNow - utcFirstTime);
               days = Math.ceil(diffTime / (1000 * 60 * 60 * 24)) + 1;
+            } else {
+              if (DEBUG) console.log(`[GlobalStats] Invalid date for ${char.name}, setting days to 0`);
+              days = 0;
             }
           }
 
@@ -2104,6 +2133,15 @@ jQuery(async () => {
         } catch (err) {
           if (DEBUG) console.error(`Error fetching stats for char ${char.name}:`, err);
         }
+    }
+
+    if (statsList.length === 0) {
+      if (DEBUG) console.warn("[GlobalStats] No stats fetched for any character.");
+      try {
+        if (typeof toastr !== 'undefined' && toastr.warning) {
+          toastr.warning('陪伴卡：未能读取到任何角色的有效聊天记录。', '数据为空');
+        }
+      } catch (e) {}
     }
 
     return statsList;
