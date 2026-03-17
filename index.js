@@ -142,16 +142,18 @@ jQuery(async () => {
     return isFallbackValid ? fallbackDate : null;
   }
 
-  // 从文件名解析时间
+  // 从文件名解析时间 (兼容 Checkpoint 和自定义后缀)
   function parseTimeFromFilename(filename) {
-    // 从文件名中提取日期和时间
-    const match = filename.match(/(\d{4}-\d{2}-\d{2})@(\d{2})h(\d{2})m(\d{2})s/);
+    // 允许 @, _, 或 空格 作为日期和时间的分隔符
+    // 允许 h, m, s 后面没跟内容 (非锚定匹配，天然兼容 Checkpoint 等后缀)
+    const match = filename.match(/(\d{4}-\d{2}-\d{2})[@_\s](\d{2})h(\d{2})m(\d{2})s/);
     if (match) {
       const [_, date, hours, minutes, seconds] = match;
       const totalSeconds = parseInt(hours, 10) * 3600 + parseInt(minutes, 10) * 60 + parseInt(seconds, 10);
-
-      // 构建日期对象 (注意：Date.parse 也支持 YYYY-MM-DDTHH:mm:ss 格式)
-      const dateObject = new Date(`${date}T${hours}:${minutes}:${seconds}`);
+      
+      // 构建 ISO 格式
+      const isoString = `${date}T${hours}:${minutes}:${seconds}`;
+      const dateObject = new Date(isoString);
 
       return {
         date,
