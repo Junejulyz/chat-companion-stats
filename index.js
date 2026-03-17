@@ -150,7 +150,7 @@ jQuery(async () => {
     if (match) {
       const [_, date, hours, minutes, seconds] = match;
       const totalSeconds = parseInt(hours, 10) * 3600 + parseInt(minutes, 10) * 60 + parseInt(seconds, 10);
-      
+
       // 构建 ISO 格式
       const isoString = `${date}T${hours}:${minutes}:${seconds}`;
       const dateObject = new Date(isoString);
@@ -792,21 +792,21 @@ jQuery(async () => {
 
         // 使用 UTC 日期来避免时区问题
         const utcNow = Date.UTC(now.getFullYear(), now.getMonth(), now.getDate());
-        
+
         let days = 0;
         let firstTimeFormatted = "未知时间";
         if (isNaN(firstTimeDate.getTime())) {
-            // Invalid date
-            days = 0;
-            if (DEBUG) console.log('firstTimeDate is Invalid Date');
+          // Invalid date
+          days = 0;
+          if (DEBUG) console.log('firstTimeDate is Invalid Date');
         } else {
-            const utcFirstTime = Date.UTC(firstTimeDate.getFullYear(), firstTimeDate.getMonth(), firstTimeDate.getDate());
-            // 计算天数：从第一次互动到现在的天数（包括今天）
-            const diffTime = Math.abs(utcNow - utcFirstTime);
-            days = Math.ceil(diffTime / (1000 * 60 * 60 * 24)) + 1; // 加1确保包括今天
-            firstTimeFormatted = formatDateTime(stats.firstTime);
+          const utcFirstTime = Date.UTC(firstTimeDate.getFullYear(), firstTimeDate.getMonth(), firstTimeDate.getDate());
+          // 计算天数：从第一次互动到现在的天数（包括今天）
+          const diffTime = Math.abs(utcNow - utcFirstTime);
+          days = Math.ceil(diffTime / (1000 * 60 * 60 * 24)) + 1; // 加1确保包括今天
+          firstTimeFormatted = formatDateTime(stats.firstTime);
         }
-        
+
         if (DEBUG) console.log('Calculated days:', days);
         if (DEBUG) console.log('Formatted first time:', firstTimeFormatted);
 
@@ -828,12 +828,12 @@ jQuery(async () => {
     } catch (error) {
       console.error('更新统计数据失败:', error);
       try {
-          // Attempt to show error utilizing ST's toastr
-          if (typeof toastr !== 'undefined' && toastr.error) {
-              toastr.error('陪伴卡：获取角色统计数据失败，详情请看控制台。', '读取出错');
-          }
-      } catch (e) {}
-      
+        // Attempt to show error utilizing ST's toastr
+        if (typeof toastr !== 'undefined' && toastr.error) {
+          toastr.error('陪伴卡：获取角色统计数据失败，详情请看控制台。', '读取出错');
+        }
+      } catch (e) { }
+
       // 显示错误状态
       $("#ccs-messages").text('--');
       $("#ccs-words").text('--');
@@ -889,7 +889,7 @@ jQuery(async () => {
   async function generateShareImage() {
     // 强制等待所有字体加载完毕，防止 Canvas 渲染时回退到默认字体
     await document.fonts.ready;
-    
+
     // 终极策略：直接从已排版好的标题元素抓取真实计算字体，绕过全局变量和 body 的潜在覆盖
     const sampleEl = document.querySelector('.ccs-global-title') || document.body;
     const baseFontFamily = getComputedStyle(sampleEl).fontFamily || '"LXGW Neo XiHei", "PingFang SC", sans-serif';
@@ -929,7 +929,7 @@ jQuery(async () => {
     // 0. 加载资产 (Ins & Pixel Style)
     const insAssets = {};
     const pixelAssets = {};
-    
+
     const loadAssetImg = (url) => new Promise((resolve) => {
       const img = new Image();
       img.crossOrigin = 'anonymous';
@@ -997,7 +997,7 @@ jQuery(async () => {
     }
 
     let stats = statsItems.filter(s => $(`#${s.id}`).is(":checked"));
-    
+
     // Filter out duplicate Encounter stat from bottom panels in Pink Pixel mode
     if (isPixel) {
       stats = stats.filter(s => s.id !== 'ccs-share-start');
@@ -1014,20 +1014,20 @@ jQuery(async () => {
     const headerW = 631 * scaleFactor;
     const headerH = (shareStyle === 'ins' ? 144 : (isPixel ? (baseHeaderH_Pixel + baseHeaderPadding) : 214)) * scaleFactor;
     const footerH = (shareStyle === 'ins' ? 92 : 48) * scaleFactor;
-    
+
     const boxW = isPixel ? 615 * scaleFactor : 519 * scaleFactor;
     const boxH = (isPixel ? baseBoxH_Pixel : 80) * scaleFactor;
     const boxGap = (shareStyle === 'ins' ? 24 : (isPixel ? baseBoxGap_Pixel : 32)) * scaleFactor;
 
     const headerToBoxGap = baseHeaderToBoxGap * scaleFactor;
-    
+
     // Content area positioning
     let totalStatsH;
     if (shareStyle === 'ins') {
       totalStatsH = 500 * scaleFactor; // Fixed height for ins content
     } else if (isPixel) {
       // Dynamic height for Pixel style: 24px gap + stats
-      const statsContentH = stats.length > 0 
+      const statsContentH = stats.length > 0
         ? (stats.length * boxH + (stats.length - 1) * boxGap + headerToBoxGap)
         : 0;
       totalStatsH = statsContentH + (40 * scaleFactor); // Bottom padding increased to 40px
@@ -1247,9 +1247,9 @@ jQuery(async () => {
       // Avatar Slots Positioning (User absolute coordinates)
       const avatarSize = 102 * scaleFactor;
       const charAvatarX = 145 * scaleFactor; // Updated from 45 to 145
-      const userAvatarX = 415 * scaleFactor; 
-      const avatarY = 70 * scaleFactor; 
-      
+      const userAvatarX = 415 * scaleFactor;
+      const avatarY = 70 * scaleFactor;
+
       // Draw Avatars - Corner radius reduced to 5 for sharper look
       drawRoundedAvatar(charImg, charAvatarX, avatarY, avatarSize, avatarSize, 5 * scaleFactor);
       if (showUser) {
@@ -1259,11 +1259,11 @@ jQuery(async () => {
       // Name and Encounter
       ctx.textAlign = 'center';
       ctx.textBaseline = 'top'; // Set to top for precise Y positioning
-      ctx.fillStyle = '#773831'; 
+      ctx.fillStyle = '#773831';
       ctx.font = `400 ${34 * scaleFactor}px "Cubic 11", sans-serif`;
       const nameText = charName || "角色名";
       ctx.fillText(nameText, width / 2, 206 * scaleFactor);
-      
+
       if (showEncounterDate) {
         ctx.font = `400 ${26 * scaleFactor}px "Cubic 11", sans-serif`;
         const encounterText = `初遇于 ${$("#ccs-start").text()}`;
@@ -1387,7 +1387,7 @@ jQuery(async () => {
         };
         const assetKey = assetMap[stat.label];
         const statImg = pixelAssets[assetKey];
-        
+
         if (statImg) {
           ctx.drawImage(statImg, boxX, cy, boxW, boxH);
         }
@@ -1397,18 +1397,18 @@ jQuery(async () => {
         ctx.fillStyle = '#333333';
         ctx.font = `400 ${30 * scaleFactor}px "Cubic 11", sans-serif`;
         ctx.fillText(stat.label, boxX + 50 * scaleFactor, cy + boxH / 2 + 5 * scaleFactor);
-        
+
         // 2. Value Positioning (Inside the dark box on the right, moved up 5px)
         ctx.textAlign = 'right';
         ctx.fillStyle = '#EFFFFF'; // Light blue-ish pixel text
         const valueX = boxX + boxW - 35 * scaleFactor;
         const valueY = cy + boxH / 2 + 5 * scaleFactor;
-        
+
         if (stat.unit) {
           // Draw Unit first at 24px
           ctx.font = `400 ${24 * scaleFactor}px "Cubic 11", sans-serif`;
           ctx.fillText(stat.unit, valueX, valueY);
-          
+
           // Measure and draw Value at 28px
           const unitW = ctx.measureText(stat.unit).width;
           ctx.font = `400 ${28 * scaleFactor}px "Cubic 11", sans-serif`;
@@ -1513,17 +1513,17 @@ jQuery(async () => {
 
   async function generateGlobalShareImage(dataList, tab) {
     if (!dataList || dataList.length === 0) return null;
-    
+
     // 强制等待所有字体加载完毕
     await document.fonts.ready;
-    
+
     // 终极策略：直接从已排版好的标题元素抓取真实计算字体
     const sampleEl = document.querySelector('.ccs-global-title') || document.body;
     const baseFontFamily = getComputedStyle(sampleEl).fontFamily || '"LXGW Neo XiHei", "PingFang SC", sans-serif';
-    
+
     // 取前 5
     const topList = dataList.slice(0, 5);
-    
+
     // Canvas 配置 (增大内部元素的视觉比例)
     const scaleFactor = 2; // Retina 
     const baseWidth = 500;
@@ -1531,50 +1531,50 @@ jQuery(async () => {
     const itemHeight = 82; // padding 14*2 + avatar 54
     const spacing = 12; // margin-bottom
     const padding = 24; // modal padding
-    
+
     const baseHeight = headerHeight + topList.length * (itemHeight + spacing) + padding;
-    
+
     const width = baseWidth * scaleFactor;
     const height = baseHeight * scaleFactor;
-    
+
     const canvas = document.createElement('canvas');
     canvas.width = width;
     canvas.height = height;
     const ctx = canvas.getContext('2d');
-    
+
     // 获取当前模态框样式
     const modalEl = document.querySelector('.ccs-global-modal-content');
     const computedStyles = modalEl ? getComputedStyle(modalEl) : null;
     const modalBg = computedStyles ? computedStyles.backgroundColor : 'rgba(0,0,0,0.8)';
     const textColor = computedStyles ? computedStyles.color : '#FFFFFF';
-    
+
     // 背景兜底 (抓取 body 颜色防止全透明长图发黑)
     const bodyBg = getComputedStyle(document.body).backgroundColor || '#2A2D34';
     ctx.fillStyle = bodyBg;
     ctx.fillRect(0, 0, width, height);
-    
+
     // 叠加模态框实际背景
     ctx.fillStyle = modalBg;
     ctx.fillRect(0, 0, width, height);
-    
+
     // Header
     let tabName = '对话总数';
     if (tab === 'days') tabName = '相伴天数';
     if (tab === 'size') tabName = '回忆大小';
-    
+
     const iconEl = document.querySelector('.ccs-global-title-icon');
     const iconColor = iconEl ? getComputedStyle(iconEl).color : textColor;
-    
+
     ctx.fillStyle = iconColor;
     ctx.font = `900 ${24 * scaleFactor}px "Font Awesome 6 Free", "Font Awesome 5 Free", "FontAwesome"`;
     ctx.textAlign = 'left';
     ctx.textBaseline = 'middle';
     ctx.fillText('\uf521', padding * scaleFactor, padding * scaleFactor + 25 * scaleFactor);
-    
+
     ctx.fillStyle = textColor;
     ctx.font = `bold ${26 * scaleFactor}px ${baseFontFamily}`;
     ctx.fillText(`${tabName}`, padding * scaleFactor + 34 * scaleFactor, padding * scaleFactor + 25 * scaleFactor);
-    
+
     // Function to draw rounded rect
     function drawRoundedRect(x, y, w, h, r, fillStyle) {
       ctx.beginPath();
@@ -1593,10 +1593,10 @@ jQuery(async () => {
         ctx.fill();
       }
     }
-    
+
     // Items
     let currentY = headerHeight * scaleFactor;
-    
+
     // Load avatars
     const avatars = await Promise.all(topList.map(async (stat) => {
       return new Promise((resolve) => {
@@ -1612,34 +1612,34 @@ jQuery(async () => {
         img.src = stat.avatar;
       });
     }));
-    
+
     topList.forEach((stat, index) => {
       const itemX = padding * scaleFactor;
       const itemY = currentY;
       const itemW = width - padding * 2 * scaleFactor;
       const itemH = itemHeight * scaleFactor;
-      
+
       // Card bg (Base + subtle gradient for Top 3)
       let itemBg = 'rgba(128, 128, 128, 0.08)';
       const rankItemExample = document.querySelector('.ccs-rank-item');
       if (rankItemExample) {
         itemBg = getComputedStyle(rankItemExample).backgroundColor;
       }
-      
+
       // Draw Base Background
       drawRoundedRect(itemX, itemY, itemW, itemH, 16 * scaleFactor, itemBg);
-      
+
       // Draw Subtle Gradient Highlight for Top 3 (matching CSS)
       if (index < 3) {
         let gradColor = 'rgba(245, 166, 35, 0.08)'; // Default Top 1
         if (index === 1) gradColor = 'rgba(155, 155, 155, 0.08)';
         if (index === 2) gradColor = 'rgba(192, 124, 65, 0.08)';
-        
+
         ctx.save();
         const sideGrad = ctx.createLinearGradient(itemX, itemY, itemX + itemW, itemY);
         sideGrad.addColorStop(0, gradColor);
         sideGrad.addColorStop(1, 'rgba(0, 0, 0, 0)');
-        
+
         // Clip to the rounded rect used for the card
         ctx.beginPath();
         const r = 16 * scaleFactor;
@@ -1654,21 +1654,21 @@ jQuery(async () => {
         ctx.arcTo(itemX, itemY, itemX + r, itemY, r);
         ctx.closePath();
         ctx.clip();
-        
+
         ctx.fillStyle = sideGrad;
         ctx.fillRect(itemX, itemY, itemW, itemH);
         ctx.restore();
       }
-      
+
       // Rank Badge (Circle for top 3, text for rest)
       const badgeSize = 34 * scaleFactor;
       const badgeX = itemX + 14 * scaleFactor; // inner padding 14px
       const badgeY = itemY + (itemH - badgeSize) / 2;
-      
-      let badgeFontSize = 20; 
+
+      let badgeFontSize = 20;
       let badgeOffsetX = 0;
       let badgeOffsetY = 1; // minor optical visual tweak
-      
+
       if (index < 3) {
         let badgeColor = 'rgba(128, 128, 128, 0.2)';
         if (index === 0) {
@@ -1690,12 +1690,12 @@ jQuery(async () => {
           badgeColor = grad;
           badgeFontSize = 20;
         }
-        
+
         ctx.beginPath();
-        ctx.arc(badgeX + badgeSize/2, badgeY + badgeSize/2, badgeSize/2, 0, Math.PI * 2);
+        ctx.arc(badgeX + badgeSize / 2, badgeY + badgeSize / 2, badgeSize / 2, 0, Math.PI * 2);
         ctx.fillStyle = badgeColor;
         ctx.fill();
-        
+
         ctx.fillStyle = '#FFFFFF';
         ctx.globalAlpha = 1.0;
       } else {
@@ -1703,31 +1703,31 @@ jQuery(async () => {
         ctx.globalAlpha = 0.5;
         badgeOffsetX = -2 * scaleFactor;
       }
-      
+
       ctx.font = `bold ${badgeFontSize * scaleFactor}px ${baseFontFamily}`;
       ctx.textAlign = 'center';
       // using alphabetic baseline can be more precise for numbers vertically if math is right
       ctx.textBaseline = 'middle';
-      ctx.fillText((index + 1).toString(), badgeX + badgeSize/2 + badgeOffsetX, badgeY + badgeSize/2 + badgeOffsetY * scaleFactor);
+      ctx.fillText((index + 1).toString(), badgeX + badgeSize / 2 + badgeOffsetX, badgeY + badgeSize / 2 + badgeOffsetY * scaleFactor);
       ctx.globalAlpha = 1.0;
-      
+
       // Avatar (object-fit cover equivalent)
       const avatarSize = 54 * scaleFactor; // boosted avatar size
       const avatarX = badgeX + badgeSize + 16 * scaleFactor; // margin-right 16px
       const avatarY = itemY + (itemH - avatarSize) / 2;
-      
+
       const img = avatars[index];
       if (img) {
         ctx.save();
         ctx.beginPath();
-        ctx.arc(avatarX + avatarSize/2, avatarY + avatarSize/2, avatarSize/2, 0, Math.PI * 2);
+        ctx.arc(avatarX + avatarSize / 2, avatarY + avatarSize / 2, avatarSize / 2, 0, Math.PI * 2);
         ctx.clip();
-        
+
         let drawW = avatarSize;
         let drawH = avatarSize;
         let offsetX = 0;
         let offsetY = 0;
-        
+
         if (img.width > 0 && img.height > 0) {
           const imgAspect = img.width / img.height;
           if (imgAspect > 1) { // wider
@@ -1738,16 +1738,16 @@ jQuery(async () => {
             offsetY = -(drawH - avatarSize) / 2;
           }
         }
-        
+
         ctx.drawImage(img, avatarX + offsetX, avatarY + offsetY, drawW, drawH);
         ctx.restore();
       }
-      
+
       // Text logic
       let valueHtml = '';
       let descHtml = '';
       let unitHtml = '';
-      
+
       if (tab === 'messages') {
         valueHtml = stat.messages.toString();
         unitHtml = '条';
@@ -1769,7 +1769,7 @@ jQuery(async () => {
         unitHtml = sizeParts[1] || 'B';
         descHtml = `${stat.messages} 条对话`;
       }
-      
+
       // Name
       const textX = avatarX + avatarSize + 16 * scaleFactor;
       ctx.fillStyle = textColor;
@@ -1777,31 +1777,31 @@ jQuery(async () => {
       ctx.font = `bold ${21 * scaleFactor}px ${baseFontFamily}`;
       ctx.textAlign = 'left';
       ctx.textBaseline = 'alphabetic';
-      ctx.fillText(stat.name, textX, itemY + itemH/2 - 6 * scaleFactor);
-      
+      ctx.fillText(stat.name, textX, itemY + itemH / 2 - 6 * scaleFactor);
+
       // Desc (Increased)
       ctx.globalAlpha = 0.6;
       ctx.fillStyle = textColor;
       ctx.font = `400 ${16.5 * scaleFactor}px ${baseFontFamily}`;
-      ctx.fillText(descHtml, textX, itemY + itemH/2 + 16 * scaleFactor);
-      
+      ctx.fillText(descHtml, textX, itemY + itemH / 2 + 16 * scaleFactor);
+
       // Value & Unit (Balanced proportions)
       const rightPadding = itemW - parseInt(16 * scaleFactor);
       // Unit (Increased slightly from before)
       ctx.font = `400 ${16 * scaleFactor}px ${baseFontFamily}`;
       ctx.textAlign = 'right';
       ctx.textBaseline = 'alphabetic';
-      ctx.fillText(unitHtml, itemX + rightPadding, itemY + itemH/2 + 6 * scaleFactor);
+      ctx.fillText(unitHtml, itemX + rightPadding, itemY + itemH / 2 + 6 * scaleFactor);
       ctx.globalAlpha = 1.0;
-      
+
       const unitWidth = ctx.measureText(unitHtml).width;
       // Value (Decreased slightly to balance with unit)
       ctx.font = `bold ${21 * scaleFactor}px ${baseFontFamily}`;
-      ctx.fillText(valueHtml, itemX + rightPadding - unitWidth - 4 * scaleFactor, itemY + itemH/2 + 6 * scaleFactor);
-      
+      ctx.fillText(valueHtml, itemX + rightPadding - unitWidth - 4 * scaleFactor, itemY + itemH / 2 + 6 * scaleFactor);
+
       currentY += (itemHeight + spacing) * scaleFactor;
     });
-    
+
     return { dataUrl: canvas.toDataURL('image/png'), filename: `羁绊排行_${tabName}.png` };
   }
 
@@ -1825,10 +1825,10 @@ jQuery(async () => {
     // 显示模态框
     $modal.css('display', 'flex');
     $('body, #rm_extensions_block').css('overflow', 'hidden'); // 阻止背景滚动
-    
+
     // Store filename
     $("#ccs-download").data('filename', customFilename || '');
-    
+
     // Hide UI elements not relevant for global share
     if (customFilename && customFilename.includes('排行')) {
       $("#ccs-style-select").hide();
@@ -1999,7 +1999,7 @@ jQuery(async () => {
     console.log("--- DEBUG GLOBAL STATS ---");
     const context = getContext();
     console.log("Context from getContext():", context);
-    
+
     // We need to hunt down the characters array in SillyTavern global scope.
     let charsSource = context.characters || window.characters || window.characters_data;
     console.log("Initial charsSource:", charsSource);
@@ -2012,7 +2012,7 @@ jQuery(async () => {
       console.log(charKeys);
       return [];
     }
-    
+
     // DEBUG: Understand how getPastCharacterChats works internally in ST
     console.log("getPastCharacterChats signature:", getPastCharacterChats.toString());
 
@@ -2035,106 +2035,106 @@ jQuery(async () => {
     const totalChars = charsEntries.length;
 
     for (let i = 0; i < totalChars; i++) {
-        const [charId, char] = charsEntries[i];
-        
-        if ($spinner.length) {
-            $spinner.html(`<i class="fa-solid fa-spinner fa-spin"></i> 正在读取回忆... (${i + 1}/${totalChars})`);
+      const [charId, char] = charsEntries[i];
+
+      if ($spinner.length) {
+        $spinner.html(`<i class="fa-solid fa-spinner fa-spin"></i> 正在读取回忆... (${i + 1}/${totalChars})`);
+      }
+
+      // Skip default/empty characters
+      if (!char || !char.avatar) {
+        console.log(`[GlobalStats] Skipping index ${charId} - missing avatar.`);
+        continue;
+      }
+
+      try {
+        console.log(`[GlobalStats] [${i + 1}/${totalChars}] Fetching chats for ${char.name} (ID: ${charId})`);
+        // 致命 Bug 修复：SillyTavern 原生 API 接受的是 characterId (即在 characters 数组里的 Index/Key)，而不是 avatar 名字！
+        const chats = await getPastCharacterChats(charId);
+
+        if (!chats || chats.length === 0) {
+          console.log(`[GlobalStats] => No chats found for: ${char.name}`);
+          continue;
+        }
+        console.log(`[GlobalStats] => Found ${chats.length} chat items for: ${char.name}`, chats);
+
+        let totalMessages = 0;
+        let totalSizeBytesRaw = 0;
+        let earliestTime = null;
+
+        chats.forEach(chat => {
+          // Count messages
+          totalMessages += (parseInt(chat.chat_items) || 0);
+
+          // Calculate size
+          const sizeMatchKB = chat.file_size?.match(/([\d.]+)\s*KB/i);
+          const sizeMatchMB = chat.file_size?.match(/([\d.]+)\s*MB/i);
+          const sizeAsNumber = parseFloat(chat.file_size);
+
+          if (sizeMatchMB) {
+            totalSizeBytesRaw += parseFloat(sizeMatchMB[1]) * 1024 * 1024;
+          } else if (sizeMatchKB) {
+            totalSizeBytesRaw += parseFloat(sizeMatchKB[1]) * 1024;
+          } else if (!isNaN(sizeAsNumber)) {
+            totalSizeBytesRaw += sizeAsNumber;
+          }
+
+          // Find earliest date
+          if (chat.file_name) {
+            const timeInfo = parseTimeFromFilename(chat.file_name);
+            if (timeInfo && timeInfo.dateObject && (!earliestTime || timeInfo.dateObject < earliestTime)) {
+              earliestTime = timeInfo.dateObject;
+            }
+          }
+          if (chat.last_mes) {
+            const date = parseSillyTavernDate(chat.last_mes);
+            if (date && (!earliestTime || date < earliestTime)) {
+              earliestTime = date;
+            }
+          }
+        });
+
+        // Only include characters with actual interaction (more than just the greeting)
+        if (totalMessages <= 1) {
+          console.log(`[GlobalStats] => Interactions too low for ${char.name}, skipping.`);
+          continue;
         }
 
-        // Skip default/empty characters
-        if (!char || !char.avatar) {
-            console.log(`[GlobalStats] Skipping index ${charId} - missing avatar.`);
-            continue;
+        let days = 0;
+        if (earliestTime) {
+          const firstTimeDate = earliestTime instanceof Date ? earliestTime : new Date(earliestTime);
+          if (!isNaN(firstTimeDate.getTime())) {
+            const utcFirstTime = Date.UTC(firstTimeDate.getFullYear(), firstTimeDate.getMonth(), firstTimeDate.getDate());
+            const diffTime = Math.abs(utcNow - utcFirstTime);
+            days = Math.ceil(diffTime / (1000 * 60 * 60 * 24)) + 1;
+          } else {
+            if (DEBUG) console.log(`[GlobalStats] Invalid date for ${char.name}, setting days to 0`);
+            days = 0;
+          }
         }
 
-        try {
-          console.log(`[GlobalStats] [${i+1}/${totalChars}] Fetching chats for ${char.name} (ID: ${charId})`);
-          // 致命 Bug 修复：SillyTavern 原生 API 接受的是 characterId (即在 characters 数组里的 Index/Key)，而不是 avatar 名字！
-          const chats = await getPastCharacterChats(charId);
-          
-          if (!chats || chats.length === 0) {
-              console.log(`[GlobalStats] => No chats found for: ${char.name}`);
-              continue;
-          }
-          console.log(`[GlobalStats] => Found ${chats.length} chat items for: ${char.name}`, chats);
-
-          let totalMessages = 0;
-          let totalSizeBytesRaw = 0;
-          let earliestTime = null;
-
-          chats.forEach(chat => {
-            // Count messages
-            totalMessages += (parseInt(chat.chat_items) || 0);
-
-            // Calculate size
-            const sizeMatchKB = chat.file_size?.match(/([\d.]+)\s*KB/i);
-            const sizeMatchMB = chat.file_size?.match(/([\d.]+)\s*MB/i);
-            const sizeAsNumber = parseFloat(chat.file_size);
-
-            if (sizeMatchMB) {
-              totalSizeBytesRaw += parseFloat(sizeMatchMB[1]) * 1024 * 1024;
-            } else if (sizeMatchKB) {
-              totalSizeBytesRaw += parseFloat(sizeMatchKB[1]) * 1024;
-            } else if (!isNaN(sizeAsNumber)) {
-              totalSizeBytesRaw += sizeAsNumber;
-            }
-
-            // Find earliest date
-            if (chat.file_name) {
-              const timeInfo = parseTimeFromFilename(chat.file_name);
-              if (timeInfo && timeInfo.dateObject && (!earliestTime || timeInfo.dateObject < earliestTime)) {
-                earliestTime = timeInfo.dateObject;
-              }
-            }
-            if (chat.last_mes) {
-              const date = parseSillyTavernDate(chat.last_mes);
-              if (date && (!earliestTime || date < earliestTime)) {
-                earliestTime = date;
-              }
-            }
-          });
-
-          // Only include characters with actual interaction (more than just the greeting)
-          if (totalMessages <= 1) {
-             console.log(`[GlobalStats] => Interactions too low for ${char.name}, skipping.`);
-             continue;
-          }
-
-          let days = 0;
-          if (earliestTime) {
-            const firstTimeDate = earliestTime instanceof Date ? earliestTime : new Date(earliestTime);
-            if (!isNaN(firstTimeDate.getTime())) {
-              const utcFirstTime = Date.UTC(firstTimeDate.getFullYear(), firstTimeDate.getMonth(), firstTimeDate.getDate());
-              const diffTime = Math.abs(utcNow - utcFirstTime);
-              days = Math.ceil(diffTime / (1000 * 60 * 60 * 24)) + 1;
-            } else {
-              if (DEBUG) console.log(`[GlobalStats] Invalid date for ${char.name}, setting days to 0`);
-              days = 0;
-            }
-          }
-
-          let formattedSize = '0 B';
-          if (totalSizeBytesRaw > 0) {
-            const kb = totalSizeBytesRaw / 1024;
-            const mb = kb / 1024;
-            if (mb >= 1) formattedSize = `${mb.toFixed(2)} MB`;
-            else if (kb >= 1) formattedSize = `${kb.toFixed(2)} KB`;
-            else formattedSize = `${Math.round(totalSizeBytesRaw)} B`;
-          }
-
-          statsList.push({
-            name: char.name || '未知角色',
-            avatar: `/characters/${char.avatar}`,
-            messages: totalMessages,
-            days: days,
-            sizeRaw: totalSizeBytesRaw,
-            formattedSize: formattedSize,
-            firstTimeRaw: earliestTime
-          });
-
-        } catch (err) {
-          if (DEBUG) console.error(`Error fetching stats for char ${char.name}:`, err);
+        let formattedSize = '0 B';
+        if (totalSizeBytesRaw > 0) {
+          const kb = totalSizeBytesRaw / 1024;
+          const mb = kb / 1024;
+          if (mb >= 1) formattedSize = `${mb.toFixed(2)} MB`;
+          else if (kb >= 1) formattedSize = `${kb.toFixed(2)} KB`;
+          else formattedSize = `${Math.round(totalSizeBytesRaw)} B`;
         }
+
+        statsList.push({
+          name: char.name || '未知角色',
+          avatar: `/characters/${char.avatar}`,
+          messages: totalMessages,
+          days: days,
+          sizeRaw: totalSizeBytesRaw,
+          formattedSize: formattedSize,
+          firstTimeRaw: earliestTime
+        });
+
+      } catch (err) {
+        if (DEBUG) console.error(`Error fetching stats for char ${char.name}:`, err);
+      }
     }
 
     if (statsList.length === 0) {
@@ -2143,7 +2143,7 @@ jQuery(async () => {
         if (typeof toastr !== 'undefined' && toastr.warning) {
           toastr.warning('陪伴卡：未能读取到任何角色的有效聊天记录。', '数据为空');
         }
-      } catch (e) {}
+      } catch (e) { }
     }
 
     return statsList;
@@ -2160,7 +2160,7 @@ jQuery(async () => {
       $shareBtn.addClass('disabled').attr('title', '数据不足，无法生成排行榜');
       return;
     }
-    
+
     if (dataList.length <= 1) {
       $shareBtn.addClass('disabled').attr('title', '数据不足，无法生成排行榜');
     } else {
@@ -2179,7 +2179,7 @@ jQuery(async () => {
       const topClass = index < 3 ? `top-${index + 1}` : '';
       let valueHtml = '';
       let descHtml = '';
-      
+
       if (tab === 'messages') {
         valueHtml = `${stat.messages} <span style="font-size: 0.8em; opacity: 0.7;">条</span>`;
         descHtml = `陪伴 ${stat.days} 天`;
@@ -2224,7 +2224,7 @@ jQuery(async () => {
     const $modal = $('#ccs-global-modal');
     const $spinner = $('#ccs-global-spinner');
     const $list = $('#ccs-global-list');
-    
+
     // 初始化 UI
     $('.ccs-tab').removeClass('active');
     $('.ccs-tab[data-tab="messages"]').addClass('active'); // 默认选中"对话总数"
@@ -2235,7 +2235,7 @@ jQuery(async () => {
 
     // 获取数据（无全局缓存记录）
     const statsData = await fetchAllCharactersStats();
-    
+
     // 极短时间把数据挂载在 DOM 自身属性上供切 Tab 时使用
     // 这样当 DOM 被释放时，数据也能被 GC 自动清扫
     $modal.data('tempStatsData', statsData);
@@ -2247,13 +2247,13 @@ jQuery(async () => {
   // 绑定 Tab 切换事件
   $(document).on('click', '.ccs-tab', function () {
     if ($(this).hasClass('active')) return;
-    
+
     $('.ccs-tab').removeClass('active');
     $(this).addClass('active');
-    
+
     const targetTab = $(this).data('tab');
     const statsData = $('#ccs-global-modal').data('tempStatsData');
-    
+
     if (statsData) {
       renderGlobalStats(statsData, targetTab);
     }
@@ -2263,20 +2263,20 @@ jQuery(async () => {
   $(document).on('click', '#ccs-global-share-btn', async function () {
     const $button = $(this);
     if ($button.hasClass('loading') || $button.hasClass('disabled')) return;
-    
+
     const targetTab = $('.ccs-tab.active').data('tab');
     const statsData = $('#ccs-global-modal').data('tempStatsData');
     if (!statsData || statsData.length === 0) return;
-    
+
     $button.addClass('loading').css('opacity', '0.5');
-    
+
     // 打开预览模块，并清空容器
     const $modal = $("#ccs-preview-modal");
     const $container = $("#ccs-preview-container");
     $container.empty().addClass('loading-preview');
     $modal.css('display', 'flex');
     $('body, #rm_extensions_block').css('overflow', 'hidden');
-    
+
     try {
       const result = await generateGlobalShareImage(statsData, targetTab);
       if (result) {
@@ -2296,7 +2296,7 @@ jQuery(async () => {
   function closeAndClearGlobalModal() {
     const $modal = $('#ccs-global-modal');
     $('body, #rm_extensions_block').css('overflow', ''); // 恢复背景滚动
-    $modal.fadeOut(200, function() {
+    $modal.fadeOut(200, function () {
       // 动画结束后，彻底清空内部所有 DOM 节点，断开引用
       $('#ccs-global-list').empty();
       // 删除 jQuery data 上挂载的临时排行榜数据
@@ -2305,7 +2305,7 @@ jQuery(async () => {
   }
 
   $(document).on('click', '#ccs-global-close', closeAndClearGlobalModal);
-  
+
   // 点击遮罩层空白处关闭
   $(document).on('click', '#ccs-global-modal', function (e) {
     if (e.target === this) {
