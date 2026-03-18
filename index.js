@@ -333,20 +333,39 @@ jQuery(async () => {
     const encodedFileName = encodeURIComponent(fileName);
     let text = null;
 
-    // 尝试不同的路径 (与 getChatFileStats 逻辑一致)
+    // 尝试多种路径策略 (SillyTavern 不同的版本对聊天文件夹的命名不同)
     const paths = [];
+
+    // 1. 基于 characterId (头像文件名)
     if (charId && typeof charId === 'string' && charId !== '0') {
-      const folderName = charId.includes('.') ? charId.substring(0, charId.lastIndexOf('.')) : charId;
-      paths.push(`/chats/${folderName}/${encodedFileName}`);
+      // 策略 A: 去掉后缀 (Lucien.png -> Lucien)
+      const folderNoExt = charId.includes('.') ? charId.substring(0, charId.lastIndexOf('.')) : charId;
+      paths.push(`/chats/${folderNoExt}/${encodedFileName}`);
+
+      // 策略 B: 保留后缀 (Lucien.png -> Lucien.png)
+      paths.push(`/chats/${charId}/${encodedFileName}`);
     }
+
+    // 2. 基于解析出的角色名 (从文件名提取)
     const characterName = fileName.split(' - ')[0];
-    paths.push(`/chats/${encodeURIComponent(characterName)}/${encodedFileName}`);
+    if (characterName) {
+      paths.push(`/chats/${encodeURIComponent(characterName)}/${encodedFileName}`);
+    }
+
+    // 3. 基于当前显示的名称
     const currentName = getCurrentCharacterName();
-    if (currentName) paths.push(`/chats/${encodeURIComponent(currentName)}/${encodedFileName}`);
+    if (currentName && currentName !== characterName) {
+      paths.push(`/chats/${encodeURIComponent(currentName)}/${encodedFileName}`);
+    }
 
     for (const path of paths) {
-      text = await fetchChatFile(path);
-      if (text) break;
+      try {
+        const response = await fetch(path, { credentials: 'same-origin' });
+        if (response.ok) {
+          text = await response.text();
+          if (text) break;
+        }
+      } catch (e) { }
     }
 
     if (!text) return null;
@@ -372,25 +391,30 @@ jQuery(async () => {
     const encodedFileName = encodeURIComponent(fileName);
     let text = null;
 
-    // 尝试方式 1: 基于 characterId (头像文件名)
+    // 尝试多种路径策略
+    const paths = [];
     if (charId && typeof charId === 'string' && charId !== '0') {
-      const lastDotIndex = charId.lastIndexOf('.');
-      const folderName = lastDotIndex > 0 ? charId.substring(0, lastDotIndex) : charId;
-      text = await fetchChatFile(`/chats/${folderName}/${encodedFileName}`);
+      const folderNoExt = charId.includes('.') ? charId.substring(0, charId.lastIndexOf('.')) : charId;
+      paths.push(`/chats/${folderNoExt}/${encodedFileName}`);
+      paths.push(`/chats/${charId}/${encodedFileName}`);
+    }
+    const characterName = fileName.split(' - ')[0];
+    if (characterName) {
+      paths.push(`/chats/${encodeURIComponent(characterName)}/${encodedFileName}`);
+    }
+    const currentName = getCurrentCharacterName();
+    if (currentName && currentName !== characterName) {
+      paths.push(`/chats/${encodeURIComponent(currentName)}/${encodedFileName}`);
     }
 
-    // 尝试方式 2: 基于角色名 (从文件名解析)
-    if (!text) {
-      const characterName = fileName.split(' - ')[0];
-      text = await fetchChatFile(`/chats/${encodeURIComponent(characterName)}/${encodedFileName}`);
-    }
-
-    // 尝试方式 3: 基于当前页面显示的名称
-    if (!text) {
-      const currentName = getCurrentCharacterName();
-      if (currentName) {
-        text = await fetchChatFile(`/chats/${encodeURIComponent(currentName)}/${encodedFileName}`);
-      }
+    for (const path of paths) {
+      try {
+        const response = await fetch(path, { credentials: 'same-origin' });
+        if (response.ok) {
+          text = await response.text();
+          if (text) break;
+        }
+      } catch (e) { }
     }
 
     if (!text) return { words: 0, count: 0, userCount: 0, earliestUserTime: null };
@@ -570,23 +594,34 @@ jQuery(async () => {
       const sortedChats = [...chats].map(chat => {
         const fileTime = parseTimeFromFilename(chat.file_name);
         const lastMesTime = parseSillyTavernDate(chat.last_mes);
-        // 优先级：文件名时间 > 最后一条消息时间 (因为 last_mes 哪怕很早，也比文件开始时间晚)
+        // 优先级：文件名时间 > 最后一条消息时间
         const sortWeight = (fileTime && fileTime.dateObject) ? fileTime.dateObject.getTime() : (lastMesTime ? lastMesTime.getTime() : Infinity);
         return { ...chat, sortWeight };
       }).sort((a, b) => a.sortWeight - b.sortWeight);
 
-      // 2. 取出前 5 个候选文件进行「点读」
+      // 1.5 这里必须设一个保底，防止 fetch 全部失败时依然有数据
+      if (sortedChats.length > 0 && sortedChats[0].sortWeight !== Infinity) {
+        earliestTime = new Date(sortedChats[0].sortWeight);
+      }
+
+      // 2. 取出前 5 个候选文件进行「点读」来微调
       const topCandidates = sortedChats.slice(0, 5);
       if (DEBUG) console.log('Top 5 candidates for first encounter:', topCandidates.map(c => c.file_name));
 
       const candidateResults = await Promise.all(topCandidates.map(c => getEarliestMessageDate(c.file_name)));
-      earliestTime = candidateResults.reduce((min, cur) => {
+      const peekedEarliest = candidateResults.reduce((min, cur) => {
         if (!cur) return min;
         if (!min) return cur;
         return cur < min ? cur : min;
       }, null);
 
-      if (DEBUG) console.log('Final refined earliestTime:', earliestTime);
+      // 如果点读成功，使用点读的精准时间；否则保持 metadata 的保底时间
+      if (peekedEarliest) {
+        earliestTime = peekedEarliest;
+        if (DEBUG) console.log('Final refined earliestTime from peek:', earliestTime);
+      } else {
+        if (DEBUG) console.log('Peek failed or returned no dates, using metadata fallback:', earliestTime);
+      }
 
       // --- 累计基础数据 ---
       chats.forEach(chat => {
