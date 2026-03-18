@@ -657,12 +657,13 @@ jQuery(async () => {
 
       // 回退逻辑 (如果全量统计失败，且元数据也没有显示任何有实质内容的会话)
       let finalMessageCount = totalMessagesFromChats;
-      if (maxMessagesInSingleChat <= 1 && (totalSizeKB / (chatFilesCount || 1)) > 5) {
+      if (maxMessagesInSingleChat <= 1 && (totalSizeKB / (chatFilesCount || 1)) > 8) {
         // 如果 ST 没有返回 chat_items (导致 max <= 1)，
-        // 但文件平均体积较大 (>5KB/文件)，说明肯定有互动
+        // 但文件平均体积较大 (>8KB/文件)，说明肯定有互动
         finalMessageCount = Math.max(2, Math.round(totalSizeKB * 1.5));
-      } else if (maxMessagesInSingleChat <= 1 && chatFilesCount <= 1) {
-        // 只有单文件且体积极小，才判断为无互动
+      } else if (maxMessagesInSingleChat <= 1) {
+        // 关键修复：只要没有一个文件的消息数超过1，就判定为无互动
+        // 哪怕有 50 个分支，也只是 50 个开场白而已
         return {
           messageCount: 0,
           wordCount: 0,
@@ -2058,13 +2059,14 @@ jQuery(async () => {
         }
         console.log(`[GlobalStats] => Found ${chats.length} chat items for: ${char.name}`, chats);
 
-        let totalMessages = 0;
-        let totalSizeBytesRaw = 0;
-        let earliestTime = null;
-
+        let maxMessagesInSingleChat = 0;
         chats.forEach(chat => {
           // Count messages
-          totalMessages += (parseInt(chat.chat_items) || 0);
+          const chatItems = (parseInt(chat.chat_items) || 0);
+          totalMessages += chatItems;
+          if (chatItems > maxMessagesInSingleChat) {
+            maxMessagesInSingleChat = chatItems;
+          }
 
           // Calculate size
           const sizeMatchKB = chat.file_size?.match(/([\d.]+)\s*KB/i);
@@ -2095,8 +2097,9 @@ jQuery(async () => {
         });
 
         // Only include characters with actual interaction (more than just the greeting)
-        if (totalMessages <= 1) {
-          console.log(`[GlobalStats] => Interactions too low for ${char.name}, skipping.`);
+        // 关键修复：必须有一个文件的消息数 > 1，且总消息数不能太低
+        if (maxMessagesInSingleChat <= 1 || totalMessages <= 1) {
+          console.log(`[GlobalStats] => Interactions too low for ${char.name} (Max in branch: ${maxMessagesInSingleChat}), skipping.`);
           continue;
         }
 
