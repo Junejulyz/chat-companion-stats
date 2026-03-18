@@ -627,9 +627,10 @@ jQuery(async () => {
 
         // 如果成功获取到了任何实际数据，以实测数据为准
         if (successCount > 0) {
-          // 判定逻辑：必须至少有一条用户消息，且不能所有聊天都只有1条开场白 (以实测 count 为准)
-          if (totalUserMessagesCalculated === 0 || maxMessagesInScan <= 1) {
-            if (DEBUG) console.log(`判定为尚未互动: 用户发言=${totalUserMessagesCalculated}, 最大单场消息=${maxMessagesInScan}`);
+          // 核心修复：必须至少有一条用户消息，才判定为“已开启互动”
+          // 否则即便有再多角色台词/系统提示，也只能算作“未开始”
+          if (totalUserMessagesCalculated === 0) {
+            if (DEBUG) console.log(`判定为尚未互动: 虽然扫描了 ${successCount} 个文件，但用户发言数为 0`);
             return {
               messageCount: 0,
               wordCount: 0,
@@ -663,7 +664,7 @@ jQuery(async () => {
         finalMessageCount = Math.max(2, Math.round(totalSizeKB * 1.5));
       } else if (maxMessagesInSingleChat <= 1) {
         // 关键修复：只要没有一个文件的消息数超过1，就判定为无互动
-        // 哪怕有 50 个分支，也只是 50 个开场白而已
+        // 注意：回退逻辑无法探测 is_user，所以这里仅作为 metadata 缺失时的保护
         return {
           messageCount: 0,
           wordCount: 0,
@@ -2096,9 +2097,11 @@ jQuery(async () => {
           }
         });
 
-        // Only include characters with actual interaction (more than just the greeting)
-        // 关键修复：必须有一个文件的消息数 > 1，且总消息数不能太低
-        if (maxMessagesInSingleChat <= 1 || totalMessages <= 1) {
+        // 关键修复：除了基础的总消息数判断，为了解决“全量排行榜”中的幽灵数据问题，
+        // 我们对于文件数较多但可能未互动的角色，进行一次快速抽样。
+        // 但由于性能考虑，排行榜不适合对 1000+ 角色做 await fetch。
+        // 这里的折中方案：如果总消息数虽然多，但平均每个文件的消息数 <= 1，直接过滤掉。
+        if (maxMessagesInSingleChat <= 1 || totalMessages <= chats.length) {
           console.log(`[GlobalStats] => Interactions too low for ${char.name} (Max in branch: ${maxMessagesInSingleChat}), skipping.`);
           continue;
         }
