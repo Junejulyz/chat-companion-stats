@@ -329,13 +329,14 @@ jQuery(async () => {
   }
 
   // 获取单个聊天文件的统计数据 (带有路径回退逻辑)
-  async function getChatFileStats(fileName) {
-    const context = getContext();
-    const charId = context.characterId;
+  async function getChatFileStats(fileName, specificCharId) {
     const encodedFileName = encodeURIComponent(fileName);
     let text = null;
 
-    // 尝试方式 1: 基于 characterId (头像文件名)
+    // 尝试方式 1: 基于传入的 specificCharId 或当前 context
+    const context = getContext();
+    const charId = specificCharId || context.characterId || context.character_id;
+
     if (charId && typeof charId === 'string' && charId !== '0') {
       const lastDotIndex = charId.lastIndexOf('.');
       const folderName = lastDotIndex > 0 ? charId.substring(0, lastDotIndex) : charId;
@@ -603,7 +604,7 @@ jQuery(async () => {
         const batchSize = 10;
         for (let i = 0; i < chats.length; i += batchSize) {
           const batch = chats.slice(i, i + batchSize);
-          const results = await Promise.all(batch.map(chat => getChatFileStats(chat.file_name)));
+          const results = await Promise.all(batch.map(chat => getChatFileStats(chat.file_name, characterId)));
 
           results.forEach(res => {
             if (res.count > 0 || res.words > 0) {
@@ -628,9 +629,9 @@ jQuery(async () => {
         // 如果成功获取到了任何实际数据，以实测数据为准
         if (successCount > 0) {
           // 核心修复：必须至少有一条用户消息，才判定为“已开启互动”
-          // 否则即便有再多角色台词/系统提示，也只能算作“未开始”
-          if (totalUserMessagesCalculated === 0) {
-            if (DEBUG) console.log(`判定为尚未互动: 虽然扫描了 ${successCount} 个文件，但用户发言数为 0`);
+          // 且不能所有聊天都只有1条开场白 (以实测 count 为准)
+          if (totalUserMessagesCalculated === 0 || maxMessagesInScan <= 1) {
+            if (DEBUG) console.log(`判定为尚未互动: 用户发言=${totalUserMessagesCalculated}, 最大单场消息=${maxMessagesInScan}`);
             return {
               messageCount: 0,
               wordCount: 0,
@@ -2102,7 +2103,7 @@ jQuery(async () => {
         // 但由于性能考虑，排行榜不适合对 1000+ 角色做 await fetch。
         // 这里的折中方案：如果总消息数虽然多，但平均每个文件的消息数 <= 1，直接过滤掉。
         if (maxMessagesInSingleChat <= 1 || totalMessages <= chats.length) {
-          console.log(`[GlobalStats] => Interactions too low for ${char.name} (Max in branch: ${maxMessagesInSingleChat}), skipping.`);
+          if (DEBUG) console.log(`[GlobalStats] => Interactions too low for ${char.name} (Max in branch: ${maxMessagesInSingleChat}), skipping.`);
           continue;
         }
 
