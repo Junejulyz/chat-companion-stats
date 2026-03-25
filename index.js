@@ -44,6 +44,9 @@ jQuery(async () => {
   // 加载HTML using dynamic path with cache buster
   const settingsHtml = await $.get(`${extensionWebPath}/settings.html?v=${Date.now()}`);
   $("#extensions_settings").append(settingsHtml);
+  
+  // Move modals to body to prevent clipping by parent containers and fix fixed positioning
+  $("#ccs-preview-modal, #ccs-global-modal").appendTo("body");
 
   // 同步下拉框的选择状态
   $("#ccs-style-select").val(shareStyle);
@@ -1882,7 +1885,7 @@ jQuery(async () => {
 
     // 显示模态框
     $modal.css('display', 'flex');
-    $('body, #rm_extensions_block').css('overflow', 'hidden'); // 阻止背景滚动
+    $('body').addClass('ccs-no-scroll'); // 阻止背景滚动
     
     // Store filename
     $("#ccs-download").data('filename', customFilename || '');
@@ -1932,8 +1935,8 @@ jQuery(async () => {
     const $modal = $("#ccs-preview-modal");
     const $container = $("#ccs-preview-container");
     $container.empty().addClass('loading-preview');
-    $modal.css('display', 'flex');
-    $('body, #rm_extensions_block').css('overflow', 'hidden'); // 阻止背景滚动
+    $modal.show();
+    $('body').addClass('ccs-no-scroll'); // 阻止背景滚动
 
     try {
       const imageData = await generateShareImage();
@@ -1957,7 +1960,7 @@ jQuery(async () => {
   // 添加取消按钮事件处理
   $("#ccs-cancel").on("click", function () {
     $("#ccs-preview-modal").hide();
-    $('body, #rm_extensions_block').css('overflow', ''); // 恢复背景滚动
+    $('body').removeClass('ccs-no-scroll'); // 恢复背景滚动
   });
 
   // 添加保存按钮事件
@@ -1973,7 +1976,7 @@ jQuery(async () => {
   $("#ccs-preview-modal").on("click", function (e) {
     if (e.target === this) {
       $(this).hide();
-      $('body, #rm_extensions_block').css('overflow', ''); // 恢复背景滚动
+      $('body').removeClass('ccs-no-scroll'); // 恢复背景滚动
     }
   });
 
@@ -2277,7 +2280,7 @@ jQuery(async () => {
     $list.empty();
     $spinner.show();
     $modal.fadeIn(200);
-    $('body, #rm_extensions_block').css('overflow', 'hidden'); // 阻止背景滚动
+    $('body').addClass('ccs-no-scroll'); // 阻止背景滚动
 
     // 获取数据（无全局缓存记录）
     const statsData = await fetchAllCharactersStats();
@@ -2320,8 +2323,8 @@ jQuery(async () => {
     const $modal = $("#ccs-preview-modal");
     const $container = $("#ccs-preview-container");
     $container.empty().addClass('loading-preview');
-    $modal.css('display', 'flex');
-    $('body, #rm_extensions_block').css('overflow', 'hidden');
+    $modal.show();
+    $('body').addClass('ccs-no-scroll');
     
     try {
       const result = await generateGlobalShareImage(statsData, targetTab);
@@ -2341,7 +2344,7 @@ jQuery(async () => {
   // 绑定关闭事件与内存释放（Garbage Collection Optimization）
   function closeAndClearGlobalModal() {
     const $modal = $('#ccs-global-modal');
-    $('body, #rm_extensions_block').css('overflow', ''); // 恢复背景滚动
+    $('body').removeClass('ccs-no-scroll'); // 恢复背景滚动
     $modal.fadeOut(200, function() {
       // 动画结束后，彻底清空内部所有 DOM 节点，断开引用
       $('#ccs-global-list').empty();

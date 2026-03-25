@@ -35,10 +35,16 @@
   height: 100%;
   min-height: 100vh;
   background: rgba(0, 0, 0, 0.8);
-  display: flex;
+  display: flex; /* Removed !important to allow jQuery .hide() to work */
   align-items: center;
   justify-content: center;
-  z-index: 10000;
+  z-index: 20000; /* Higher priority than standard ST UI */
+}
+
+/* Custom no-scroll class for body */
+body.ccs-no-scroll {
+  overflow: hidden !important;
+  height: 100vh !important;
 }
 
 #ccs-preview-modal>div {
@@ -171,10 +177,10 @@
   background: rgba(0, 0, 0, 0.6);
   backdrop-filter: blur(10px);
   -webkit-backdrop-filter: blur(10px);
-  display: flex;
+  display: flex !important; /* Ensure flex display when shown */
   align-items: center;
   justify-content: center;
-  z-index: 9999;
+  z-index: 19999;
   animation: ccsFadeIn 0.3s ease-out;
 }
 
