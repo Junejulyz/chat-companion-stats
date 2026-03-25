@@ -1935,7 +1935,7 @@ jQuery(async () => {
     const $modal = $("#ccs-preview-modal");
     const $container = $("#ccs-preview-container");
     $container.empty().addClass('loading-preview');
-    $modal.show();
+    $modal.addClass('ccs-modal-visible');
     $('body').addClass('ccs-no-scroll'); // 阻止背景滚动
 
     try {
@@ -2323,7 +2323,7 @@ jQuery(async () => {
     const $modal = $("#ccs-preview-modal");
     const $container = $("#ccs-preview-container");
     $container.empty().addClass('loading-preview');
-    $modal.show();
+    $modal.addClass('ccs-modal-visible');
     $('body').addClass('ccs-no-scroll');
     
     try {
