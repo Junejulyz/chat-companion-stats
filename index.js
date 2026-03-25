@@ -46,7 +46,7 @@ jQuery(async () => {
   $("#extensions_settings").append(settingsHtml);
   
   // Move modals to body to prevent clipping by parent containers and fix fixed positioning
-  $("#ccs-preview-modal, #ccs-global-modal").appendTo("body");
+  $("#ccs-preview-modal, #ccs-global-modal").appendTo("body").removeClass('ccs-modal-visible').hide();
 
   // 同步下拉框的选择状态
   $("#ccs-style-select").val(shareStyle);
@@ -1884,7 +1884,7 @@ jQuery(async () => {
     $container.append(img);
 
     // 显示模态框
-    $modal.css('display', 'flex');
+    $modal.addClass('ccs-modal-visible');
     $('body').addClass('ccs-no-scroll'); // 阻止背景滚动
     
     // Store filename
@@ -1959,7 +1959,7 @@ jQuery(async () => {
 
   // 添加取消按钮事件处理
   $("#ccs-cancel").on("click", function () {
-    $("#ccs-preview-modal").hide();
+    $("#ccs-preview-modal").removeClass('ccs-modal-visible').hide();
     $('body').removeClass('ccs-no-scroll'); // 恢复背景滚动
   });
 
@@ -1975,7 +1975,7 @@ jQuery(async () => {
   // 点击模态框背景关闭
   $("#ccs-preview-modal").on("click", function (e) {
     if (e.target === this) {
-      $(this).hide();
+      $(this).removeClass('ccs-modal-visible').hide();
       $('body').removeClass('ccs-no-scroll'); // 恢复背景滚动
     }
   });
@@ -2279,7 +2279,7 @@ jQuery(async () => {
     $('.ccs-tab[data-tab="messages"]').addClass('active'); // 默认选中"对话总数"
     $list.empty();
     $spinner.show();
-    $modal.fadeIn(200);
+    $modal.addClass('ccs-modal-visible');
     $('body').addClass('ccs-no-scroll'); // 阻止背景滚动
 
     // 获取数据（无全局缓存记录）
@@ -2345,12 +2345,9 @@ jQuery(async () => {
   function closeAndClearGlobalModal() {
     const $modal = $('#ccs-global-modal');
     $('body').removeClass('ccs-no-scroll'); // 恢复背景滚动
-    $modal.fadeOut(200, function() {
-      // 动画结束后，彻底清空内部所有 DOM 节点，断开引用
-      $('#ccs-global-list').empty();
-      // 删除 jQuery data 上挂载的临时排行榜数据
-      $modal.removeData('tempStatsData');
-    });
+    $modal.removeClass('ccs-modal-visible').hide();
+    // 隐藏动画移除，因为使用了 !important class，jQuery fadeOut 会被复盖
+    // 直接操作 class 或用回原来的逻辑并发处理
   }
 
   $(document).on('click', '#ccs-global-close', closeAndClearGlobalModal);

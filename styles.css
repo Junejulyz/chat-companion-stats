@@ -35,10 +35,15 @@
   height: 100%;
   min-height: 100vh;
   background: rgba(0, 0, 0, 0.8);
-  display: flex; /* Removed !important to allow jQuery .hide() to work */
+  display: none; /* Hidden by default */
   align-items: center;
   justify-content: center;
   z-index: 20000; /* Higher priority than standard ST UI */
+}
+
+/* Visibility class for modals */
+.ccs-modal-visible {
+  display: flex !important;
 }
 
 /* Custom no-scroll class for body */
@@ -177,7 +182,7 @@ body.ccs-no-scroll {
   background: rgba(0, 0, 0, 0.6);
   backdrop-filter: blur(10px);
   -webkit-backdrop-filter: blur(10px);
-  display: flex !important; /* Ensure flex display when shown */
+  display: none; /* Hidden by default */
   align-items: center;
   justify-content: center;
   z-index: 19999;
