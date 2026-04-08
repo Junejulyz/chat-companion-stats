@@ -658,7 +658,7 @@ jQuery(async () => {
       let estimatedWords = Math.round(totalSizeKB * 32.5);
 
       // 【性能保护】如果聊天过记录总文件过大，直接跳过全量真实解析防止浏览器崩溃/卡死
-      if (totalSizeKB > 10240) { // > 10MB
+      if (totalSizeKB > 30720) { // > 30MB
         if (DEBUG) console.log(`[Performance Check] 体积过大(${totalSizeKB.toFixed(2)}KB)，启用「高速估算模式」以保护内存。`);
         return {
           messageCount: totalMessagesFromChats > 0 ? totalMessagesFromChats : Math.max(2, Math.round(totalSizeKB * 1.5)),
@@ -2109,12 +2109,18 @@ jQuery(async () => {
         }
 
         try {
-          console.log(`[GlobalStats] [${i+1}/${totalChars}] Fetching chats for ${char.name} (ID: ${charId})`);
-          // 致命 Bug 修复：SillyTavern 原生 API 接受的是 characterId (即在 characters 数组里的 Index/Key)，而不是 avatar 名字！
-          const chats = await getPastCharacterChats(charId);
+          if (DEBUG) console.log(`[GlobalStats] [${i+1}/${totalChars}] Fetching chats for ${char.name} (ID: ${charId})`);
+          // 致命 Bug 修复：SillyTavern 原生 API 接受的是 characterId (即在 characters 数组里的 Index/Key)
+          let chats = await getPastCharacterChats(charId);
           
+          // --- 【增强】如果 index 找不到，尝试直接用 avatar 名字 ---
           if (!chats || chats.length === 0) {
-              console.log(`[GlobalStats] => No chats found for: ${char.name}`);
+              if (DEBUG) console.log(`[GlobalStats] => Index ${charId} returned no chats, trying avatar: ${char.avatar}`);
+              chats = await getPastCharacterChats(char.avatar);
+          }
+
+          if (!chats || chats.length === 0) {
+              if (DEBUG) console.log(`[GlobalStats] => No chats found for: ${char.name}`);
               continue;
           }
           console.log(`[GlobalStats] => Found ${chats.length} chat items for: ${char.name}`, chats);
