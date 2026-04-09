@@ -406,22 +406,28 @@ jQuery(async () => {
     if (characterName) {
       paths.push(`/chats/${encodeURIComponent(characterName)}/${encodedFileName}`);
     }
-    const currentName = getCurrentCharacterName();
-    if (currentName && currentName !== characterName) {
-      paths.push(`/chats/${encodeURIComponent(currentName)}/${encodedFileName}`);
-    }
+    if (DEBUG) console.log(`[StatsDebug] File: ${fileName}, Attempting paths:`, paths);
 
     for (const path of paths) {
       try {
         const response = await fetch(path, { credentials: 'same-origin' });
+        if (DEBUG) console.log(`[StatsDebug] Trying path: ${path} | Status: ${response.status}`);
         if (response.ok) {
           text = await response.text();
-          if (text) break;
+          if (text) {
+            if (DEBUG) console.log(`[StatsDebug] Successfully fetched content from: ${path} (${text.length} chars)`);
+            break;
+          }
         }
-      } catch (e) { }
+      } catch (e) { 
+        if (DEBUG) console.warn(`[StatsDebug] Fetch error for path ${path}:`, e);
+      }
     }
 
-    if (!text) return { words: 0, count: 0, userCount: 0, earliestTime: null, dayMap: {} };
+    if (!text) {
+      if (DEBUG) console.warn(`[StatsDebug] Failed to fetch any content for file: ${fileName}`);
+      return { words: 0, count: 0, userCount: 0, earliestTime: null, dayMap: {} };
+    }
 
     try {
       const lines = text.trim().split('\n').filter(l => l.trim());
@@ -724,10 +730,12 @@ jQuery(async () => {
         }
 
         // 如果成功获取到了任何实际数据，以实测数据为准
+        if (DEBUG) console.log(`[StatsDebug] Full scan summary: SuccessCount=${successCount}, TotalMessages=${totalMessagesCalculated}, TotalWords=${totalWordsCalculated}`);
+        
         if (successCount > 0) {
           // 判定逻辑：必须至少有一条用户消息，且不能所有聊天都只有1条开场白 (以实测 count 为准)
           if (totalUserMessagesCalculated === 0 || maxMessagesInScan <= 1) {
-            if (DEBUG) console.log(`判定为尚未互动: 用户发言=${totalUserMessagesCalculated}, 最大单场消息=${maxMessagesInScan}`);
+            if (DEBUG) console.log(`[StatsDebug] 判定为尚未互动: 用户发言=${totalUserMessagesCalculated}, 最大单场消息=${maxMessagesInScan}`);
             return {
               messageCount: 0,
               wordCount: 0,
@@ -739,10 +747,11 @@ jQuery(async () => {
             };
           }
 
-          if (DEBUG) console.log(`全量真实统计成功: ${totalWordsCalculated} 字, 包含 ${totalUserMessagesCalculated} 条用户消息`);
+          if (DEBUG) console.log(`[StatsDebug] 全量真实统计成功: ${totalWordsCalculated} 字, 包含 ${totalUserMessagesCalculated} 条用户消息`);
 
           // 计算连聊和高峰日
           const advanced = calculateAdvancedStats(globalDayMap);
+          if (DEBUG) console.log(`[StatsDebug] Calculated Advanced Stats:`, advanced);
 
           return {
             messageCount: totalMessagesCalculated,
@@ -753,6 +762,8 @@ jQuery(async () => {
             chatFilesCount,
             advanced
           };
+        } else {
+          if (DEBUG) console.warn(`[StatsDebug] 所有的 getChatFileStats 均未返回有效数据 (successCount=0)`);
         }
       } catch (sumError) {
         if (DEBUG) console.error('全量统计过程出错:', sumError);
