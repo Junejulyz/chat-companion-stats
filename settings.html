@@ -53,6 +53,7 @@
           <input id="ccs-refresh" type="button" class="menu_button" value="刷新" />
           <input id="ccs-share" type="button" class="menu_button" value="分享" />
           <input id="ccs-global-stats" type="button" class="menu_button" value="全局羁绊" />
+          <input id="ccs-view-more" type="button" class="menu_button" value="查看更多" />
         </div>
         <!-- 用于生成分享图片的隐藏canvas -->
         <canvas id="ccs-canvas" style="display: none;"></canvas>
@@ -96,6 +97,43 @@
       </div>
       <div id="ccs-global-list">
         <!-- 列表内容动态生成 -->
+      </div>
+    </div>
+  </div>
+
+  <!-- 高级统计模态框 -->
+  <div id="ccs-advanced-modal" style="display: none;">
+    <div class="ccs-advanced-modal-content">
+      <div class="ccs-advanced-header">
+        <div class="ccs-advanced-title"><i class="fa-solid fa-chart-line ccs-advanced-title-icon"></i> 详细统计</div>
+        <div class="ccs-advanced-actions">
+          <i id="ccs-advanced-close" class="fa-solid fa-xmark ccs-advanced-icon-btn" title="关闭"></i>
+        </div>
+      </div>
+      <div class="ccs-advanced-body">
+        <div id="ccs-advanced-loading" style="display: none; text-align: center; padding: 20px;">
+          <i class="fa-solid fa-spinner fa-spin"></i> 正在分析回忆...
+        </div>
+        <div id="ccs-advanced-content">
+          <div class="ccs-advanced-section">
+            <div class="ccs-advanced-item">
+              <div class="ccs-advanced-label">当前连聊</div>
+              <div class="ccs-advanced-value" id="ccs-current-streak">0 <span class="ccs-advanced-unit">天</span></div>
+            </div>
+            <div class="ccs-advanced-item">
+              <div class="ccs-advanced-label">最长连聊</div>
+              <div class="ccs-advanced-value" id="ccs-longest-streak">0 <span class="ccs-advanced-unit">天</span></div>
+            </div>
+          </div>
+          <div class="ccs-advanced-card">
+            <div class="ccs-advanced-card-label">聊得最嗨的一天</div>
+            <div class="ccs-advanced-card-date" id="ccs-peak-date">--</div>
+            <div class="ccs-advanced-card-count" id="ccs-peak-count">0 <span class="ccs-advanced-unit">条消息</span></div>
+          </div>
+        </div>
+        <div id="ccs-advanced-error" style="display: none; text-align: center; padding: 20px; color: var(--SmartThemeErrorColor);">
+          当前数据量过大或没有互动，无法计算详细统计。
+        </div>
       </div>
     </div>
   </div>

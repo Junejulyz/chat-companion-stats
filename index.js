@@ -40,13 +40,14 @@ jQuery(async () => {
 
   // 从 localStorage 加载上次选择的风格，默认为 'modern-light'
   let shareStyle = localStorage.getItem('ccs-share-style') || 'modern-light';
+  let currentAdvancedStats = null;
 
   // 加载HTML using dynamic path with cache buster
   const settingsHtml = await $.get(`${extensionWebPath}/settings.html?v=${Date.now()}`);
   $("#extensions_settings").append(settingsHtml);
   
   // Move modals to body to prevent clipping by parent containers and fix fixed positioning
-  $("#ccs-preview-modal, #ccs-global-modal").appendTo("body").removeClass('ccs-modal-visible').hide();
+  $("#ccs-preview-modal, #ccs-global-modal, #ccs-advanced-modal").appendTo("body").removeClass('ccs-modal-visible').hide();
 
   // 同步下拉框的选择状态
   $("#ccs-style-select").val(shareStyle);
@@ -420,7 +421,7 @@ jQuery(async () => {
       } catch (e) { }
     }
 
-    if (!text) return { words: 0, count: 0, userCount: 0, earliestUserTime: null };
+    if (!text) return { words: 0, count: 0, userCount: 0, earliestTime: null, dayMap: {} };
 
     try {
       const lines = text.trim().split('\n').filter(l => l.trim());
@@ -428,6 +429,7 @@ jQuery(async () => {
       let validMessages = 0;
       let userMessages = 0;
       let earliestUserTimeInFile = null;
+      const dayMap = {};
 
       lines.forEach(line => {
         try {
@@ -437,14 +439,21 @@ jQuery(async () => {
             totalWords += countWordsInMessage(m.mes || '');
             validMessages++;
 
-            // 统计用户消息数并提取最早的用户时间
-            if (m.is_user === true) {
-              userMessages++;
-              if (m.send_date) {
-                const msgDate = parseSillyTavernDate(m.send_date);
-                if (msgDate && (!earliestUserTimeInFile || msgDate < earliestUserTimeInFile)) {
-                  earliestUserTimeInFile = msgDate;
+            // 统计发送日期
+            if (m.send_date) {
+              const msgDate = parseSillyTavernDate(m.send_date);
+              if (msgDate) {
+                // 记录最早的用户时间
+                if (m.is_user === true) {
+                  userMessages++;
+                  if (!earliestUserTimeInFile || msgDate < earliestUserTimeInFile) {
+                    earliestUserTimeInFile = msgDate;
+                  }
                 }
+
+                // 按自然日聚合
+                const dateKey = `${msgDate.getFullYear()}-${String(msgDate.getMonth() + 1).padStart(2, '0')}-${String(msgDate.getDate()).padStart(2, '0')}`;
+                dayMap[dateKey] = (dayMap[dateKey] || 0) + 1;
               }
             }
           }
@@ -455,11 +464,12 @@ jQuery(async () => {
         words: totalWords,
         count: validMessages,
         userCount: userMessages,
-        earliestTime: earliestUserTimeInFile
+        earliestTime: earliestUserTimeInFile,
+        dayMap
       };
     } catch (e) {
       if (DEBUG) console.error(`Parsing error for chat ${fileName}:`, e);
-      return { words: 0, count: 0, userCount: 0, earliestTime: null };
+      return { words: 0, count: 0, userCount: 0, earliestTime: null, dayMap: {} };
     }
   }
 
@@ -678,6 +688,7 @@ jQuery(async () => {
         let maxMessagesInScan = 0;
         let absoluteEarliestUserTime = null;
         let successCount = 0;
+        const globalDayMap = {};
 
         const batchSize = 10;
         for (let i = 0; i < chats.length; i += batchSize) {
@@ -690,6 +701,13 @@ jQuery(async () => {
               totalMessagesCalculated += res.count;
               totalUserMessagesCalculated += (res.userCount || 0);
               successCount++;
+
+              // 聚合 DayMap
+              if (res.dayMap) {
+                for (const [date, count] of Object.entries(res.dayMap)) {
+                  globalDayMap[date] = (globalDayMap[date] || 0) + count;
+                }
+              }
 
               // 记录分析到的最大单次对话消息数
               if (res.count > maxMessagesInScan) {
@@ -715,11 +733,15 @@ jQuery(async () => {
               firstTime: null,
               totalDuration: 0,
               totalSizeBytes: totalSizeBytesRaw,
-              chatFilesCount
+              chatFilesCount,
+              advanced: null
             };
           }
 
           if (DEBUG) console.log(`全量真实统计成功: ${totalWordsCalculated} 字, 包含 ${totalUserMessagesCalculated} 条用户消息`);
+
+          // 计算连聊和高峰日
+          const advanced = calculateAdvancedStats(globalDayMap);
 
           return {
             messageCount: totalMessagesCalculated,
@@ -727,7 +749,8 @@ jQuery(async () => {
             firstTime: absoluteEarliestUserTime,
             totalDuration: totalDurationSeconds,
             totalSizeBytes: totalSizeBytesRaw,
-            chatFilesCount
+            chatFilesCount,
+            advanced
           };
         }
       } catch (sumError) {
@@ -762,9 +785,80 @@ jQuery(async () => {
         firstTime: null,
         totalDuration: 0,
         totalSizeBytes: 0,
-        chatFilesCount: 0
+        chatFilesCount: 0,
+        advanced: null
       };
     }
+  }
+
+  // 计算连聊和高峰日
+  function calculateAdvancedStats(dayMap) {
+    const dates = Object.keys(dayMap).sort();
+    if (dates.length === 0) return null;
+
+    // 1. 高峰日
+    let peakDate = dates[0];
+    let peakCount = dayMap[peakDate];
+    for (const date of dates) {
+      if (dayMap[date] >= peakCount) { // 取最新的一天 (用 >=)
+        peakDate = date;
+        peakCount = dayMap[date];
+      }
+    }
+
+    // 2. 连聊计算
+    let longestStreak = 0;
+    let currentStreak = 0;
+    
+    // 转换为时间戳进行连续性检查 (以天为单位)
+    const dateObjects = dates.map(d => new Date(d + 'T00:00:00'));
+    
+    let tempStreak = 1;
+    let lastDateObj = dateObjects[0];
+    
+    for (let i = 1; i < dateObjects.length; i++) {
+      const diff = (dateObjects[i] - lastDateObj) / (1000 * 60 * 60 * 24);
+      if (diff === 1) {
+        tempStreak++;
+      } else if (diff > 1) {
+        longestStreak = Math.max(longestStreak, tempStreak);
+        tempStreak = 1;
+      }
+      lastDateObj = dateObjects[i];
+    }
+    longestStreak = Math.max(longestStreak, tempStreak);
+
+    // 计算当前连聊 (从最后一条消息日期开始算)
+    const now = new Date();
+    const todayStr = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
+    const yesterday = new Date(now.getTime() - 86400000);
+    const yesterdayStr = `${yesterday.getFullYear()}-${String(yesterday.getMonth() + 1).padStart(2, '0')}-${String(yesterday.getDate()).padStart(2, '0')}`;
+    
+    const lastChatDateStr = dates[dates.length - 1];
+    
+    if (lastChatDateStr === todayStr || lastChatDateStr === yesterdayStr) {
+      // 倒序寻找连续天数
+      currentStreak = 1;
+      let checkDate = new Date(new Date(lastChatDateStr + 'T00:00:00').getTime() - 86400000);
+      for (let i = dates.length - 2; i >= 0; i--) {
+        const dStr = dates[i];
+        if (dStr === `${checkDate.getFullYear()}-${String(checkDate.getMonth() + 1).padStart(2, '0')}-${String(checkDate.getDate()).padStart(2, '0')}`) {
+          currentStreak++;
+          checkDate = new Date(checkDate.getTime() - 86400000);
+        } else {
+          break;
+        }
+      }
+    } else {
+      currentStreak = 0;
+    }
+
+    return {
+      peakDate,
+      peakCount,
+      longestStreak,
+      currentStreak
+    };
   }
 
 
@@ -878,6 +972,8 @@ jQuery(async () => {
 
         $("#ccs-start").text(firstTimeFormatted);
         $("#ccs-days").text(days);
+        // 保存高级统计数据
+        currentAdvancedStats = stats.advanced;
         // Pass messageCount to the state function
         updateShareButtonState(stats.messageCount);
       }
@@ -889,12 +985,14 @@ jQuery(async () => {
           messages: stats.messageCount,
           words: stats.wordCount,
           firstTime: stats.firstTime,
-          days: $("#ccs-days").text()
+          days: $("#ccs-days").text(),
+          advanced: currentAdvancedStats
         });
       }
 
     } catch (error) {
       console.error('更新统计数据失败:', error);
+      currentAdvancedStats = null;
       // 显示错误状态
       $("#ccs-messages").text('--');
       $("#ccs-words").text('--');
@@ -2012,6 +2110,43 @@ jQuery(async () => {
 
   // 绑定点击事件 - 使用事件委托以防动态加载问题
   $(document).on('click', '#ccs-refresh', updateStats);
+
+  // “查看更多”高级统计逻辑
+  $(document).on('click', '#ccs-view-more', function() {
+    const $modal = $('#ccs-advanced-modal');
+    const $content = $('#ccs-advanced-content');
+    const $error = $('#ccs-advanced-error');
+    
+    $modal.addClass('ccs-modal-visible');
+    $('body').addClass('ccs-no-scroll');
+    
+    if (currentAdvancedStats) {
+      $content.show();
+      $error.hide();
+      
+      // 填充数据
+      $('#ccs-current-streak').html(`${currentAdvancedStats.currentStreak} <span class="ccs-advanced-unit">天</span>`);
+      $('#ccs-longest-streak').html(`${currentAdvancedStats.longestStreak} <span class="ccs-advanced-unit">天</span>`);
+      $('#ccs-peak-date').text(currentAdvancedStats.peakDate || '--');
+      $('#ccs-peak-count').html(`${currentAdvancedStats.peakCount} <span class="ccs-advanced-unit">条消息</span>`);
+    } else {
+      $content.hide();
+      $error.show();
+    }
+  });
+
+  $(document).on('click', '#ccs-advanced-close', function() {
+    $('#ccs-advanced-modal').removeClass('ccs-modal-visible').hide();
+    $('body').removeClass('ccs-no-scroll');
+  });
+
+  // 点击背景关闭高级统计
+  $(document).on('click', '#ccs-advanced-modal', function(e) {
+    if (e.target === this) {
+      $(this).removeClass('ccs-modal-visible').hide();
+      $('body').removeClass('ccs-no-scroll');
+    }
+  });
 
   // Add change listener to checkboxes to update share button state
   $(document).on('change', '.ccs-share-option input[type="checkbox"]', function () {

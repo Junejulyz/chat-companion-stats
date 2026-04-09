@@ -425,3 +425,128 @@ body.ccs-no-scroll {
     margin-right: 14px;
   }
 }
+
+/* ========================================================================= */
+/* Advanced Stats Modal Styles                                              */
+/* ========================================================================= */
+#ccs-advanced-modal {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: rgba(0, 0, 0, 0.6);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  display: none;
+  align-items: center;
+  justify-content: center;
+  z-index: 19999;
+  animation: ccsFadeIn 0.3s ease-out;
+}
+
+#ccs-advanced-modal .ccs-advanced-modal-content {
+  background-color: var(--SmartThemeBlurTintColor);
+  color: var(--SmartThemeBodyColor);
+  border-radius: 20px;
+  width: 380px;
+  max-width: 90%;
+  box-shadow: 0 20px 50px rgba(0, 0, 0, 0.2);
+  animation: ccsSlideUp 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+  overflow: hidden;
+}
+
+.ccs-advanced-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 18px 24px;
+  background: rgba(0, 0, 0, 0.05);
+}
+
+.ccs-advanced-title {
+  font-size: 1.1rem;
+  font-weight: bold;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.ccs-advanced-title-icon {
+  color: var(--SmartThemeEmColor);
+}
+
+.ccs-advanced-icon-btn {
+  cursor: pointer;
+  opacity: 0.6;
+  transition: all 0.2s;
+}
+
+.ccs-advanced-icon-btn:hover {
+  opacity: 1;
+  transform: scale(1.1);
+}
+
+.ccs-advanced-body {
+  padding: 24px;
+}
+
+.ccs-advanced-section {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 16px;
+  margin-bottom: 24px;
+}
+
+.ccs-advanced-item {
+  background: rgba(128, 128, 128, 0.08);
+  padding: 16px;
+  border-radius: 12px;
+  text-align: center;
+}
+
+.ccs-advanced-label {
+  font-size: 0.85rem;
+  opacity: 0.6;
+  margin-bottom: 8px;
+}
+
+.ccs-advanced-value {
+  font-size: 1.4rem;
+  font-weight: bold;
+  color: var(--SmartThemeEmColor);
+}
+
+.ccs-advanced-unit {
+  font-size: 0.8rem;
+  font-weight: normal;
+  opacity: 0.7;
+  margin-left: 2px;
+}
+
+.ccs-advanced-card {
+  background: linear-gradient(135deg, rgba(var(--SmartThemeEmColorRGB), 0.1), rgba(var(--SmartThemeEmColorRGB), 0.05));
+  border: 1px solid rgba(var(--SmartThemeEmColorRGB), 0.1);
+  padding: 20px;
+  border-radius: 16px;
+  text-align: center;
+}
+
+.ccs-advanced-card-label {
+  font-size: 0.9rem;
+  font-weight: bold;
+  margin-bottom: 12px;
+  opacity: 0.8;
+}
+
+.ccs-advanced-card-date {
+  font-size: 1rem;
+  margin-bottom: 4px;
+  opacity: 0.9;
+}
+
+.ccs-advanced-card-count {
+  font-size: 1.25rem;
+  font-weight: bold;
+  color: var(--SmartThemeEmColor);
+}
