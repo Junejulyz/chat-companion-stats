@@ -676,7 +676,8 @@ jQuery(async () => {
           firstTime: earliestTime,
           totalDuration: totalDurationSeconds,
           totalSizeBytes: totalSizeBytesRaw,
-          chatFilesCount
+          chatFilesCount,
+          advanced: null
         };
       }
 
@@ -765,7 +766,8 @@ jQuery(async () => {
           firstTime: null,
           totalDuration: 0,
           totalSizeBytes: totalSizeBytesRaw,
-          chatFilesCount
+          chatFilesCount,
+          advanced: null
         };
       }
 
@@ -775,7 +777,8 @@ jQuery(async () => {
         firstTime: earliestTime,
         totalDuration: totalDurationSeconds,
         totalSizeBytes: totalSizeBytesRaw,
-        chatFilesCount
+        chatFilesCount,
+        advanced: null
       };
     } catch (error) {
       if (DEBUG) console.error('getFullStats 运行出错:', error);
