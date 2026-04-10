@@ -645,7 +645,6 @@ jQuery(async () => {
       return null;
     }
   }
-  }
 
   // 计算连聊和高峰日
   function calculateAdvancedStats(dayMap) {
