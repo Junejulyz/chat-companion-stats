@@ -408,10 +408,27 @@ jQuery(async () => {
       if (DEBUG) console.error(`[StatsDebug] API fetch error:`, e);
     }
 
-    if (!chatData || !Array.isArray(chatData)) {
+    // 兼容层：SillyTavern 的 /api/chats/get 返回格式可能是一个 Object 包含一个数组，或者就是一个字典
+    let messagesArray = [];
+    if (Array.isArray(chatData)) {
+      messagesArray = chatData;
+    } else if (chatData && typeof chatData === 'object') {
+      // 如果不是纯数组，尝试在它的属性里找真正的聊天数据
+      // 常见结构如 { chat: [...] } 或者对象属性直接是索引 {'0': {...}, '1': {...}}
+      if (Array.isArray(chatData.chat)) {
+        messagesArray = chatData.chat;
+      } else if (Array.isArray(chatData.messages)) {
+        messagesArray = chatData.messages;
+      } else {
+        // 尝试把类似字典的对象强行转成数组
+        messagesArray = Object.values(chatData).filter(item => item && typeof item === 'object' && (item.mes !== undefined || item.is_user !== undefined));
+      }
+    }
+
+    if (messagesArray.length === 0) {
       if (DEBUG) {
         console.warn(`[StatsDebug] Failed to retrieve or parse chat data for: ${fileName}`);
-        console.log(`[StatsDebug] Received Data type: ${typeof chatData}`, chatData);
+        console.log(`[StatsDebug] Received Data type: ${typeof chatData}`, String(chatData).substring(0, 200));
       }
       return { words: 0, count: 0, userCount: 0, earliestTime: null, dayMap: {} };
     }
@@ -423,8 +440,7 @@ jQuery(async () => {
       let earliestUserTimeInFile = null;
       const dayMap = {};
 
-      // API 返回的是已解析的 JSON 数组
-      chatData.forEach(m => {
+      messagesArray.forEach(m => {
         if (m && (m.mes !== undefined || m.is_user !== undefined)) {
           totalWords += countWordsInMessage(m.mes || '');
           validMessages++;
