@@ -554,30 +554,30 @@ jQuery(async () => {
       });
     }
 
-    if (!characterId || !isNaN(characterId) || characterId === '0') {
-      const chars = context.characters || window.characters || [];
-      const idx = (context.selected_character !== undefined) ? context.selected_character : window.selected_character;
-      
-      if (chars && chars[idx] && chars[idx].avatar) {
-        characterId = chars[idx].avatar;
-        if (DEBUG) console.log(`[StatsDebug] ID resolved via index: ${characterId}`);
-      } else {
-        // 最后的杀手锏：如果还是数字或无效，尝试从文件名反向推演（例如 "岑许 - ..." -> "岑许.png"）
-        const sampleChat = (chats && chats.length > 0) ? chats[0].file_name : null;
-        if (sampleChat && sampleChat.includes(' - ')) {
-           const charNameFromObs = sampleChat.split(' - ')[0];
-           characterId = `${charNameFromObs}.png`;
-           if (DEBUG) console.log(`[StatsDebug] ID resolved via Filename Fallback: ${characterId}`);
-        }
-      }
-    }
-
     if (!characterId) return null;
 
     try {
+      // 1. 先尝试获取一次列表 (酒馆的 getPastCharacterChats 支持数字索引)
       const chats = await getPastCharacterChats(characterId);
       const chatFilesCount = Array.isArray(chats) ? chats.length : 0;
-      
+
+      // 2. 如果当前 ID 是数字，尝试利用列表进行反向修复，确保 API 能用
+      if (!isNaN(characterId) || characterId === '0') {
+         if (chatFilesCount > 0 && chats[0].file_name) {
+            const charNameFromObs = chats[0].file_name.split(' - ')[0];
+            characterId = `${charNameFromObs}.png`;
+            if (DEBUG) console.log(`[StatsDebug] ID upscaled from index to filename: ${characterId}`);
+         } else {
+            // 尝试通过 context 索引修复
+            const chars = context.characters || window.characters || [];
+            const idx = (context.selected_character !== undefined) ? context.selected_character : window.selected_character;
+            if (chars && chars[idx] && chars[idx].avatar) {
+               characterId = chars[idx].avatar;
+               if (DEBUG) console.log(`[StatsDebug] ID upscaled via context index: ${characterId}`);
+            }
+         }
+      }
+
       let totalMessagesFromMetadata = 0;
       let totalSizeBytesRaw = 0;
       let earliestTime = null;
