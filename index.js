@@ -612,18 +612,30 @@ jQuery(async () => {
       let totalDurationSeconds = 0;
       let oldestFileName = null;
       let unparseableFiles = [];
+      let hasInteraction = false;
 
       if (chatFilesCount === 0) return { messageCount: 0, wordCount: 0, firstTime: null, totalDuration: 0, totalSizeBytes: 0, chatFilesCount: 0 };
 
       // 1. 快速计算基础数据 (基于 Metadata)
       chats.forEach(chat => {
-        totalMessagesFromMetadata += parseInt(chat.chat_items) || 0;
+        const itemsCount = parseInt(chat.chat_items) || 0;
+        totalMessagesFromMetadata += itemsCount;
         
+        let sizeBytes = 0;
         const sizeMatchKB = chat.file_size?.match(/([\d.]+)\s*KB/i);
         const sizeMatchMB = chat.file_size?.match(/([\d.]+)\s*MB/i);
-        if (sizeMatchMB) totalSizeBytesRaw += parseFloat(sizeMatchMB[1]) * 1024 * 1024;
-        else if (sizeMatchKB) totalSizeBytesRaw += parseFloat(sizeMatchKB[1]) * 1024;
-        else totalSizeBytesRaw += parseFloat(chat.file_size) || 0;
+        if (sizeMatchMB) sizeBytes = parseFloat(sizeMatchMB[1]) * 1024 * 1024;
+        else if (sizeMatchKB) sizeBytes = parseFloat(sizeMatchKB[1]) * 1024;
+        else sizeBytes = parseFloat(chat.file_size) || 0;
+        
+        totalSizeBytesRaw += sizeBytes;
+
+        // 如果任何一个文件里的消息超过1条，或者没有明确记录条数但文件很大(>5KB)，认定发生了实质互动
+        if (itemsCount > 1) {
+          hasInteraction = true;
+        } else if (itemsCount === 0 && sizeBytes > 5 * 1024) {
+          hasInteraction = true;
+        }
 
         if (chat.file_name) {
           const timeInfo = parseTimeFromFilename(chat.file_name);
@@ -639,6 +651,12 @@ jQuery(async () => {
           }
         }
       });
+
+      // 如果完全没有互动（所有的记录都只有开场白=1条，或者完全为空），强行阻断所有统计数据并清空UI
+      if (!hasInteraction) {
+        if (DEBUG) console.log("[StatsDebug] All files have 1 or fewer messages. Determined as 'Not Interacted'.");
+        return { messageCount: 0, wordCount: 0, firstTime: null, totalDuration: 0, totalSizeBytes: 0, chatFilesCount };
+      }
 
       let estimatedWords = Math.round((totalSizeBytesRaw / 1024) * 32.5);
 
