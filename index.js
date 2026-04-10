@@ -771,25 +771,29 @@ jQuery(async () => {
   }
 
   // 添加控制分享按钮状态的函数 (优先处理无互动状态)
-  function updateShareButtonState(messageCount) {
+  function updateActionButtonsState(messageCount) {
     const $shareButton = $("#ccs-share");
+    const $viewMoreButton = $("#ccs-view-more");
 
     // Priority Check: Disable if total message count is 1 or less
     if (messageCount <= 1) {
       $shareButton.prop('disabled', true).val('尚未互动');
-      if (DEBUG) console.log('updateShareButtonState: Disabled (messageCount <= 1)');
+      $viewMoreButton.prop('disabled', true).val('尚未互动');
+      if (DEBUG) console.log('updateActionButtonsState: Disabled (messageCount <= 1)');
       return;
     }
+
+    $viewMoreButton.prop('disabled', false).val('查看更多');
 
     // If interaction exists (messageCount > 1), check if options are selected
     const anyOptionChecked = $('.ccs-share-option input[type="checkbox"]:checked').length > 0;
 
     if (anyOptionChecked) {
-      $shareButton.prop('disabled', false).val('分享');
-      if (DEBUG) console.log('updateShareButtonState: Enabled (options checked)');
+      $shareButton.prop('disabled', false).val('生成卡片');
+      if (DEBUG) console.log('updateActionButtonsState: Enabled (options checked)');
     } else {
       $shareButton.prop('disabled', true).val('请选择内容');
-      if (DEBUG) console.log('updateShareButtonState: Disabled (no options checked)');
+      if (DEBUG) console.log('updateActionButtonsState: Disabled (no options checked)');
     }
   }
 
@@ -823,7 +827,7 @@ jQuery(async () => {
         $("#ccs-total-size").text("0 B");
         $("#ccs-start").text("尚未互动");
         $("#ccs-days").text("0");
-        updateShareButtonState(0);
+        updateActionButtonsState(0);
       } else {
         // 更新统计数据到UI
         $("#ccs-messages").text(stats.messageCount || 0);
@@ -869,7 +873,7 @@ jQuery(async () => {
         // 保存高级统计数据
         currentAdvancedStats = stats.advanced;
         // Pass messageCount to the state function
-        updateShareButtonState(stats.messageCount);
+        updateActionButtonsState(stats.messageCount);
       }
       // Removed the stray 'else' block that was here
 
@@ -893,7 +897,7 @@ jQuery(async () => {
       $("#ccs-start").text('--');
       $("#ccs-days").text('--');
       $("#ccs-total-size").text('--'); // Clear size on error too
-      updateShareButtonState(0); // Pass 0 on error to ensure disabled state
+      updateActionButtonsState(0); // Pass 0 on error to ensure disabled state
     }
   }
 
@@ -2072,7 +2076,7 @@ jQuery(async () => {
   $(document).on('change', '.ccs-share-option input[type="checkbox"]', function () {
     // Re-evaluate button state based on current message count whenever options change
     const currentMessageCount = parseInt($("#ccs-messages").text(), 10) || 0;
-    updateShareButtonState(currentMessageCount);
+    updateActionButtonsState(currentMessageCount);
   });
 
   // Observe character selection changes to trigger auto-refresh
