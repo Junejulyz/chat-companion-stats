@@ -2003,7 +2003,7 @@ jQuery(async () => {
   });
 
   // 绑定点击事件 - 使用事件委托以防动态加载问题
-  $(document).on('click', '#ccs-refresh', updateStats);
+  $(document).on('click', '#ccs-refresh-icon', updateStats);
 
   // “查看更多”高级统计逻辑
   $(document).on('click', '#ccs-view-more', async function() {
@@ -2011,6 +2011,9 @@ jQuery(async () => {
     const $loading = $('#ccs-advanced-loading');
     const $content = $('#ccs-advanced-content');
     const $error = $('#ccs-advanced-error');
+    
+    // 动态更新模态框标题
+    $('#ccs-advanced-character-name').text(`${getCurrentCharacterName()} 的详细羁绊`);
     
     // 1. 打开模态框并显示加载状态
     $('#ccs-advanced-progress-text').text('正在分析回忆...');

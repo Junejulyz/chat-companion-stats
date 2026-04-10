@@ -21,9 +21,53 @@
   color: var(--SmartThemeBodyColor);
 }
 
-.flex-container {
+/* 按钮布局重建 */
+.ccs-actions-group {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.ccs-primary-actions {
   display: flex;
   gap: 10px;
+}
+
+.ccs-btn-primary {
+  flex: 1;
+  background: var(--SmartThemeEmColor) !important;
+  color: #fff !important;
+  font-weight: bold;
+  border: none !important;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 6px;
+}
+
+.ccs-btn-primary:hover {
+  opacity: 0.9;
+  transform: scale(1.02);
+}
+
+.ccs-btn-secondary {
+  width: 100%;
+  background: rgba(128, 128, 128, 0.1) !important;
+  color: var(--SmartThemeBodyColor) !important;
+  border: 1px solid rgba(128, 128, 128, 0.2) !important;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 6px;
+}
+
+.ccs-btn-secondary:hover {
+  background: rgba(128, 128, 128, 0.2) !important;
+}
+
+#ccs-refresh-icon:hover {
+  transform: rotate(180deg);
+  opacity: 1 !important;
 }
 
 /* 预览模态框样式 */

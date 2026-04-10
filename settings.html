@@ -7,9 +7,10 @@
     <div class="inline-drawer-content">
       <div class="example-extension_block">
         <div class="ccs-stats-container">
-          <div class="ccs-stat-item">
+          <div class="ccs-stat-item" style="display: flex; align-items: center;">
             <span class="ccs-stat-label">角色：</span>
-            <span class="ccs-stat-value" id="ccs-character">未知</span>
+            <span class="ccs-stat-value" id="ccs-character" style="flex-grow: 1;">未知</span>
+            <i id="ccs-refresh-icon" class="fa-solid fa-arrows-rotate" title="刷新统计" style="cursor: pointer; opacity: 0.6; transition: all 0.2s;"></i>
           </div>
           <div class="ccs-stat-item ccs-share-option">
             <input type="checkbox" id="ccs-share-start" checked>
@@ -49,11 +50,12 @@
             <span class="ccs-tip-text">字数是根据当前对话和历史记录估算的，误差较大，仅供参考。</span>
           </div>
         </div>
-        <div class="flex-container">
-          <input id="ccs-refresh" type="button" class="menu_button" value="刷新" />
-          <input id="ccs-share" type="button" class="menu_button" value="分享" />
-          <input id="ccs-global-stats" type="button" class="menu_button" value="全局羁绊" />
-          <input id="ccs-view-more" type="button" class="menu_button" value="查看更多" />
+        <div class="ccs-actions-group">
+          <div class="ccs-primary-actions">
+            <button id="ccs-view-more" class="menu_button ccs-btn-primary"><i class="fa-solid fa-book-open"></i> 详细羁绊</button>
+            <button id="ccs-share" class="menu_button ccs-btn-primary"><i class="fa-solid fa-image"></i> 生成卡片</button>
+          </div>
+          <button id="ccs-global-stats" class="menu_button ccs-btn-secondary"><i class="fa-solid fa-crown"></i> 全局羁绊排行</button>
         </div>
         <!-- 用于生成分享图片的隐藏canvas -->
         <canvas id="ccs-canvas" style="display: none;"></canvas>
@@ -105,7 +107,7 @@
   <div id="ccs-advanced-modal" style="display: none;">
     <div class="ccs-advanced-modal-content">
       <div class="ccs-advanced-header">
-        <div class="ccs-advanced-title"><i class="fa-solid fa-chart-line ccs-advanced-title-icon"></i> 详细统计</div>
+        <div class="ccs-advanced-title"><i class="fa-solid fa-chart-line ccs-advanced-title-icon"></i> <span id="ccs-advanced-character-name">详细统计</span></div>
         <div class="ccs-advanced-actions">
           <i id="ccs-advanced-close" class="fa-solid fa-xmark ccs-advanced-icon-btn" title="关闭"></i>
         </div>
