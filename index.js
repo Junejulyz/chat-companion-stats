@@ -544,16 +544,31 @@ jQuery(async () => {
     const context = getContext();
     let characterId = context.characterId || context.character_id;
 
-    if (DEBUG) console.log(`[StatsDebug] getFullStats called (DeepScan=${forceDeepScan})`);
+    if (DEBUG) {
+      console.log(`[StatsDebug] getFullStats called (DeepScan=${forceDeepScan})`);
+      console.log(`[StatsDebug] Context Debug:`, { 
+        characterId, 
+        selected: context.selected_character,
+        charsCount: context.characters?.length,
+        hasWindowChars: !!window.characters 
+      });
+    }
 
-    if (!characterId || !isNaN(characterId)) {
-      // 如果 characterId 是数字(索引)，或者未找到，尝试从全局变量/context 列表中获取真正的 avatar 文件名
-      const characters = context.characters || window.characters;
-      const selected = context.selected_character !== undefined ? context.selected_character : window.selected_character;
+    if (!characterId || !isNaN(characterId) || characterId === '0') {
+      const chars = context.characters || window.characters || [];
+      const idx = (context.selected_character !== undefined) ? context.selected_character : window.selected_character;
       
-      if (characters && characters[selected]) {
-        characterId = characters[selected].avatar;
-        if (DEBUG) console.log(`[StatsDebug] Resolved charId from index ${selected} to avatar: ${characterId}`);
+      if (chars && chars[idx] && chars[idx].avatar) {
+        characterId = chars[idx].avatar;
+        if (DEBUG) console.log(`[StatsDebug] ID resolved via index: ${characterId}`);
+      } else {
+        // 最后的杀手锏：如果还是数字或无效，尝试从文件名反向推演（例如 "岑许 - ..." -> "岑许.png"）
+        const sampleChat = (chats && chats.length > 0) ? chats[0].file_name : null;
+        if (sampleChat && sampleChat.includes(' - ')) {
+           const charNameFromObs = sampleChat.split(' - ')[0];
+           characterId = `${charNameFromObs}.png`;
+           if (DEBUG) console.log(`[StatsDebug] ID resolved via Filename Fallback: ${characterId}`);
+        }
       }
     }
 
