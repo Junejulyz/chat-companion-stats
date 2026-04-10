@@ -409,7 +409,10 @@ jQuery(async () => {
     }
 
     if (!chatData || !Array.isArray(chatData)) {
-      if (DEBUG) console.warn(`[StatsDebug] Failed to retrieve or parse chat data for: ${fileName}`);
+      if (DEBUG) {
+        console.warn(`[StatsDebug] Failed to retrieve or parse chat data for: ${fileName}`);
+        console.log(`[StatsDebug] Received Data type: ${typeof chatData}`, chatData);
+      }
       return { words: 0, count: 0, userCount: 0, earliestTime: null, dayMap: {} };
     }
 
@@ -543,9 +546,14 @@ jQuery(async () => {
 
     if (DEBUG) console.log(`[StatsDebug] getFullStats called (DeepScan=${forceDeepScan})`);
 
-    if (!characterId) {
-      if (typeof window.selected_character !== 'undefined' && window.characters && window.characters[window.selected_character]) {
-        characterId = window.characters[window.selected_character].avatar;
+    if (!characterId || !isNaN(characterId)) {
+      // 如果 characterId 是数字(索引)，或者未找到，尝试从全局变量/context 列表中获取真正的 avatar 文件名
+      const characters = context.characters || window.characters;
+      const selected = context.selected_character !== undefined ? context.selected_character : window.selected_character;
+      
+      if (characters && characters[selected]) {
+        characterId = characters[selected].avatar;
+        if (DEBUG) console.log(`[StatsDebug] Resolved charId from index ${selected} to avatar: ${characterId}`);
       }
     }
 
