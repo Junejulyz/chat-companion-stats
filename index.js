@@ -2273,43 +2273,76 @@ jQuery(async () => {
           let totalMessages = 0;
           let totalSizeBytesRaw = 0;
           let earliestTime = null;
+          let hasInteraction = false;
+          let parseableFilesInfo = [];
+          let unparseableFiles = [];
 
           chats.forEach(chat => {
             // Count messages
-            totalMessages += (parseInt(chat.chat_items) || 0);
+            const itemsCount = parseInt(chat.chat_items) || 0;
+            totalMessages += itemsCount;
 
             // Calculate size
+            let sizeBytes = 0;
             const sizeMatchKB = chat.file_size?.match(/([\d.]+)\s*KB/i);
             const sizeMatchMB = chat.file_size?.match(/([\d.]+)\s*MB/i);
             const sizeAsNumber = parseFloat(chat.file_size);
 
             if (sizeMatchMB) {
-              totalSizeBytesRaw += parseFloat(sizeMatchMB[1]) * 1024 * 1024;
+              sizeBytes = parseFloat(sizeMatchMB[1]) * 1024 * 1024;
             } else if (sizeMatchKB) {
-              totalSizeBytesRaw += parseFloat(sizeMatchKB[1]) * 1024;
+              sizeBytes = parseFloat(sizeMatchKB[1]) * 1024;
             } else if (!isNaN(sizeAsNumber)) {
-              totalSizeBytesRaw += sizeAsNumber;
+              sizeBytes = sizeAsNumber;
+            }
+            
+            totalSizeBytesRaw += sizeBytes;
+
+            // 严格的互动认定
+            if (itemsCount > 1 || (itemsCount === 0 && sizeBytes > 5 * 1024)) {
+                hasInteraction = true;
             }
 
             // Find earliest date
             if (chat.file_name) {
               const timeInfo = parseTimeFromFilename(chat.file_name);
-              if (timeInfo && timeInfo.dateObject && (!earliestTime || timeInfo.dateObject < earliestTime)) {
-                earliestTime = timeInfo.dateObject;
-              }
-            }
-            if (chat.last_mes) {
-              const date = parseSillyTavernDate(chat.last_mes);
-              if (date && (!earliestTime || date < earliestTime)) {
-                earliestTime = date;
+              if (timeInfo && timeInfo.dateObject) {
+                parseableFilesInfo.push({ name: chat.file_name, date: timeInfo.dateObject });
+                if (!earliestTime || timeInfo.dateObject < earliestTime) {
+                  earliestTime = timeInfo.dateObject;
+                }
+              } else {
+                unparseableFiles.push(chat.file_name);
               }
             }
           });
 
-          // Only include characters with actual interaction (more than just the greeting)
-          if (totalMessages <= 1) {
-             console.log(`[GlobalStats] => Interactions too low for ${char.name}, skipping.`);
+          // Only include characters with actual interaction
+          if (!hasInteraction) {
+             console.log(`[GlobalStats] => No real interactions for ${char.name}, skipping.`);
              continue;
+          }
+
+          // 全局排行：运用精准打击与缓存共享策略统一时间
+          if (accurateEncounterTimeCache[charId]) {
+             earliestTime = accurateEncounterTimeCache[charId];
+          } else {
+             parseableFilesInfo.sort((a,b) => a.date - b.date);
+             // 全局扫描要求速度极快，只查名义上最老的2个文件
+             let filesToCheck = parseableFilesInfo.slice(0, 2).map(f => f.name); 
+             if (unparseableFiles.length > 0) filesToCheck = filesToCheck.concat(unparseableFiles.slice(0, 2));
+
+             if (filesToCheck.length > 0) {
+               for (const file of filesToCheck) {
+                  const fileStats = await getChatFileStats(file, charId, char.name);
+                  if (fileStats && fileStats.earliestTime) {
+                     if (!earliestTime || fileStats.earliestTime < earliestTime) {
+                        earliestTime = fileStats.earliestTime;
+                     }
+                  }
+               }
+               if (earliestTime) accurateEncounterTimeCache[charId] = earliestTime;
+             }
           }
 
           let days = 0;
