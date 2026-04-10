@@ -428,7 +428,9 @@ jQuery(async () => {
     if (messagesArray.length === 0) {
       if (DEBUG) {
         console.warn(`[StatsDebug] Failed to retrieve or parse chat data for: ${fileName}`);
-        console.log(`[StatsDebug] Received Data type: ${typeof chatData}`, String(chatData).substring(0, 200));
+        let dataPreview = "null";
+        try { if (chatData) dataPreview = JSON.stringify(chatData).substring(0, 300); } catch(e){}
+        console.log(`[StatsDebug] Received Data type: ${typeof chatData}, Preview:`, dataPreview);
       }
       return { words: 0, count: 0, userCount: 0, earliestTime: null, dayMap: {} };
     }
