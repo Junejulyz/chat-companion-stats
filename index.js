@@ -1,3 +1,5 @@
+console.log("[CCStats] Script source file loaded.");
+window.ccs_loaded = true;
 import { getContext } from "../../../extensions.js";
 import { getPastCharacterChats } from '../../../../script.js';
 
