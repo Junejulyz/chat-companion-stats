@@ -840,6 +840,17 @@ jQuery(async () => {
       const stats = await getFullStats(deepScan, onProgress);
       if (DEBUG) console.log('Stats received in updateStats:', stats);
 
+      if (!stats) {
+        if (DEBUG) console.log('[StatsDebug] No stats available (no character selected). Zeroing UI.');
+        $("#ccs-messages").text('--');
+        $("#ccs-words").text('--');
+        $("#ccs-start").text('--');
+        $("#ccs-days").text('--');
+        $("#ccs-total-size").text('--');
+        updateActionButtonsState(0);
+        return;
+      }
+
       const chatFilesCount = stats.chatFilesCount || 0;
 
       // 始终显示字数估算提示
