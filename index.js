@@ -448,7 +448,7 @@ jQuery(async () => {
       let totalWords = 0;
       let validMessages = 0;
       let userMessages = 0;
-      let earliestUserTimeInFile = null;
+      let earliestTimeInFile = null;
       const dayMap = {};
 
       messagesArray.forEach(m => {
@@ -467,9 +467,10 @@ jQuery(async () => {
               // 记录最早的用户时间
               if (m.is_user === true) {
                 userMessages++;
-                if (!earliestUserTimeInFile || msgDate < earliestUserTimeInFile) {
-                  earliestUserTimeInFile = msgDate;
-                }
+              }
+              // 不限制发言者是谁，记录绝对的最早消息发生时间
+              if (!earliestTimeInFile || msgDate < earliestTimeInFile) {
+                earliestTimeInFile = msgDate;
               }
             }
           }
@@ -480,7 +481,7 @@ jQuery(async () => {
         words: totalWords,
         count: validMessages,
         userCount: userMessages,
-        earliestTime: earliestUserTimeInFile,
+        earliestTime: earliestTimeInFile,
         dayMap
       };
     } catch (e) {
@@ -609,6 +610,8 @@ jQuery(async () => {
       let totalSizeBytesRaw = 0;
       let earliestTime = null;
       let totalDurationSeconds = 0;
+      let oldestFileName = null;
+      let unparseableFiles = [];
 
       if (chatFilesCount === 0) return { messageCount: 0, wordCount: 0, firstTime: null, totalDuration: 0, totalSizeBytes: 0, chatFilesCount: 0 };
 
@@ -628,15 +631,37 @@ jQuery(async () => {
             totalDurationSeconds += timeInfo.totalSeconds;
             if (!earliestTime || (timeInfo.dateObject && timeInfo.dateObject < earliestTime)) {
                earliestTime = timeInfo.dateObject;
+               oldestFileName = chat.file_name;
             }
+          } else {
+            // 如果无法从名字解析出时间，作为存疑文件保留
+            unparseableFiles.push(chat.file_name);
           }
         }
       });
 
       let estimatedWords = Math.round((totalSizeBytesRaw / 1024) * 32.5);
 
-      // 如果不是深度扫描，直接返回基础数据
+      // 如果不是深度扫描，直接返回基础数据，但运用精准定点加载校准初遇时间
       if (!forceDeepScan) {
+        let filesToCheck = [];
+        if (oldestFileName) filesToCheck.push(oldestFileName);
+        if (unparseableFiles.length > 0) {
+           filesToCheck = filesToCheck.concat(unparseableFiles.slice(0, 3)); // 最多额外检查3个异常文件防止卡顿
+        }
+
+        if (filesToCheck.length > 0) {
+           const charNameForApi = getCurrentCharacterName();
+           for (const file of filesToCheck) {
+              const fileStats = await getChatFileStats(file, characterId, charNameForApi);
+              if (fileStats && fileStats.earliestTime) {
+                 if (!earliestTime || fileStats.earliestTime < earliestTime) {
+                    earliestTime = fileStats.earliestTime;
+                 }
+              }
+           }
+        }
+
         return {
           messageCount: totalMessagesFromMetadata,
           wordCount: estimatedWords,
@@ -656,7 +681,7 @@ jQuery(async () => {
       let totalWordsCalculated = 0;
       let totalMessagesCalculated = 0;
       let totalUserMessagesCalculated = 0;
-      let absoluteEarliestUserTime = null;
+      let absoluteEarliestTime = null;
       const globalDayMap = {};
 
       const batchSize = 3; // 降低并发数量保护服务器
@@ -681,8 +706,8 @@ jQuery(async () => {
                 globalDayMap[date] = (globalDayMap[date] || 0) + count;
               }
             }
-            if (res.earliestTime && (!absoluteEarliestUserTime || res.earliestTime < absoluteEarliestUserTime)) {
-              absoluteEarliestUserTime = res.earliestTime;
+            if (res.earliestTime && (!absoluteEarliestTime || res.earliestTime < absoluteEarliestTime)) {
+              absoluteEarliestTime = res.earliestTime;
             }
           }
         });
@@ -693,7 +718,7 @@ jQuery(async () => {
       return {
         messageCount: totalMessagesCalculated || totalMessagesFromMetadata,
         wordCount: totalWordsCalculated || estimatedWords,
-        firstTime: absoluteEarliestUserTime || earliestTime,
+        firstTime: absoluteEarliestTime || earliestTime,
         totalDuration: totalDurationSeconds,
         totalSizeBytes: totalSizeBytesRaw,
         chatFilesCount,
