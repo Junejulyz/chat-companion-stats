@@ -46,6 +46,8 @@ jQuery(async () => {
   let currentAdvancedStats = null;
   // 核心功能：全局缓存准确的初遇时间，避免在扫描模式间切换时发生横跳
   const accurateEncounterTimeCache = {};
+  // 核心功能：全局缓存准确的字数/体积比，校准估算系统
+  const accurateWordRatioCache = {};
 
   // 加载HTML using dynamic path with cache buster
   const settingsHtml = await $.get(`${extensionWebPath}/settings.html?v=${Date.now()}`);
@@ -661,7 +663,12 @@ jQuery(async () => {
         return { messageCount: 0, wordCount: 0, firstTime: null, totalDuration: 0, totalSizeBytes: 0, chatFilesCount };
       }
 
-      let estimatedWords = Math.round((totalSizeBytesRaw / 1024) * 32.5);
+      // 获取当前的精准字数占比（如果有经过深度校准，则不再使用32.5的通用估值）
+      let currentRatio = 32.5;
+      if (accurateWordRatioCache[characterId]) {
+          currentRatio = accurateWordRatioCache[characterId];
+      }
+      let estimatedWords = Math.round((totalSizeBytesRaw / 1024) * currentRatio);
 
       // 如果不是深度扫描，直接返回基础数据，但运用更为宽广的“精准打击”或读取锁定缓存
       if (!forceDeepScan) {
@@ -751,6 +758,11 @@ jQuery(async () => {
       // 深度扫描找出了贯穿所有聊天系统的绝对真理，霸道覆盖并永久锁定缓存！
       if (absoluteEarliestTime) {
           accurateEncounterTimeCache[characterId] = absoluteEarliestTime;
+      }
+      
+      // 如果是一次完整的深度分析，记录这名角色专属的字数密度（字数 / 每KB体积）
+      if (forceDeepScan && totalSizeBytesRaw > 0 && totalWordsCalculated > 0) {
+          accurateWordRatioCache[characterId] = totalWordsCalculated / (totalSizeBytesRaw / 1024);
       }
 
       return {
