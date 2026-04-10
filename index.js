@@ -742,36 +742,16 @@ jQuery(async () => {
     }
     longestStreak = Math.max(longestStreak, tempStreak);
 
-    // 计算当前连聊 (从最后一条消息日期开始算)
+    // 计算今日对话条数
     const now = new Date();
     const todayStr = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
-    const yesterday = new Date(now.getTime() - 86400000);
-    const yesterdayStr = `${yesterday.getFullYear()}-${String(yesterday.getMonth() + 1).padStart(2, '0')}-${String(yesterday.getDate()).padStart(2, '0')}`;
-    
-    const lastChatDateStr = dates[dates.length - 1];
-    
-    if (lastChatDateStr === todayStr || lastChatDateStr === yesterdayStr) {
-      // 倒序寻找连续天数
-      currentStreak = 1;
-      let checkDate = new Date(new Date(lastChatDateStr + 'T00:00:00').getTime() - 86400000);
-      for (let i = dates.length - 2; i >= 0; i--) {
-        const dStr = dates[i];
-        if (dStr === `${checkDate.getFullYear()}-${String(checkDate.getMonth() + 1).padStart(2, '0')}-${String(checkDate.getDate()).padStart(2, '0')}`) {
-          currentStreak++;
-          checkDate = new Date(checkDate.getTime() - 86400000);
-        } else {
-          break;
-        }
-      }
-    } else {
-      currentStreak = 0;
-    }
+    const todayMessages = dayMap[todayStr] || 0;
 
     return {
       peakDate,
       peakCount,
       longestStreak,
-      currentStreak
+      todayMessages
     };
   }
 
@@ -2055,7 +2035,7 @@ jQuery(async () => {
         $content.fadeIn();
         
         // 填充数据
-        $('#ccs-current-streak').html(`${currentAdvancedStats.currentStreak} <span class="ccs-advanced-unit">天</span>`);
+        $('#ccs-today-messages').html(`${currentAdvancedStats.todayMessages} <span class="ccs-advanced-unit">条</span>`);
         $('#ccs-longest-streak').html(`${currentAdvancedStats.longestStreak} <span class="ccs-advanced-unit">天</span>`);
         $('#ccs-peak-date').text(currentAdvancedStats.peakDate || '--');
         $('#ccs-peak-count').html(`${currentAdvancedStats.peakCount} <span class="ccs-advanced-unit">条消息</span>`);
