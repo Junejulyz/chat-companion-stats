@@ -198,7 +198,7 @@ jQuery(async () => {
     }
   }
 
-  // 尝试获取当前用户标识 (用于多用户模式路径)
+  // 尝试获取当前用户标识 (已不再强制需要，API 可自动处理)
   function getUserHandle() {
     const context = getContext();
     // 1. 尝试从 context 直接获取
@@ -408,105 +408,67 @@ jQuery(async () => {
     return null;
   }
 
-  // 获取单个聊天文件的统计数据 (带有路径回退逻辑)
-  async function getChatFileStats(fileName, charFolder = null) {
-    const context = getContext();
-    const charId = charFolder || context.characterId;
-    const userHandle = getUserHandle();
-    const encodedFileName = encodeURIComponent(fileName);
-    let text = null;
-
-    // 尝试多种路径策略
-    const paths = [];
+  // 获取单个聊天文件的统计数据 (使用 SillyTavern 官方 API 接口)
+  async function getChatFileStats(fileName, charId) {
+    if (DEBUG) console.log(`[StatsDebug] Requesting chat content via API: ${fileName} for char: ${charId}`);
     
-    // 方案 A: 多用户模式路径 ( /chats/user_handle/character_folder/file )
-    if (userHandle) {
-      if (charId && charId !== '0') {
-        const folderNoExt = String(charId).includes('.') ? String(charId).substring(0, String(charId).lastIndexOf('.')) : charId;
-        paths.push(`/chats/${userHandle}/${encodeURIComponent(folderNoExt)}/${encodedFileName}`);
-        paths.push(`/chats/${userHandle}/${encodeURIComponent(charId)}/${encodedFileName}`);
+    let chatData = null;
+    try {
+      // 使用官方 API 获取聊天内容，这会自动处理多用户路径和转码问题
+      const response = await fetch('/api/chats/get', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          avatar_url: charId, // 这里传头像名作为标识
+          file_name: fileName
+        })
+      });
+
+      if (DEBUG) console.log(`[StatsDebug] API Response Status: ${response.status}`);
+      
+      if (response.ok) {
+        chatData = await response.json();
       }
-      const characterName = fileName.split(' - ')[0];
-      if (characterName) {
-        paths.push(`/chats/${userHandle}/${encodeURIComponent(characterName)}/${encodedFileName}`);
-      }
+    } catch (e) {
+      if (DEBUG) console.error(`[StatsDebug] API fetch error:`, e);
     }
 
-    // 方案 B: 默认/单用户模式路径 ( /chats/character_folder/file )
-    if (charId && charId !== '0') {
-      const folderNoExt = String(charId).includes('.') ? String(charId).substring(0, String(charId).lastIndexOf('.')) : charId;
-      paths.push(`/chats/${encodeURIComponent(folderNoExt)}/${encodedFileName}`);
-      paths.push(`/chats/${encodeURIComponent(charId)}/${encodedFileName}`);
-    }
-    const characterName = fileName.split(' - ')[0];
-    if (characterName) {
-      paths.push(`/chats/${encodeURIComponent(characterName)}/${encodedFileName}`);
-    }
-    
-    // 方案 C: 强制尝试 default-user (多用户环境下最常见的路径)
-    if (!userHandle || userHandle !== 'default-user') {
-        if (characterName) paths.push(`/chats/default-user/${encodeURIComponent(characterName)}/${encodedFileName}`);
-        if (charId) paths.push(`/chats/default-user/${encodeURIComponent(charId)}/${encodedFileName}`);
-    }
-
-    if (DEBUG) console.log(`[StatsDebug] File: ${fileName}, User: ${userHandle}, Folder: ${charId}, Attempting paths:`, paths);
-
-    for (const path of paths) {
-      try {
-        const response = await fetch(path, { credentials: 'same-origin' });
-        if (DEBUG) console.log(`[StatsDebug] Trying path: ${path} | Status: ${response.status}`);
-        if (response.ok) {
-          text = await response.text();
-          if (text) {
-            if (DEBUG) console.log(`[StatsDebug] Successfully fetched content from: ${path} (${text.length} chars)`);
-            break;
-          }
-        }
-      } catch (e) { 
-        if (DEBUG) console.warn(`[StatsDebug] Fetch error for path ${path}:`, e);
-      }
-    }
-
-    if (!text) {
-      if (DEBUG) console.warn(`[StatsDebug] Failed to fetch any content for file: ${fileName}`);
+    if (!chatData || !Array.isArray(chatData)) {
+      if (DEBUG) console.warn(`[StatsDebug] Failed to retrieve or parse chat data for: ${fileName}`);
       return { words: 0, count: 0, userCount: 0, earliestTime: null, dayMap: {} };
     }
 
     try {
-      const lines = text.trim().split('\n').filter(l => l.trim());
       let totalWords = 0;
       let validMessages = 0;
       let userMessages = 0;
       let earliestUserTimeInFile = null;
       const dayMap = {};
 
-      lines.forEach(line => {
-        try {
-          const m = JSON.parse(line);
-          // 确保是有效的消息对象
-          if (m && (m.mes !== undefined || m.is_user !== undefined)) {
-            totalWords += countWordsInMessage(m.mes || '');
-            validMessages++;
+      // API 返回的是已解析的 JSON 数组
+      chatData.forEach(m => {
+        if (m && (m.mes !== undefined || m.is_user !== undefined)) {
+          totalWords += countWordsInMessage(m.mes || '');
+          validMessages++;
 
-            // 统计发送日期
-            if (m.send_date) {
-              const msgDate = parseSillyTavernDate(m.send_date);
-              if (msgDate) {
-                // 记录最早的用户时间
-                if (m.is_user === true) {
-                  userMessages++;
-                  if (!earliestUserTimeInFile || msgDate < earliestUserTimeInFile) {
-                    earliestUserTimeInFile = msgDate;
-                  }
+          // 统计发送日期
+          if (m.send_date) {
+            const msgDate = parseSillyTavernDate(m.send_date);
+            if (msgDate) {
+              // 记录处理日期（用于 Streak/Peak）
+              const dateKey = `${msgDate.getFullYear()}-${String(msgDate.getMonth() + 1).padStart(2, '0')}-${String(msgDate.getDate()).padStart(2, '0')}`;
+              dayMap[dateKey] = (dayMap[dateKey] || 0) + 1;
+
+              // 记录最早的用户时间
+              if (m.is_user === true) {
+                userMessages++;
+                if (!earliestUserTimeInFile || msgDate < earliestUserTimeInFile) {
+                  earliestUserTimeInFile = msgDate;
                 }
-
-                // 按自然日聚合
-                const dateKey = `${msgDate.getFullYear()}-${String(msgDate.getMonth() + 1).padStart(2, '0')}-${String(msgDate.getDate()).padStart(2, '0')}`;
-                dayMap[dateKey] = (dayMap[dateKey] || 0) + 1;
               }
             }
           }
-        } catch (e) { }
+        }
       });
 
       return {
@@ -517,7 +479,7 @@ jQuery(async () => {
         dayMap
       };
     } catch (e) {
-      if (DEBUG) console.error(`Parsing error for chat ${fileName}:`, e);
+      if (DEBUG) console.error(`[StatsDebug] Error processing chat data:`, e);
       return { words: 0, count: 0, userCount: 0, earliestTime: null, dayMap: {} };
     }
   }
@@ -743,7 +705,7 @@ jQuery(async () => {
         const batchSize = 10;
         for (let i = 0; i < chats.length; i += batchSize) {
           const batch = chats.slice(i, i + batchSize);
-          // 传递 resolved characterId 作为文件夹猜测基础
+          // 传递 resolved characterId (头像文件名) 作为 API 标识
           const results = await Promise.all(batch.map(chat => getChatFileStats(chat.file_name, characterId)));
 
           results.forEach(res => {
