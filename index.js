@@ -2003,7 +2003,7 @@ jQuery(async () => {
   });
 
   // 绑定点击事件 - 使用事件委托以防动态加载问题
-  $(document).on('click', '#ccs-refresh-icon', updateStats);
+  $(document).on('click', '#ccs-refresh', updateStats);
 
   // “查看更多”高级统计逻辑
   $(document).on('click', '#ccs-view-more', async function() {

@@ -51,6 +51,7 @@
 }
 
 .ccs-btn-secondary {
+  flex: 1;
   width: 100%;
   background: rgba(128, 128, 128, 0.1) !important;
   color: var(--SmartThemeBodyColor) !important;
@@ -63,11 +64,6 @@
 
 .ccs-btn-secondary:hover {
   background: rgba(128, 128, 128, 0.2) !important;
-}
-
-#ccs-refresh-icon:hover {
-  transform: rotate(180deg);
-  opacity: 1 !important;
 }
 
 /* 预览模态框样式 */
@@ -495,6 +491,9 @@ body.ccs-no-scroll {
   border-radius: 20px;
   width: 380px;
   max-width: 90%;
+  max-height: 90vh;
+  display: flex;
+  flex-direction: column;
   box-shadow: 0 20px 50px rgba(0, 0, 0, 0.2);
   animation: ccsSlideUp 0.4s cubic-bezier(0.16, 1, 0.3, 1);
   overflow: hidden;
@@ -532,7 +531,8 @@ body.ccs-no-scroll {
 }
 
 .ccs-advanced-body {
-  padding: 24px;
+  padding: 0 24px 24px;
+  overflow-y: auto;
 }
 
 .ccs-advanced-section {

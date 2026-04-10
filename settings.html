@@ -10,7 +10,7 @@
           <div class="ccs-stat-item" style="display: flex; align-items: center;">
             <span class="ccs-stat-label">角色：</span>
             <span class="ccs-stat-value" id="ccs-character" style="flex-grow: 1;">未知</span>
-            <i id="ccs-refresh-icon" class="fa-solid fa-arrows-rotate" title="刷新统计" style="cursor: pointer; opacity: 0.6; transition: all 0.2s;"></i>
+            <input id="ccs-refresh" type="button" class="menu_button ccs-btn-secondary" value="刷新" style="padding: 2px 10px; font-size: 0.85em; width: auto; margin-left: auto; height: 26px;" />
           </div>
           <div class="ccs-stat-item ccs-share-option">
             <input type="checkbox" id="ccs-share-start" checked>
@@ -52,10 +52,10 @@
         </div>
         <div class="ccs-actions-group">
           <div class="ccs-primary-actions">
-            <button id="ccs-view-more" class="menu_button ccs-btn-primary"><i class="fa-solid fa-book-open"></i> 详细羁绊</button>
-            <button id="ccs-share" class="menu_button ccs-btn-primary"><i class="fa-solid fa-image"></i> 生成卡片</button>
+            <input id="ccs-view-more" type="button" class="menu_button ccs-btn-secondary" value="查看更多" />
+            <input id="ccs-share" type="button" class="menu_button ccs-btn-secondary" value="生成卡片" />
           </div>
-          <button id="ccs-global-stats" class="menu_button ccs-btn-secondary"><i class="fa-solid fa-crown"></i> 全局羁绊排行</button>
+          <input id="ccs-global-stats" type="button" class="menu_button ccs-btn-secondary" value="全局羁绊排行" />
         </div>
         <!-- 用于生成分享图片的隐藏canvas -->
         <canvas id="ccs-canvas" style="display: none;"></canvas>
