@@ -2013,7 +2013,7 @@ jQuery(async () => {
     const $error = $('#ccs-advanced-error');
     
     // 动态更新模态框标题
-    $('#ccs-advanced-character-name').text(`${getCurrentCharacterName()} 的详细羁绊`);
+    $('#ccs-advanced-character-name').text(`${getCurrentCharacterName()}`);
     
     // 1. 打开模态框并显示加载状态
     $('#ccs-advanced-progress-text').text('正在分析回忆...');
