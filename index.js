@@ -44,6 +44,8 @@ jQuery(async () => {
   // 从 localStorage 加载上次选择的风格，默认为 'modern-light'
   let shareStyle = localStorage.getItem('ccs-share-style') || 'modern-light';
   let currentAdvancedStats = null;
+  // 核心功能：全局缓存准确的初遇时间，避免在扫描模式间切换时发生横跳
+  const accurateEncounterTimeCache = {};
 
   // 加载HTML using dynamic path with cache buster
   const settingsHtml = await $.get(`${extensionWebPath}/settings.html?v=${Date.now()}`);
@@ -610,7 +612,7 @@ jQuery(async () => {
       let totalSizeBytesRaw = 0;
       let earliestTime = null;
       let totalDurationSeconds = 0;
-      let oldestFileName = null;
+      let parseableFilesInfo = [];
       let unparseableFiles = [];
       let hasInteraction = false;
 
@@ -639,11 +641,12 @@ jQuery(async () => {
 
         if (chat.file_name) {
           const timeInfo = parseTimeFromFilename(chat.file_name);
-          if (timeInfo) {
+          if (timeInfo && timeInfo.dateObject) {
             totalDurationSeconds += timeInfo.totalSeconds;
-            if (!earliestTime || (timeInfo.dateObject && timeInfo.dateObject < earliestTime)) {
+            parseableFilesInfo.push({ name: chat.file_name, date: timeInfo.dateObject });
+            
+            if (!earliestTime || timeInfo.dateObject < earliestTime) {
                earliestTime = timeInfo.dateObject;
-               oldestFileName = chat.file_name;
             }
           } else {
             // 如果无法从名字解析出时间，作为存疑文件保留
@@ -660,23 +663,35 @@ jQuery(async () => {
 
       let estimatedWords = Math.round((totalSizeBytesRaw / 1024) * 32.5);
 
-      // 如果不是深度扫描，直接返回基础数据，但运用精准定点加载校准初遇时间
+      // 如果不是深度扫描，直接返回基础数据，但运用更为宽广的“精准打击”或读取锁定缓存
       if (!forceDeepScan) {
-        let filesToCheck = [];
-        if (oldestFileName) filesToCheck.push(oldestFileName);
-        if (unparseableFiles.length > 0) {
-           filesToCheck = filesToCheck.concat(unparseableFiles.slice(0, 3)); // 最多额外检查3个异常文件防止卡顿
-        }
+        if (accurateEncounterTimeCache[characterId]) {
+           // 方案B：直接调用曾经找到的那个锁定好的绝对真理，防止被回退
+           earliestTime = accurateEncounterTimeCache[characterId];
+        } else {
+           // 方案A：扩大打击范围，获取名义上最老的3个文件
+           parseableFilesInfo.sort((a,b) => a.date - b.date);
+           let filesToCheck = parseableFilesInfo.slice(0, 3).map(f => f.name);
+           
+           if (unparseableFiles.length > 0) {
+              filesToCheck = filesToCheck.concat(unparseableFiles.slice(0, 3)); // 最多额外检查3个异常文件
+           }
 
-        if (filesToCheck.length > 0) {
-           const charNameForApi = getCurrentCharacterName();
-           for (const file of filesToCheck) {
-              const fileStats = await getChatFileStats(file, characterId, charNameForApi);
-              if (fileStats && fileStats.earliestTime) {
-                 if (!earliestTime || fileStats.earliestTime < earliestTime) {
-                    earliestTime = fileStats.earliestTime;
+           if (filesToCheck.length > 0) {
+              const charNameForApi = getCurrentCharacterName();
+              for (const file of filesToCheck) {
+                 const fileStats = await getChatFileStats(file, characterId, charNameForApi);
+                 if (fileStats && fileStats.earliestTime) {
+                    if (!earliestTime || fileStats.earliestTime < earliestTime) {
+                       earliestTime = fileStats.earliestTime;
+                    }
                  }
               }
+           }
+           
+           // 把首发找到的准确时间写入内存保险箱
+           if (earliestTime) {
+              accurateEncounterTimeCache[characterId] = earliestTime;
            }
         }
 
@@ -732,6 +747,11 @@ jQuery(async () => {
       }
 
       const advanced = calculateAdvancedStats(globalDayMap);
+      
+      // 深度扫描找出了贯穿所有聊天系统的绝对真理，霸道覆盖并永久锁定缓存！
+      if (absoluteEarliestTime) {
+          accurateEncounterTimeCache[characterId] = absoluteEarliestTime;
+      }
 
       return {
         messageCount: totalMessagesCalculated || totalMessagesFromMetadata,
