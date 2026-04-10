@@ -198,7 +198,27 @@ jQuery(async () => {
     }
   }
 
-  // 计算消息的字数 (核心过滤逻辑)
+  // 尝试获取当前用户标识 (用于多用户模式路径)
+  function getUserHandle() {
+    const context = getContext();
+    // 1. 尝试从 context 直接获取
+    if (context.user_handle) return context.user_handle;
+
+    // 2. 尝试从头像 URL 提取
+    const messages = document.querySelectorAll('#chat .mes');
+    for (const msg of messages) {
+       if (msg.getAttribute('is_user') !== 'true') {
+         const avatarImg = msg.querySelector('.avatar img');
+         if (avatarImg && avatarImg.src) {
+           const src = avatarImg.src;
+           // 匹配格式: /characters/user_handle/name.png
+           const match = src.match(/\/characters\/([^\/]+)\//);
+           if (match && match[1] !== 'characters') return match[1];
+         }
+       }
+    }
+    return null;
+  }
   function countWordsInMessage(message) {
     if (!message) return 0;
 
@@ -389,24 +409,47 @@ jQuery(async () => {
   }
 
   // 获取单个聊天文件的统计数据 (带有路径回退逻辑)
-  async function getChatFileStats(fileName) {
+  async function getChatFileStats(fileName, charFolder = null) {
     const context = getContext();
-    const charId = context.characterId;
+    const charId = charFolder || context.characterId;
+    const userHandle = getUserHandle();
     const encodedFileName = encodeURIComponent(fileName);
     let text = null;
 
     // 尝试多种路径策略
     const paths = [];
-    if (charId && typeof charId === 'string' && charId !== '0') {
-      const folderNoExt = charId.includes('.') ? charId.substring(0, charId.lastIndexOf('.')) : charId;
-      paths.push(`/chats/${folderNoExt}/${encodedFileName}`);
-      paths.push(`/chats/${charId}/${encodedFileName}`);
+    
+    // 方案 A: 多用户模式路径 ( /chats/user_handle/character_folder/file )
+    if (userHandle) {
+      if (charId && charId !== '0') {
+        const folderNoExt = String(charId).includes('.') ? String(charId).substring(0, String(charId).lastIndexOf('.')) : charId;
+        paths.push(`/chats/${userHandle}/${encodeURIComponent(folderNoExt)}/${encodedFileName}`);
+        paths.push(`/chats/${userHandle}/${encodeURIComponent(charId)}/${encodedFileName}`);
+      }
+      const characterName = fileName.split(' - ')[0];
+      if (characterName) {
+        paths.push(`/chats/${userHandle}/${encodeURIComponent(characterName)}/${encodedFileName}`);
+      }
+    }
+
+    // 方案 B: 默认/单用户模式路径 ( /chats/character_folder/file )
+    if (charId && charId !== '0') {
+      const folderNoExt = String(charId).includes('.') ? String(charId).substring(0, String(charId).lastIndexOf('.')) : charId;
+      paths.push(`/chats/${encodeURIComponent(folderNoExt)}/${encodedFileName}`);
+      paths.push(`/chats/${encodeURIComponent(charId)}/${encodedFileName}`);
     }
     const characterName = fileName.split(' - ')[0];
     if (characterName) {
       paths.push(`/chats/${encodeURIComponent(characterName)}/${encodedFileName}`);
     }
-    if (DEBUG) console.log(`[StatsDebug] File: ${fileName}, Attempting paths:`, paths);
+    
+    // 方案 C: 强制尝试 default-user (多用户环境下最常见的路径)
+    if (!userHandle || userHandle !== 'default-user') {
+        if (characterName) paths.push(`/chats/default-user/${encodeURIComponent(characterName)}/${encodedFileName}`);
+        if (charId) paths.push(`/chats/default-user/${encodeURIComponent(charId)}/${encodedFileName}`);
+    }
+
+    if (DEBUG) console.log(`[StatsDebug] File: ${fileName}, User: ${userHandle}, Folder: ${charId}, Attempting paths:`, paths);
 
     for (const path of paths) {
       try {
@@ -700,7 +743,8 @@ jQuery(async () => {
         const batchSize = 10;
         for (let i = 0; i < chats.length; i += batchSize) {
           const batch = chats.slice(i, i + batchSize);
-          const results = await Promise.all(batch.map(chat => getChatFileStats(chat.file_name)));
+          // 传递 resolved characterId 作为文件夹猜测基础
+          const results = await Promise.all(batch.map(chat => getChatFileStats(chat.file_name, characterId)));
 
           results.forEach(res => {
             if (res.count > 0 || res.words > 0) {
