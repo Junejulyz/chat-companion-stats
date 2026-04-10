@@ -567,7 +567,7 @@ jQuery(async () => {
   }
 
   // 获取完整的统计数据
-  async function getFullStats(forceDeepScan = false) {
+  async function getFullStats(forceDeepScan = false, onProgress = null) {
     const context = getContext();
     let characterId = context.characterId || context.character_id;
 
@@ -659,10 +659,17 @@ jQuery(async () => {
       let absoluteEarliestUserTime = null;
       const globalDayMap = {};
 
-      const batchSize = 10;
+      const batchSize = 3; // 降低并发数量保护服务器
+      let processedFiles = 0;
       for (let i = 0; i < chats.length; i += batchSize) {
         const batch = chats.slice(i, i + batchSize);
         const results = await Promise.all(batch.map(chat => getChatFileStats(chat.file_name, characterId, charNameForApi)));
+
+        processedFiles += batch.length;
+        if (onProgress && chats.length > 0) {
+          const percent = Math.min(100, Math.floor((processedFiles / chats.length) * 100));
+          onProgress(percent, processedFiles, chats.length);
+        }
 
         results.forEach(res => {
           if (res.count > 0 || res.words > 0) {
@@ -816,12 +823,12 @@ jQuery(async () => {
     }
   }
 
-  async function updateStats(deepScan = false) {
+  async function updateStats(deepScan = false, onProgress = null) {
     if (DEBUG) console.log('Attempting to update stats...');
     const characterName = getCurrentCharacterName();
     $("#ccs-character").text(characterName);
     try {
-      const stats = await getFullStats(deepScan);
+      const stats = await getFullStats(deepScan, onProgress);
       if (DEBUG) console.log('Stats received in updateStats:', stats);
 
       const chatFilesCount = stats.chatFilesCount || 0;
@@ -2026,6 +2033,9 @@ jQuery(async () => {
     const $error = $('#ccs-advanced-error');
     
     // 1. 打开模态框并显示加载状态
+    $('#ccs-advanced-progress-text').text('正在分析回忆...');
+    $('#ccs-advanced-progress-bar').css('width', '0%');
+    
     $loading.show();
     $content.hide();
     $error.hide();
@@ -2035,7 +2045,10 @@ jQuery(async () => {
     try {
       if (DEBUG) console.log("[StatsDebug] View More clicked, triggering deep scan...");
       // 执行深度分析
-      await updateStats(true);
+      await updateStats(true, (percent, current, total) => {
+        $('#ccs-advanced-progress-text').text(`正在分析回忆... ${percent}%`);
+        $('#ccs-advanced-progress-bar').css('width', `${percent}%`);
+      });
       
       if (currentAdvancedStats) {
         $loading.hide();
@@ -2060,6 +2073,7 @@ jQuery(async () => {
   $(document).on('click', '#ccs-advanced-close', function() {
     $('#ccs-advanced-modal').removeClass('ccs-modal-visible').hide();
     $('body').removeClass('ccs-no-scroll');
+    currentAdvancedStats = null; // Memory release
   });
 
   // 点击背景关闭高级统计
@@ -2067,6 +2081,7 @@ jQuery(async () => {
     if (e.target === this) {
       $(this).removeClass('ccs-modal-visible').hide();
       $('body').removeClass('ccs-no-scroll');
+      currentAdvancedStats = null; // Memory release
     }
   });
 

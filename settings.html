@@ -112,7 +112,10 @@
       </div>
       <div class="ccs-advanced-body">
         <div id="ccs-advanced-loading" style="display: none; text-align: center; padding: 20px;">
-          <i class="fa-solid fa-spinner fa-spin"></i> 正在分析回忆...
+          <i class="fa-solid fa-spinner fa-spin"></i> <span id="ccs-advanced-progress-text">正在分析回忆...</span>
+          <div style="width: 100%; height: 4px; background: rgba(128,128,128,0.2); border-radius: 2px; margin-top: 10px; overflow: hidden;">
+            <div id="ccs-advanced-progress-bar" style="width: 0%; height: 100%; background: var(--SmartThemeEmColor); transition: width 0.3s linear;"></div>
+          </div>
         </div>
         <div id="ccs-advanced-content">
           <div class="ccs-advanced-section">
