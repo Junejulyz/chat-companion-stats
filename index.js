@@ -384,17 +384,18 @@ jQuery(async () => {
   }
 
   // 获取单个聊天文件的统计数据 (使用 SillyTavern 官方 API 接口)
-  async function getChatFileStats(fileName, charId) {
-    if (DEBUG) console.log(`[StatsDebug] Requesting chat content via API: ${fileName} for char: ${charId}`);
+  async function getChatFileStats(fileName, charId, charName) {
+    if (DEBUG) console.log(`[StatsDebug] Requesting chat content via API: ${fileName} for char: ${charId}, name: ${charName}`);
     
     let chatData = null;
     try {
-      // 使用官方 API 获取聊天内容，这会自动处理多用户路径和转码问题
+      // 使用官方 API 获取聊天内容，必须包含 ch_name
       const response = await fetch('/api/chats/get', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          avatar_url: charId, // 这里传头像名作为标识
+          ch_name: charName,
+          avatar_url: charId, // 备用标识
           file_name: fileName
         })
       });
@@ -642,6 +643,8 @@ jQuery(async () => {
       // 2. 深度扫描 (基于 API 读取文件)
       if (DEBUG) console.log(`[StatsDebug] Performing Deep Scan for ${chatFilesCount} files...`);
       
+      const charNameForApi = getCurrentCharacterName();
+
       let totalWordsCalculated = 0;
       let totalMessagesCalculated = 0;
       let totalUserMessagesCalculated = 0;
@@ -651,7 +654,7 @@ jQuery(async () => {
       const batchSize = 10;
       for (let i = 0; i < chats.length; i += batchSize) {
         const batch = chats.slice(i, i + batchSize);
-        const results = await Promise.all(batch.map(chat => getChatFileStats(chat.file_name, characterId)));
+        const results = await Promise.all(batch.map(chat => getChatFileStats(chat.file_name, characterId, charNameForApi)));
 
         results.forEach(res => {
           if (res.count > 0 || res.words > 0) {
