@@ -389,6 +389,14 @@ jQuery(async () => {
     
     let chatData = null;
     try {
+      // API expects the filename without the .jsonl extension
+      let cleanFileName = fileName;
+      if (cleanFileName.endsWith('.jsonl')) {
+        cleanFileName = cleanFileName.replace('.jsonl', '');
+      } else if (cleanFileName.endsWith('.json')) {
+        cleanFileName = cleanFileName.replace('.json', '');
+      }
+
       // 使用官方 API 获取聊天内容，必须包含 ch_name
       const response = await fetch('/api/chats/get', {
         method: 'POST',
@@ -396,7 +404,7 @@ jQuery(async () => {
         body: JSON.stringify({
           ch_name: charName,
           avatar_url: charId, // 备用标识
-          file_name: fileName
+          file_name: cleanFileName
         })
       });
 
