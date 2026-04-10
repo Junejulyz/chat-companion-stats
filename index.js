@@ -6,6 +6,7 @@ const extensionWebPath = import.meta.url.replace(/\/index\.js$/, '');
 const DEBUG = true;
 
 jQuery(async () => {
+  if (DEBUG) console.log("[CCStats] Booting...");
   // 加载CSS文件 using dynamic path
   $('head').append(`<link rel="stylesheet" type="text/css" href="${extensionWebPath}/styles.css">`);
 
@@ -45,6 +46,7 @@ jQuery(async () => {
   // 加载HTML using dynamic path with cache buster
   const settingsHtml = await $.get(`${extensionWebPath}/settings.html?v=${Date.now()}`);
   $("#extensions_settings").append(settingsHtml);
+  if (DEBUG) console.log("[CCStats] UI Template loaded.");
   
   // Move modals to body to prevent clipping by parent containers and fix fixed positioning
   $("#ccs-preview-modal, #ccs-global-modal, #ccs-advanced-modal").appendTo("body").removeClass('ccs-modal-visible').hide();
@@ -350,60 +352,31 @@ jQuery(async () => {
     return null;
   }
 
-  // 获取特定文件的第一条消息时间
-  async function getEarliestMessageDate(fileName) {
-    const context = getContext();
-    const charId = context.characterId;
-    const encodedFileName = encodeURIComponent(fileName);
-    let text = null;
+  // 获取特定文件的第一条消息时间 (同步使用 API)
+  async function getEarliestMessageDate(fileName, charId) {
+    try {
+      const response = await fetch('/api/chats/get', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          avatar_url: charId,
+          file_name: fileName
+        })
+      });
 
-    // 尝试多种路径策略 (SillyTavern 不同的版本对聊天文件夹的命名不同)
-    const paths = [];
-
-    // 1. 基于 characterId (头像文件名)
-    if (charId && typeof charId === 'string' && charId !== '0') {
-      // 策略 A: 去掉后缀 (Lucien.png -> Lucien)
-      const folderNoExt = charId.includes('.') ? charId.substring(0, charId.lastIndexOf('.')) : charId;
-      paths.push(`/chats/${folderNoExt}/${encodedFileName}`);
-
-      // 策略 B: 保留后缀 (Lucien.png -> Lucien.png)
-      paths.push(`/chats/${charId}/${encodedFileName}`);
-    }
-
-    // 2. 基于解析出的角色名 (从文件名提取)
-    const characterName = fileName.split(' - ')[0];
-    if (characterName) {
-      paths.push(`/chats/${encodeURIComponent(characterName)}/${encodedFileName}`);
-    }
-
-    // 3. 基于当前显示的名称
-    const currentName = getCurrentCharacterName();
-    if (currentName && currentName !== characterName) {
-      paths.push(`/chats/${encodeURIComponent(currentName)}/${encodedFileName}`);
-    }
-
-    for (const path of paths) {
-      try {
-        const response = await fetch(path, { credentials: 'same-origin' });
-        if (response.ok) {
-          text = await response.text();
-          if (text) break;
+      if (response.ok) {
+        const chatData = await response.json();
+        if (Array.isArray(chatData)) {
+          for (const m of chatData) {
+            if (m && m.send_date) {
+              const date = parseSillyTavernDate(m.send_date);
+              if (date) return date;
+            }
+          }
         }
-      } catch (e) { }
-    }
-
-    if (!text) return null;
-
-    const lines = text.trim().split('\n');
-    for (const line of lines) {
-      if (!line.trim()) continue;
-      try {
-        const m = JSON.parse(line);
-        if (m && m.send_date) {
-          const date = parseSillyTavernDate(m.send_date);
-          if (date) return date;
-        }
-      } catch (e) { }
+      }
+    } catch (e) {
+      if (DEBUG) console.error(`[StatsDebug] Error in getEarliestMessageDate:`, e);
     }
     return null;
   }
@@ -632,7 +605,7 @@ jQuery(async () => {
       const topCandidates = sortedChats.slice(0, 5);
       if (DEBUG) console.log('Top 5 candidates for first encounter:', topCandidates.map(c => c.file_name));
 
-      const candidateResults = await Promise.all(topCandidates.map(c => getEarliestMessageDate(c.file_name)));
+      const candidateResults = await Promise.all(topCandidates.map(c => getEarliestMessageDate(c.file_name, characterId)));
       const peekedEarliest = candidateResults.reduce((min, cur) => {
         if (!cur) return min;
         if (!min) return cur;
@@ -2523,4 +2496,7 @@ jQuery(async () => {
   // =========================================================================
 
   if (DEBUG) console.log("✅ 聊天陪伴统计插件已加载 (自动刷新已启用)");
+  
+  // 初始刷新
+  setTimeout(updateStats, 1000);
 });
