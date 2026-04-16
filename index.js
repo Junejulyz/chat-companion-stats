@@ -359,12 +359,14 @@ jQuery(async () => {
   }
 
   // 获取特定文件的第一条消息时间 (同步使用 API)
-  async function getEarliestMessageDate(fileName, charId) {
+  async function getEarliestMessageDate(fileName, charId, charName) {
     try {
+      // 必须传入 ch_name，否则 SillyTavern API 无法定位文件
       const response = await fetch('/api/chats/get', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
+          ch_name: charName,
           avatar_url: charId,
           file_name: fileName
         })
@@ -680,8 +682,8 @@ jQuery(async () => {
            parseableFilesInfo.sort((a,b) => a.date - b.date);
            let filesToCheck = parseableFilesInfo.slice(0, 3).map(f => f.name);
 
+           const charNameForApi = getCurrentCharacterName();
            if (filesToCheck.length > 0) {
-              const charNameForApi = getCurrentCharacterName();
               for (const file of filesToCheck) {
                  const fileStats = await getChatFileStats(file, characterId, charNameForApi);
                  if (fileStats && fileStats.earliestTime) {
@@ -697,7 +699,7 @@ jQuery(async () => {
            if (unparseableFiles.length > 0) {
               if (DEBUG) console.log(`[StatsDebug] Found ${unparseableFiles.length} renamed/unparseable file(s), checking first message date for each...`);
               for (const file of unparseableFiles) {
-                 const msgDate = await getEarliestMessageDate(file, characterId);
+                 const msgDate = await getEarliestMessageDate(file, characterId, charNameForApi);
                  if (msgDate) {
                     if (!earliestTime || msgDate < earliestTime) {
                        earliestTime = msgDate;
@@ -931,6 +933,23 @@ jQuery(async () => {
         if (DEBUG) console.log('No firstTime but has messages, showing partial data');
         $("#ccs-messages").text(stats.messageCount || 0);
         $("#ccs-words").text(stats.wordCount || 0);
+
+        // 即使没有初遇时间，也要显示回忆大小
+        let formattedSize = '--';
+        if (stats.totalSizeBytes !== undefined && stats.totalSizeBytes >= 0) {
+          const bytes = stats.totalSizeBytes;
+          const kb = bytes / 1024;
+          const mb = kb / 1024;
+          if (mb >= 1) {
+            formattedSize = `${mb.toFixed(2)} MB`;
+          } else if (kb >= 1) {
+            formattedSize = `${kb.toFixed(2)} KB`;
+          } else {
+            formattedSize = `${bytes} B`;
+          }
+        }
+        $("#ccs-total-size").text(formattedSize);
+
         $("#ccs-start").text("未知时间");
         $("#ccs-days").text("--");
         updateActionButtonsState(stats.messageCount);
@@ -2365,7 +2384,7 @@ jQuery(async () => {
              // 对所有被改名的文件，使用轻量API检查第一条消息日期
              if (unparseableFiles.length > 0) {
                for (const file of unparseableFiles) {
-                  const msgDate = await getEarliestMessageDate(file, charId);
+                  const msgDate = await getEarliestMessageDate(file, charId, char.name);
                   if (msgDate) {
                      if (!earliestTime || msgDate < earliestTime) {
                         earliestTime = msgDate;
