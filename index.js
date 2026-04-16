@@ -629,19 +629,22 @@ jQuery(async () => {
       const chats = await getPastCharacterChats(characterId);
       const chatFilesCount = Array.isArray(chats) ? chats.length : 0;
 
-      // 2. 如果当前 ID 是数字，尝试利用列表进行反向修复，确保 API 能用
+      // 2. 如果当前 ID 是数字，尝试修复为正确的 avatar 文件名
       if (!isNaN(characterId) || characterId === '0') {
-         if (chatFilesCount > 0 && chats[0].file_name) {
-            const charNameFromObs = chats[0].file_name.split(' - ')[0];
-            characterId = `${charNameFromObs}.png`;
-            if (DEBUG) console.log(`[StatsDebug] ID upscaled from index to filename: ${characterId}`);
-         } else {
-            // 尝试通过 context 索引修复
-            const chars = context.characters || window.characters || [];
-            const idx = (context.selected_character !== undefined) ? context.selected_character : window.selected_character;
-            if (chars && chars[idx] && chars[idx].avatar) {
-               characterId = chars[idx].avatar;
-               if (DEBUG) console.log(`[StatsDebug] ID upscaled via context index: ${characterId}`);
+         // 优先方案：通过 context 索引直接获取 avatar（最可靠，不受文件改名影响）
+         const chars = context.characters || window.characters || [];
+         const idx = (context.selected_character !== undefined) ? context.selected_character : window.selected_character;
+         if (chars && chars[idx] && chars[idx].avatar) {
+            characterId = chars[idx].avatar;
+            if (DEBUG) console.log(`[StatsDebug] ID upscaled via context avatar: ${characterId}`);
+         } else if (chatFilesCount > 0 && chats[0].file_name) {
+            // 后备方案：从文件名提取（仅当文件名包含标准 " - " 分隔符时才可靠）
+            const parts = chats[0].file_name.split(' - ');
+            if (parts.length >= 2) {
+               characterId = `${parts[0]}.png`;
+               if (DEBUG) console.log(`[StatsDebug] ID upscaled from filename: ${characterId}`);
+            } else {
+               if (DEBUG) console.warn(`[StatsDebug] Cannot upscale ID: file "${chats[0].file_name}" has no standard delimiter`);
             }
          }
       }
