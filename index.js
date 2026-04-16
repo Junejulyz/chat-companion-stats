@@ -917,14 +917,23 @@ jQuery(async () => {
       // 始终显示字数估算提示
       $("#ccs-tip").show();
 
-      if (!stats.firstTime) {
-        if (DEBUG) console.log('No firstTime found in stats, zeroing UI');
+      if (!stats.firstTime && (!stats.messageCount || stats.messageCount === 0)) {
+        // 只有当 firstTime 和 messageCount 都为空时，才认定为真正的"尚未互动"
+        if (DEBUG) console.log('No firstTime AND no messages, zeroing UI');
         $("#ccs-messages").text("0");
         $("#ccs-words").text("0");
         $("#ccs-total-size").text("0 B");
         $("#ccs-start").text("尚未互动");
         $("#ccs-days").text("0");
         updateActionButtonsState(0);
+      } else if (!stats.firstTime) {
+        // firstTime 未知但有消息数据 —— 显示有效数据，日期标记为未知
+        if (DEBUG) console.log('No firstTime but has messages, showing partial data');
+        $("#ccs-messages").text(stats.messageCount || 0);
+        $("#ccs-words").text(stats.wordCount || 0);
+        $("#ccs-start").text("未知时间");
+        $("#ccs-days").text("--");
+        updateActionButtonsState(stats.messageCount);
       } else {
         // 更新统计数据到UI
         $("#ccs-messages").text(stats.messageCount || 0);
@@ -2339,9 +2348,8 @@ jQuery(async () => {
              earliestTime = accurateEncounterTimeCache[charId];
           } else {
              parseableFilesInfo.sort((a,b) => a.date - b.date);
-             // 全局扫描要求速度极快，只查名义上最老的2个文件
+             // 全局扫描：对最老的2个可解析文件进行完整统计
              let filesToCheck = parseableFilesInfo.slice(0, 2).map(f => f.name); 
-             if (unparseableFiles.length > 0) filesToCheck = filesToCheck.concat(unparseableFiles.slice(0, 2));
 
              if (filesToCheck.length > 0) {
                for (const file of filesToCheck) {
@@ -2352,8 +2360,21 @@ jQuery(async () => {
                      }
                   }
                }
-               if (earliestTime) accurateEncounterTimeCache[charId] = earliestTime;
              }
+
+             // 对所有被改名的文件，使用轻量API检查第一条消息日期
+             if (unparseableFiles.length > 0) {
+               for (const file of unparseableFiles) {
+                  const msgDate = await getEarliestMessageDate(file, charId);
+                  if (msgDate) {
+                     if (!earliestTime || msgDate < earliestTime) {
+                        earliestTime = msgDate;
+                     }
+                  }
+               }
+             }
+
+             if (earliestTime) accurateEncounterTimeCache[charId] = earliestTime;
           }
 
           let days = 0;
