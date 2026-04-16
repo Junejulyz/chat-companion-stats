@@ -633,7 +633,10 @@ jQuery(async () => {
       if (!isNaN(characterId) || characterId === '0') {
          // 优先方案：通过 context 索引直接获取 avatar（最可靠，不受文件改名影响）
          const chars = context.characters || window.characters || [];
-         const idx = (context.selected_character !== undefined) ? context.selected_character : window.selected_character;
+         // characterId 本身就是数字索引，当 selected_character 不可用时直接用它
+         const idx = (context.selected_character !== undefined) ? context.selected_character 
+                   : (window.selected_character !== undefined) ? window.selected_character 
+                   : parseInt(characterId);
          if (chars && chars[idx] && chars[idx].avatar) {
             characterId = chars[idx].avatar;
             if (DEBUG) console.log(`[StatsDebug] ID upscaled via context avatar: ${characterId}`);
