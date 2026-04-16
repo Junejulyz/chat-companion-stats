@@ -358,33 +358,67 @@ jQuery(async () => {
     return null;
   }
 
-  // 获取特定文件的第一条消息时间 (同步使用 API)
+  // 获取特定文件的第一条消息时间 (轻量版API调用)
   async function getEarliestMessageDate(fileName, charId, charName) {
     try {
-      // 必须传入 ch_name，否则 SillyTavern API 无法定位文件
+      // API 要求不带扩展名的文件名（与 getChatFileStats 一致）
+      let cleanFileName = fileName;
+      if (cleanFileName.endsWith('.jsonl')) {
+        cleanFileName = cleanFileName.replace('.jsonl', '');
+      } else if (cleanFileName.endsWith('.json')) {
+        cleanFileName = cleanFileName.replace('.json', '');
+      }
+
+      if (DEBUG) console.log(`[StatsDebug] getEarliestMessageDate: requesting "${cleanFileName}" for char: ${charName}`);
+
       const response = await fetch('/api/chats/get', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           ch_name: charName,
           avatar_url: charId,
-          file_name: fileName
+          file_name: cleanFileName
         })
       });
 
-      if (response.ok) {
-        const chatData = await response.json();
-        if (Array.isArray(chatData)) {
-          for (const m of chatData) {
-            if (m && m.send_date) {
-              const date = parseSillyTavernDate(m.send_date);
-              if (date) return date;
-            }
+      if (!response.ok) {
+        if (DEBUG) console.warn(`[StatsDebug] getEarliestMessageDate: API returned ${response.status} for "${cleanFileName}"`);
+        return null;
+      }
+
+      const chatData = await response.json();
+
+      // 兼容多种返回格式（与 getChatFileStats 一致的解析逻辑）
+      let messagesArray = [];
+      if (Array.isArray(chatData)) {
+        messagesArray = chatData;
+      } else if (chatData && typeof chatData === 'object') {
+        if (Array.isArray(chatData.chat)) {
+          messagesArray = chatData.chat;
+        } else if (Array.isArray(chatData.messages)) {
+          messagesArray = chatData.messages;
+        } else {
+          messagesArray = Object.values(chatData).filter(item => item && typeof item === 'object' && (item.mes !== undefined || item.is_user !== undefined));
+        }
+      }
+
+      if (DEBUG) console.log(`[StatsDebug] getEarliestMessageDate: got ${messagesArray.length} messages from "${cleanFileName}"`);
+
+      // 遍历所有消息找到最早的日期
+      let earliestDate = null;
+      for (const m of messagesArray) {
+        if (m && m.send_date) {
+          const date = parseSillyTavernDate(m.send_date);
+          if (date && (!earliestDate || date < earliestDate)) {
+            earliestDate = date;
           }
         }
       }
+
+      if (DEBUG && earliestDate) console.log(`[StatsDebug] getEarliestMessageDate: found date ${earliestDate.toISOString()} in "${cleanFileName}"`);
+      return earliestDate;
     } catch (e) {
-      if (DEBUG) console.error(`[StatsDebug] Error in getEarliestMessageDate:`, e);
+      if (DEBUG) console.error(`[StatsDebug] Error in getEarliestMessageDate for "${fileName}":`, e);
     }
     return null;
   }
