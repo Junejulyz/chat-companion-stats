@@ -676,13 +676,9 @@ jQuery(async () => {
            // 方案B：直接调用曾经找到的那个锁定好的绝对真理，防止被回退
            earliestTime = accurateEncounterTimeCache[characterId];
         } else {
-           // 方案A：扩大打击范围，获取名义上最老的3个文件
+           // 方案A：扩大打击范围，获取名义上最老的3个文件（完整统计）
            parseableFilesInfo.sort((a,b) => a.date - b.date);
            let filesToCheck = parseableFilesInfo.slice(0, 3).map(f => f.name);
-           
-           if (unparseableFiles.length > 0) {
-              filesToCheck = filesToCheck.concat(unparseableFiles.slice(0, 3)); // 最多额外检查3个异常文件
-           }
 
            if (filesToCheck.length > 0) {
               const charNameForApi = getCurrentCharacterName();
@@ -691,6 +687,21 @@ jQuery(async () => {
                  if (fileStats && fileStats.earliestTime) {
                     if (!earliestTime || fileStats.earliestTime < earliestTime) {
                        earliestTime = fileStats.earliestTime;
+                    }
+                 }
+              }
+           }
+
+           // 针对被用户改名的文件（无法从文件名解析日期的），使用轻量API逐一检查第一条消息的日期
+           // 这里检查所有改名文件，因为真正的最早聊天可能就藏在其中
+           if (unparseableFiles.length > 0) {
+              if (DEBUG) console.log(`[StatsDebug] Found ${unparseableFiles.length} renamed/unparseable file(s), checking first message date for each...`);
+              for (const file of unparseableFiles) {
+                 const msgDate = await getEarliestMessageDate(file, characterId);
+                 if (msgDate) {
+                    if (!earliestTime || msgDate < earliestTime) {
+                       earliestTime = msgDate;
+                       if (DEBUG) console.log(`[StatsDebug] Found earlier date from renamed file "${file}": ${msgDate.toISOString()}`);
                     }
                  }
               }
