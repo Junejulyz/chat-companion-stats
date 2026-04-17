@@ -2192,7 +2192,7 @@ jQuery(async () => {
   updateStats(); // Keep initial update on load
 
   // 风格切换处理 (在预览窗口中)
-  $(document).on('change', '#ccs-style-select', async function () {
+  $("#ccs-style-select").on('change', async function () {
     shareStyle = $(this).val();
     localStorage.setItem('ccs-share-style', shareStyle); // 保存用户选择到 localStorage
     if (DEBUG) console.log('Selected style changed (dropdown):', shareStyle);
@@ -2279,14 +2279,14 @@ jQuery(async () => {
     }
   });
 
-  $(document).on('click', '#ccs-advanced-close', function() {
+  $("#ccs-advanced-close").on('click', function() {
     $('#ccs-advanced-modal').removeClass('ccs-modal-visible').hide();
     $('body').removeClass('ccs-no-scroll');
     currentAdvancedStats = null; // Memory release
   });
 
   // 点击背景关闭高级统计
-  $(document).on('click', '#ccs-advanced-modal', function(e) {
+  $("#ccs-advanced-modal").on('click', function(e) {
     if (e.target === this) {
       $(this).removeClass('ccs-modal-visible').hide();
       $('body').removeClass('ccs-no-scroll');
@@ -2685,10 +2685,10 @@ jQuery(async () => {
     // 直接操作 class 或用回原来的逻辑并发处理
   }
 
-  $(document).on('click', '#ccs-global-close', closeAndClearGlobalModal);
+  $("#ccs-global-close").on('click', closeAndClearGlobalModal);
   
   // 点击遮罩层空白处关闭
-  $(document).on('click', '#ccs-global-modal', function (e) {
+  $("#ccs-global-modal").on('click', function (e) {
     if (e.target === this) {
       closeAndClearGlobalModal();
     }
