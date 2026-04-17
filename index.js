@@ -1531,18 +1531,19 @@ jQuery(async () => {
       ctx.textAlign = 'center';
       ctx.textBaseline = 'top';
 
-      // 角色名往上往右移动一些 (x由500变525, y由70变45)
-      const charNameX = 525 * scaleFactor;
-      const charNameY = 45 * scaleFactor;
+      // 角色名再往右 56px (525+56=581), 往上 6px (45-6=39)
+      const charNameX = 581 * scaleFactor;
+      const charNameY = 39 * scaleFactor;
       
       // 绘制角色名
       ctx.font = `400 ${150 * scaleFactor}px "PING FANG GONG ZI TI", "Long Cang", sans-serif`;
       drawVerticalText(ctx, charName || "角色名", charNameX, charNameY, 160 * scaleFactor);
 
-      // 格子中心点坐标整体往左移动 74px
-      // 原坐标: [540.5, 461.5, 384.5, 306.0, 226.0, 144.5]
-      const gridCenters = [466.5, 387.5, 310.5, 232.0, 152.0, 70.5].map(x => x * scaleFactor);
-      const statYStart = 130 * scaleFactor; 
+      // 调整格子中心点: 
+      // 对话(idx 1)不变, 相伴(idx 2)左移4px (310.5->306.5), 
+      // 字数(idx 3)左移6px (232.0->226.0), 忆存(idx 4)左移8px (152.0->144.0)
+      const gridCenters = [466.5, 387.5, 306.5, 226.0, 144.0, 70.5].map(x => x * scaleFactor);
+      const statYStart = 136 * scaleFactor; // 整体往下 6px (130->136)
 
       // 绘制各项数据 (字号稍微变小一点点 52->48)
       const statFontSize = 48 * scaleFactor;
