@@ -2403,8 +2403,11 @@ jQuery(async () => {
           }
 
           // 全局排行：运用精准打击与缓存共享策略统一时间
-          if (accurateEncounterTimeCache[charId]) {
-             earliestTime = accurateEncounterTimeCache[charId];
+          // 关键修复：API 调用必须使用 char.avatar（如 "character.png"）而非 charId（数组索引 "0","1"...）
+          // 否则 /api/chats/get 无法定位正确的聊天文件目录，导致改名文件的初遇时间丢失
+          const avatarForApi = char.avatar;
+          if (accurateEncounterTimeCache[avatarForApi]) {
+             earliestTime = accurateEncounterTimeCache[avatarForApi];
           } else {
              parseableFilesInfo.sort((a,b) => a.date - b.date);
              // 全局扫描：对最老的2个可解析文件进行完整统计
@@ -2412,7 +2415,7 @@ jQuery(async () => {
 
              if (filesToCheck.length > 0) {
                for (const file of filesToCheck) {
-                  const fileStats = await getChatFileStats(file, charId, char.name);
+                  const fileStats = await getChatFileStats(file, avatarForApi, char.name);
                   if (fileStats && fileStats.earliestTime) {
                      if (!earliestTime || fileStats.earliestTime < earliestTime) {
                         earliestTime = fileStats.earliestTime;
@@ -2424,7 +2427,7 @@ jQuery(async () => {
              // 对所有被改名的文件，使用轻量API检查第一条消息日期
              if (unparseableFiles.length > 0) {
                for (const file of unparseableFiles) {
-                  const msgDate = await getEarliestMessageDate(file, charId, char.name);
+                  const msgDate = await getEarliestMessageDate(file, avatarForApi, char.name);
                   if (msgDate) {
                      if (!earliestTime || msgDate < earliestTime) {
                         earliestTime = msgDate;
@@ -2433,7 +2436,7 @@ jQuery(async () => {
                }
              }
 
-             if (earliestTime) accurateEncounterTimeCache[charId] = earliestTime;
+             if (earliestTime) accurateEncounterTimeCache[avatarForApi] = earliestTime;
           }
 
           let days = 0;
