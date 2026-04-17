@@ -58,6 +58,11 @@ jQuery(async () => {
   // Move modals to body to prevent clipping by parent containers and fix fixed positioning
   $("#ccs-preview-modal, #ccs-global-modal, #ccs-advanced-modal").appendTo("body").removeClass('ccs-modal-visible').hide();
 
+  // 阻止事件冒泡，防止点击模态框时触发 ST 原生的“点击外部关闭扩展面板”逻辑
+  $("#ccs-preview-modal, #ccs-global-modal, #ccs-advanced-modal").on('pointerdown pointerup click', function(e) {
+    e.stopPropagation();
+  });
+
   // 同步下拉框的选择状态
   $("#ccs-style-select").val(shareStyle);
 
