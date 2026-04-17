@@ -44,6 +44,7 @@ jQuery(async () => {
   // 从 localStorage 加载上次选择的风格，默认为 'modern-light'
   let shareStyle = localStorage.getItem('ccs-share-style') || 'modern-light';
   let currentAdvancedStats = null;
+  let lastDeepScanPartial = false; // 记录上次深度扫描是否有部分文件失败
   // 核心功能：全局缓存准确的初遇时间，避免在扫描模式间切换时发生横跳
   const accurateEncounterTimeCache = {};
   // 核心功能：全局缓存准确的字数/体积比，校准估算系统
@@ -343,11 +344,40 @@ jQuery(async () => {
     };
   }
 
+  // 带超时和重试的 fetch 封装
+  async function fetchWithTimeout(url, options = {}, timeoutMs = 30000) {
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), timeoutMs);
+    try {
+      const response = await fetch(url, { ...options, signal: controller.signal });
+      clearTimeout(timeoutId);
+      return response;
+    } catch (e) {
+      clearTimeout(timeoutId);
+      throw e;
+    }
+  }
+
+  async function fetchWithRetry(url, options = {}, retries = 1, timeoutMs = 30000) {
+    for (let attempt = 0; attempt <= retries; attempt++) {
+      try {
+        return await fetchWithTimeout(url, options, timeoutMs);
+      } catch (e) {
+        if (attempt < retries) {
+          if (DEBUG) console.log(`[StatsDebug] Fetch attempt ${attempt + 1} failed, retrying...`);
+          await new Promise(r => setTimeout(r, 500)); // 短暂等待后重试
+        } else {
+          throw e;
+        }
+      }
+    }
+  }
+
   // 构建针对特定路径的 fetch 请求
   async function fetchChatFile(path) {
     try {
       if (DEBUG) console.log(`Attempting fetch: ${path}`);
-      const response = await fetch(path, { credentials: 'same-origin' });
+      const response = await fetchWithTimeout(path, { credentials: 'same-origin' });
       if (response.ok) {
         return await response.text();
       }
@@ -371,7 +401,7 @@ jQuery(async () => {
 
       if (DEBUG) console.log(`[StatsDebug] getEarliestMessageDate: requesting "${cleanFileName}" for char: ${charName}`);
 
-      const response = await fetch('/api/chats/get', {
+      const response = await fetchWithRetry('/api/chats/get', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -379,7 +409,7 @@ jQuery(async () => {
           avatar_url: charId,
           file_name: cleanFileName
         })
-      });
+      }, 1, 30000);
 
       if (!response.ok) {
         if (DEBUG) console.warn(`[StatsDebug] getEarliestMessageDate: API returned ${response.status} for "${cleanFileName}"`);
@@ -438,7 +468,7 @@ jQuery(async () => {
       }
 
       // 使用官方 API 获取聊天内容，必须包含 ch_name
-      const response = await fetch('/api/chats/get', {
+      const response = await fetchWithRetry('/api/chats/get', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -446,7 +476,7 @@ jQuery(async () => {
           avatar_url: charId, // 备用标识
           file_name: cleanFileName
         })
-      });
+      }, 1, 30000);
 
       if (DEBUG) console.log(`[StatsDebug] API Response Status: ${response.status}`);
       
@@ -779,6 +809,7 @@ jQuery(async () => {
 
       const batchSize = 3; // 降低并发数量保护服务器
       let processedFiles = 0;
+      let failedFiles = 0;
       for (let i = 0; i < chats.length; i += batchSize) {
         const batch = chats.slice(i, i + batchSize);
         const results = await Promise.all(batch.map(chat => getChatFileStats(chat.file_name, characterId, charNameForApi)));
@@ -802,9 +833,13 @@ jQuery(async () => {
             if (res.earliestTime && (!absoluteEarliestTime || res.earliestTime < absoluteEarliestTime)) {
               absoluteEarliestTime = res.earliestTime;
             }
+          } else {
+            failedFiles++;
           }
         });
       }
+
+      if (DEBUG) console.log(`[StatsDebug] Deep scan done: ${processedFiles - failedFiles} succeeded, ${failedFiles} failed out of ${processedFiles}`);
 
       const advanced = calculateAdvancedStats(globalDayMap);
       
@@ -825,7 +860,10 @@ jQuery(async () => {
         totalDuration: totalDurationSeconds,
         totalSizeBytes: totalSizeBytesRaw,
         chatFilesCount,
-        advanced
+        advanced,
+        deepScanPartial: failedFiles > 0,
+        deepScanFailed: failedFiles,
+        deepScanTotal: processedFiles
       };
     } catch (error) {
       if (DEBUG) console.error('[StatsDebug] getFullStats error:', error);
@@ -1037,6 +1075,7 @@ jQuery(async () => {
         $("#ccs-days").text(days);
         // 保存高级统计数据
         currentAdvancedStats = stats.advanced;
+        lastDeepScanPartial = stats.deepScanPartial || false;
         // Pass messageCount to the state function
         updateActionButtonsState(stats.messageCount);
       }
@@ -2211,14 +2250,27 @@ jQuery(async () => {
         $('#ccs-longest-streak').html(`${currentAdvancedStats.longestStreak} <span class="ccs-advanced-unit">天</span>`);
         $('#ccs-peak-date').text(currentAdvancedStats.peakDate || '--');
         $('#ccs-peak-count').html(`${currentAdvancedStats.peakCount} <span class="ccs-advanced-unit">条消息</span>`);
+
+        // 如果是部分数据，显示温和提示
+        if (lastDeepScanPartial) {
+          $error.html('部分聊天记录读取超时，当前为不完整统计。点击刷新可重试。').css('color', 'var(--SmartThemeEmColor)').show();
+        }
       } else {
-        $loading.hide();
-        $error.show();
+        // 即使高级统计为空，尝试显示基础统计信息
+        const basicMessages = parseInt($('#ccs-messages').text(), 10) || 0;
+        if (basicMessages > 1) {
+          $loading.hide();
+          // 有基础数据但深度扫描全部失败
+          $error.html('聊天记录数据量较大，详细统计读取失败。<br>这不影响基础统计功能，请稍后再试。').show();
+        } else {
+          $loading.hide();
+          $error.html('当前没有足够的互动数据来计算详细统计。').show();
+        }
       }
     } catch (e) {
       if (DEBUG) console.error("[StatsDebug] Deep scan failed:", e);
       $loading.hide();
-      $error.show();
+      $error.html('分析过程出现异常，请稍后再试。').show();
     }
   });
 
