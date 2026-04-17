@@ -1346,13 +1346,16 @@ jQuery(async () => {
           newLabel = '初见';
           const rawText = $("#ccs-start").text().replace(/点/g, ':').replace(/分/g, '').replace(/-/g, '/');
           const dt = new Date(rawText);
+          const cDigit = d => ['零', '壹', '贰', '叁', '肆', '伍', '陆', '柒', '捌', '玖'][parseInt(d)];
           if (!isNaN(dt.getTime())) {
-            newValue = `${toChineseNumber(dt.getFullYear())}年${toChineseNumber(dt.getMonth()+1)}月${toChineseNumber(dt.getDate())}日`;
+            const yearStr = dt.getFullYear().toString().split('').map(cDigit).join('');
+            newValue = `${yearStr}年${toChineseNumber(dt.getMonth()+1)}月${toChineseNumber(dt.getDate())}日`;
           } else {
             // Some fallback if it cannot be parsed as a valid date
             const match = rawText.match(/(\d{4}).*?(\d{1,2}).*?(\d{1,2})/);
             if (match) {
-               newValue = `${toChineseNumber(parseInt(match[1]))}年${toChineseNumber(parseInt(match[2]))}月${toChineseNumber(parseInt(match[3]))}日`;
+               const yearStr = match[1].split('').map(cDigit).join('');
+               newValue = `${yearStr}年${toChineseNumber(parseInt(match[2]))}月${toChineseNumber(parseInt(match[3]))}日`;
             } else {
                newValue = rawText === '尚未互动' ? '尚未互动' : '未知';
             }
@@ -1368,8 +1371,8 @@ jQuery(async () => {
           s.unit = '日';
         } else if (s.id === 'ccs-share-words') {
           newLabel = '字数';
-          newValue = toChineseNumber(parseInt(s.value.replace(/,/g, '')) || 0);
-          s.unit = '字';
+          newValue = '约' + toChineseNumber(parseInt(s.value.replace(/,/g, '')) || 0);
+          s.unit = '';
         } else if (s.id === 'ccs-share-size') {
           newLabel = '忆存';
           const totalSizeRaw = $("#ccs-total-size").text();
@@ -1430,6 +1433,7 @@ jQuery(async () => {
     ctx.save();
     if (shareStyle === 'ancient') {
        // ancient style doesn't need border radius
+       ctx.beginPath();
        ctx.rect(0, 0, width, dynamicHeight);
     } else {
        roundRect(0, 0, width, dynamicHeight, 16 * scaleFactor, false, false);
@@ -1444,11 +1448,12 @@ jQuery(async () => {
 
         // Trigger font loading
         const fontPromises = [
-          document.fonts.load(`400 32px "LXGW Neo XiHei"`, charName + statChars + '初遇'),
+          document.fonts.load(`400 32px "LXGW Neo XiHei"`, charName + statChars + '初遇初见'),
           document.fonts.load(`700 32px "LXGW Neo XiHei"`, statChars),
           document.fonts.load(`400 32px "PING FANG SHAO HUA"`, statChars),
-          document.fonts.load(`400 32px "Cubic 11"`, charName + statChars + '初遇'),
-          document.fonts.load(`400 48px "Long Cang"`, '初遇')
+          document.fonts.load(`400 32px "Cubic 11"`, charName + statChars + '初遇初见'),
+          document.fonts.load(`400 48px "Long Cang"`, '初遇初见'),
+          document.fonts.load(`400 32px "PING FANG GONG ZI TI"`, charName + statChars + '初见对话相伴字数忆存')
         ];
 
         // Wait for fonts to load, with a timeout to prevent hanging forever
@@ -1536,19 +1541,26 @@ jQuery(async () => {
       const startY = 140 * scaleFactor;
       
       // 绘制角色名
-      ctx.font = `400 ${120 * scaleFactor}px "PING FANG GONG ZI TI", "Long Cang", sans-serif`;
-      drawVerticalText(ctx, charName || "角色名", startX, startY, 130 * scaleFactor);
+      // 古风排版参数调整
+      // 角色名在最右侧两个格子之间，且偏上
+      const rightMargin = 85 * scaleFactor; // 最右侧第一个格子的中心点X距离右边缘的距离
+      const statXGap = 65 * scaleFactor; // 每个格子的水平间距
+      const statXStart = width - rightMargin; // 第一个格子的中心X
+      const statYStart = 160 * scaleFactor; // 数据的起始Y
+      
+      const nameX = statXStart - (statXGap / 2); // 最右两个格子中间
+      const nameY = 80 * scaleFactor; // 偏上，超出格子
+      
+      ctx.fillStyle = '#000000';
+      ctx.font = `400 ${125 * scaleFactor}px "PING FANG GONG ZI TI", "Long Cang", sans-serif`;
+      drawVerticalText(ctx, charName || "角色名", nameX, nameY, 130 * scaleFactor);
 
-      // 绘制各项数据 (从右向左依次排列)
-      const statXStart = startX - 100 * scaleFactor;
-      const statYStart = startY + 10 * scaleFactor; // 稍微靠下一点
-      const statXGap = 65 * scaleFactor;
-
-      ctx.font = `400 ${43 * scaleFactor}px "PING FANG GONG ZI TI", "LXGW Neo XiHei", sans-serif`; 
+      // 从右往左绘制各项数据
+      ctx.font = `400 ${45 * scaleFactor}px "PING FANG GONG ZI TI", "LXGW Neo XiHei", sans-serif`; 
       stats.forEach((stat, i) => {
          const cx = statXStart - i * statXGap;
          let textToDraw = `${stat.label}  ${stat.value}${stat.unit}`; // 两个空格拉开距离
-         drawVerticalText(ctx, textToDraw, cx, statYStart, 50 * scaleFactor);
+         drawVerticalText(ctx, textToDraw, cx, statYStart, 55 * scaleFactor);
       });
       ctx.restore();
     } else {
@@ -2317,7 +2329,7 @@ jQuery(async () => {
       $container.html('<p style="color:red; padding: 20px;">生成分享图片失败，请检查控制台。</p>');
     } finally {
       setTimeout(() => {
-        $button.prop('disabled', false).val('分享');
+        $button.prop('disabled', false).val('生成卡片');
       }, 1000);
     }
   });
