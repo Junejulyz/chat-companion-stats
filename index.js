@@ -59,7 +59,8 @@ jQuery(async () => {
   $("#ccs-preview-modal, #ccs-global-modal, #ccs-advanced-modal").appendTo("body").removeClass('ccs-modal-visible').hide();
 
   // 阻止事件冒泡，防止点击模态框时触发 ST 原生的“点击外部关闭扩展面板”逻辑
-  $("#ccs-preview-modal, #ccs-global-modal, #ccs-advanced-modal").on('pointerdown pointerup click', function(e) {
+  // 增加 mousedown, mouseup, touchstart, touchend 确保全平台所有可能的触发事件都被拦截
+  $("#ccs-preview-modal, #ccs-global-modal, #ccs-advanced-modal").on('pointerdown pointerup mousedown mouseup touchstart touchend click', function(e) {
     e.stopPropagation();
   });
 
@@ -2629,7 +2630,7 @@ jQuery(async () => {
   });
 
   // 绑定 Tab 切换事件
-  $(document).on('click', '.ccs-tab', function () {
+  $("#ccs-global-modal").on('click', '.ccs-tab', function () {
     if ($(this).hasClass('active')) return;
     
     $('.ccs-tab').removeClass('active');
@@ -2644,7 +2645,7 @@ jQuery(async () => {
   });
 
   // 绑定全局排行分享按钮事件
-  $(document).on('click', '#ccs-global-share-btn', async function () {
+  $("#ccs-global-modal").on('click', '#ccs-global-share-btn', async function () {
     const $button = $(this);
     if ($button.hasClass('loading') || $button.hasClass('disabled')) return;
     
