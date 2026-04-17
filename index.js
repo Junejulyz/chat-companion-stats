@@ -1531,7 +1531,9 @@ jQuery(async () => {
       ctx.textAlign = 'center';
       ctx.textBaseline = 'top';
 
-      // 角色名字号 120px (从150px缩小)
+      // 角色名位置与字号 (120px)
+      const charNameX = 581 * scaleFactor;
+      const charNameY = 39 * scaleFactor;
       ctx.font = `400 ${120 * scaleFactor}px "PING FANG GONG ZI TI", "Long Cang", sans-serif`;
       drawVerticalText(ctx, charName || "角色名", charNameX, charNameY, 130 * scaleFactor);
 
