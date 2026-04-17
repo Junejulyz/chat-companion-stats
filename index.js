@@ -1155,15 +1155,15 @@ jQuery(async () => {
 
   function toChineseNumber(num) {
     if (num === 0) return '零';
-    const numChars = ['零', '一', '二', '三', '四', '五', '六', '七', '八', '九'];
+    const numChars = ['零', '壹', '贰', '叁', '肆', '伍', '陆', '柒', '捌', '玖'];
     let result = '';
     
     if (num < 100) {
         if (num < 10) return numChars[num];
         const tens = Math.floor(num / 10);
         const ones = num % 10;
-        if (tens === 1) result = '十';
-        else result = numChars[tens] + '十';
+        if (tens === 1) result = '拾';
+        else result = numChars[tens] + '拾';
         if (ones > 0) result += numChars[ones];
         return result;
     }
@@ -1171,21 +1171,21 @@ jQuery(async () => {
         let wan = Math.floor(num / 10000);
         let qian = Math.floor((num % 10000) / 1000);
         let res = '约' + toChineseNumber(wan) + '万';
-        if (qian > 0) res += numChars[qian] + '千';
+        if (qian > 0) res += numChars[qian] + '仟';
         return res;
     }
     if (num >= 1000) {
         let qian = Math.floor(num / 1000);
         let bai = Math.floor((num % 1000) / 100);
-        let res = '约' + numChars[qian] + '千';
-        if (bai > 0) res += numChars[bai] + '百';
+        let res = '约' + numChars[qian] + '仟';
+        if (bai > 0) res += numChars[bai] + '佰';
         return res;
     }
     if (num >= 100) {
         let bai = Math.floor(num / 100);
         let shi = Math.floor((num % 100) / 10);
-        let res = numChars[bai] + '百';
-        if (shi > 0) res += numChars[shi] + '十';
+        let res = numChars[bai] + '佰';
+        if (shi > 0) res += numChars[shi] + '拾';
         return res;
     }
     return result;
@@ -1198,6 +1198,7 @@ jQuery(async () => {
     const val = parseFloat(match[1]);
     const unit = match[2].toUpperCase();
     if (unit === 'MB') {
+        if (val < 1) return '不到壹兆';
         return toChineseNumber(Math.floor(val)) + '兆余';
     } else if (unit === 'GB') {
         return toChineseNumber(Math.floor(val * 1024)) + '兆余';
@@ -1532,22 +1533,22 @@ jQuery(async () => {
 
       const rightMargin = 120 * scaleFactor;
       const startX = width - rightMargin; 
-      const startY = 160 * scaleFactor;
+      const startY = 140 * scaleFactor;
       
-      // 绘制角色名 (Long Cang 字体)
-      ctx.font = `400 ${48 * scaleFactor}px "Long Cang", "LXGW Neo XiHei", sans-serif`;
-      drawVerticalText(ctx, charName || "角色名", startX, startY, 52 * scaleFactor);
+      // 绘制角色名
+      ctx.font = `400 ${120 * scaleFactor}px "PING FANG GONG ZI TI", "Long Cang", sans-serif`;
+      drawVerticalText(ctx, charName || "角色名", startX, startY, 130 * scaleFactor);
 
       // 绘制各项数据 (从右向左依次排列)
-      const statXStart = startX - 70 * scaleFactor;
-      const statYStart = startY;
+      const statXStart = startX - 100 * scaleFactor;
+      const statYStart = startY + 10 * scaleFactor; // 稍微靠下一点
       const statXGap = 65 * scaleFactor;
 
-      ctx.font = `400 ${28 * scaleFactor}px "LXGW Neo XiHei", sans-serif`; // 正文字体小一点
+      ctx.font = `400 ${43 * scaleFactor}px "PING FANG GONG ZI TI", "LXGW Neo XiHei", sans-serif`; 
       stats.forEach((stat, i) => {
          const cx = statXStart - i * statXGap;
          let textToDraw = `${stat.label}  ${stat.value}${stat.unit}`; // 两个空格拉开距离
-         drawVerticalText(ctx, textToDraw, cx, statYStart, 32 * scaleFactor);
+         drawVerticalText(ctx, textToDraw, cx, statYStart, 50 * scaleFactor);
       });
       ctx.restore();
     } else {
