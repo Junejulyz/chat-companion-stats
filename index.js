@@ -1,7 +1,7 @@
 console.log("[CCStats] Script source file loaded.");
 window.ccs_loaded = true;
 import { getContext } from "../../../extensions.js";
-import { getPastCharacterChats } from '../../../../script.js';
+import { getPastCharacterChats, getRequestHeaders } from '../../../../script.js';
 
 const extensionName = "chat-companion-stats";
 const extensionWebPath = import.meta.url.replace(/\/index\.js$/, '');
@@ -403,7 +403,7 @@ jQuery(async () => {
 
       const response = await fetchWithRetry('/api/chats/get', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: Object.assign({ 'Content-Type': 'application/json' }, typeof getRequestHeaders === 'function' ? getRequestHeaders() : {}),
         body: JSON.stringify({
           ch_name: charName,
           avatar_url: charId,
@@ -470,7 +470,7 @@ jQuery(async () => {
       // 使用官方 API 获取聊天内容，必须包含 ch_name
       const response = await fetchWithRetry('/api/chats/get', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: Object.assign({ 'Content-Type': 'application/json' }, typeof getRequestHeaders === 'function' ? getRequestHeaders() : {}),
         body: JSON.stringify({
           ch_name: charName,
           avatar_url: charId, // 备用标识
