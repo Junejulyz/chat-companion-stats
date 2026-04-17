@@ -1438,8 +1438,8 @@ jQuery(async () => {
     // 尝试加载字体并等待加载完成
     try {
       if (document.fonts) {
-        // Extract all unique characters from stats to ensure subsetted fonts load them
-        const statChars = Array.from(new Set(statsItems.map(s => (s.label + s.value + (s.unit || '')).split('')).flat())).join('');
+        // 使用最终处理后的 stats 数组（包含古风转换后的中文数字和单位）来提取字符，确保子集字体正确加载
+        const statChars = Array.from(new Set(stats.map(s => (s.label + s.value + (s.unit || '')).split('')).flat())).join('');
 
         // Trigger font loading
         const fontPromises = [
