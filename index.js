@@ -1537,28 +1537,36 @@ jQuery(async () => {
       ctx.textAlign = 'center';
       ctx.textBaseline = 'top';
 
-      // 角色名设定在最右边两个格子的中间线 (x=500)，且位置在格子上方 (startY=70)
-      const charNameX = 500 * scaleFactor;
-      const charNameY = 70 * scaleFactor;
+      // 角色名往上往右移动一些 (x由500变525, y由70变45)
+      const charNameX = 525 * scaleFactor;
+      const charNameY = 45 * scaleFactor;
       
-      // 绘制角色名 (字号加大到150px)
+      // 绘制角色名
       ctx.font = `400 ${150 * scaleFactor}px "PING FANG GONG ZI TI", "Long Cang", sans-serif`;
       drawVerticalText(ctx, charName || "角色名", charNameX, charNameY, 160 * scaleFactor);
 
-      // 格子中心点坐标 (从右到左)
-      const gridCenters = [540.5, 461.5, 384.5, 306.0, 226.0, 144.5].map(x => x * scaleFactor);
-      // 格子顶部 Y 坐标为 116，文字稍微偏下一点进入格内
+      // 格子中心点坐标整体往左移动 74px
+      // 原坐标: [540.5, 461.5, 384.5, 306.0, 226.0, 144.5]
+      const gridCenters = [466.5, 387.5, 310.5, 232.0, 152.0, 70.5].map(x => x * scaleFactor);
       const statYStart = 130 * scaleFactor; 
 
-      // 绘制各项数据 (字号加大到52px)
-      ctx.font = `400 ${52 * scaleFactor}px "PING FANG GONG ZI TI", "LXGW Neo XiHei", sans-serif`; 
+      // 绘制各项数据 (字号稍微变小一点点 52->48)
+      const statFontSize = 48 * scaleFactor;
+      const statLineHeight = 50 * scaleFactor;
+      const labelValueGap = 64 * scaleFactor; // Label和数据之间的间距
+
+      ctx.font = `400 ${statFontSize}px "PING FANG GONG ZI TI", "LXGW Neo XiHei", sans-serif`; 
       stats.forEach((stat, i) => {
-         if (i >= gridCenters.length) return; // 防止超出格子数量
+         if (i >= gridCenters.length) return;
          const cx = gridCenters[i];
-         // 增加一点间距感
-         let textToDraw = `${stat.label}   ${stat.value}${stat.unit}`; 
-         // 行高稍微调小一点以适应格子高度
-         drawVerticalText(ctx, textToDraw, cx, statYStart, 55 * scaleFactor);
+         
+         // 分开绘制 Label 和 Value 以控制间距
+         drawVerticalText(ctx, stat.label, cx, statYStart, statLineHeight);
+         
+         const labelYEnd = statYStart + stat.label.length * statLineHeight;
+         const valueYStart = labelYEnd + labelValueGap;
+         
+         drawVerticalText(ctx, stat.value + stat.unit, cx, valueYStart, statLineHeight);
       });
       ctx.restore();
     } else {
