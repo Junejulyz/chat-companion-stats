@@ -1531,13 +1531,13 @@ jQuery(async () => {
       ctx.textAlign = 'center';
       ctx.textBaseline = 'top';
 
-      // 角色名往下 5px (39+5=44), 往左 2px (581-2=579)
+      // 角色名往下 6px (44+6=50), 保持 x 不变 (579)
       const charNameX = 579 * scaleFactor;
-      const charNameY = 44 * scaleFactor;
+      const charNameY = 50 * scaleFactor;
       
-      // 绘制角色名 (调整为 120px)
-      ctx.font = `400 ${120 * scaleFactor}px "PING FANG GONG ZI TI", "Long Cang", sans-serif`;
-      drawVerticalText(ctx, charName || "角色名", charNameX, charNameY, 130 * scaleFactor);
+      // 绘制角色名 (调整为 100px)
+      ctx.font = `400 ${100 * scaleFactor}px "PING FANG GONG ZI TI", "Long Cang", sans-serif`;
+      drawVerticalText(ctx, charName || "角色名", charNameX, charNameY, 110 * scaleFactor);
 
       // 调整格子中心点: 
       // 初见(idx 0)左移1px (466.5->465.5)
