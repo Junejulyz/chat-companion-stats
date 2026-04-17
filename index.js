@@ -1531,9 +1531,11 @@ jQuery(async () => {
       ctx.textAlign = 'center';
       ctx.textBaseline = 'top';
 
-      // 角色名位置与字号 (120px)
+      // 角色名再往右 56px (525+56=581), 往上 6px (45-6=39)
       const charNameX = 581 * scaleFactor;
       const charNameY = 39 * scaleFactor;
+      
+      // 绘制角色名 (调整为 120px)
       ctx.font = `400 ${120 * scaleFactor}px "PING FANG GONG ZI TI", "Long Cang", sans-serif`;
       drawVerticalText(ctx, charName || "角色名", charNameX, charNameY, 130 * scaleFactor);
 
@@ -1543,10 +1545,10 @@ jQuery(async () => {
       const gridCenters = [466.5, 387.5, 306.5, 226.0, 144.0, 70.5].map(x => x * scaleFactor);
       const statYStart = 136 * scaleFactor; 
 
-      // 绘制各项数据 (根据反馈改为43px)
+      // 绘制各项数据 (字号调整为 43px)
       const statFontSize = 43 * scaleFactor;
       const statLineHeight = 45 * scaleFactor;
-      const labelValueGap = 64 * scaleFactor; // Label和数据之间的间距
+      const labelValueGap = 64 * scaleFactor; 
 
       ctx.font = `400 ${statFontSize}px "PING FANG GONG ZI TI", "LXGW Neo XiHei", sans-serif`; 
       stats.forEach((stat, i) => {
