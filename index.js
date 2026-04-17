@@ -1218,7 +1218,7 @@ jQuery(async () => {
   async function generateShareImage() {
     const isDark = shareStyle === 'modern-dark' || shareStyle === 'dark';
     const isPixel = shareStyle === 'pixel-pink';
-    const isModern = shareStyle === 'modern' || shareStyle === 'modern-dark';
+    const isModern = shareStyle === 'modern-light' || shareStyle === 'modern-dark' || shareStyle === 'modern';
     const isAncient = shareStyle === 'ancient';
 
     // 强制等待所有字体加载完毕，防止 Canvas 渲染时回退到默认字体
