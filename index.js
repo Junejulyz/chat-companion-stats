@@ -1531,23 +1531,19 @@ jQuery(async () => {
       ctx.textAlign = 'center';
       ctx.textBaseline = 'top';
 
-      // 角色名再往右 56px (525+56=581), 往上 6px (45-6=39)
-      const charNameX = 581 * scaleFactor;
-      const charNameY = 39 * scaleFactor;
-      
-      // 绘制角色名
-      ctx.font = `400 ${150 * scaleFactor}px "PING FANG GONG ZI TI", "Long Cang", sans-serif`;
-      drawVerticalText(ctx, charName || "角色名", charNameX, charNameY, 160 * scaleFactor);
+      // 角色名字号 120px (从150px缩小)
+      ctx.font = `400 ${120 * scaleFactor}px "PING FANG GONG ZI TI", "Long Cang", sans-serif`;
+      drawVerticalText(ctx, charName || "角色名", charNameX, charNameY, 130 * scaleFactor);
 
       // 调整格子中心点: 
       // 对话(idx 1)不变, 相伴(idx 2)左移4px (310.5->306.5), 
       // 字数(idx 3)左移6px (232.0->226.0), 忆存(idx 4)左移8px (152.0->144.0)
       const gridCenters = [466.5, 387.5, 306.5, 226.0, 144.0, 70.5].map(x => x * scaleFactor);
-      const statYStart = 136 * scaleFactor; // 整体往下 6px (130->136)
+      const statYStart = 136 * scaleFactor; 
 
-      // 绘制各项数据 (字号稍微变小一点点 52->48)
-      const statFontSize = 48 * scaleFactor;
-      const statLineHeight = 50 * scaleFactor;
+      // 绘制各项数据 (根据反馈改为43px)
+      const statFontSize = 43 * scaleFactor;
+      const statLineHeight = 45 * scaleFactor;
       const labelValueGap = 64 * scaleFactor; // Label和数据之间的间距
 
       ctx.font = `400 ${statFontSize}px "PING FANG GONG ZI TI", "LXGW Neo XiHei", sans-serif`; 
