@@ -1155,37 +1155,37 @@ jQuery(async () => {
 
   function toChineseNumber(num) {
     if (num === 0) return '零';
-    const numChars = ['零', '壹', '贰', '叁', '肆', '伍', '陆', '柒', '捌', '玖'];
+    const numChars = ['零', '一', '二', '三', '四', '五', '六', '七', '八', '九'];
     let result = '';
     
     if (num < 100) {
         if (num < 10) return numChars[num];
         const tens = Math.floor(num / 10);
         const ones = num % 10;
-        if (tens === 1) result = '拾';
-        else result = numChars[tens] + '拾';
+        if (tens === 1) result = '十';
+        else result = numChars[tens] + '十';
         if (ones > 0) result += numChars[ones];
         return result;
     }
     if (num >= 10000) {
         let wan = Math.floor(num / 10000);
         let qian = Math.floor((num % 10000) / 1000);
-        let res = '约' + toChineseNumber(wan) + '万';
-        if (qian > 0) res += numChars[qian] + '仟';
+        let res = toChineseNumber(wan) + '万';
+        if (qian > 0) res += numChars[qian] + '千';
         return res;
     }
     if (num >= 1000) {
         let qian = Math.floor(num / 1000);
         let bai = Math.floor((num % 1000) / 100);
-        let res = '约' + numChars[qian] + '仟';
-        if (bai > 0) res += numChars[bai] + '佰';
+        let res = numChars[qian] + '千';
+        if (bai > 0) res += numChars[bai] + '百';
         return res;
     }
     if (num >= 100) {
         let bai = Math.floor(num / 100);
         let shi = Math.floor((num % 100) / 10);
-        let res = numChars[bai] + '佰';
-        if (shi > 0) res += numChars[shi] + '拾';
+        let res = numChars[bai] + '百';
+        if (shi > 0) res += numChars[shi] + '十';
         return res;
     }
     return result;
@@ -1198,7 +1198,7 @@ jQuery(async () => {
     const val = parseFloat(match[1]);
     const unit = match[2].toUpperCase();
     if (unit === 'MB') {
-        if (val < 1) return '不到壹兆';
+        if (val < 1) return '不到一兆';
         return toChineseNumber(Math.floor(val)) + '兆余';
     } else if (unit === 'GB') {
         return toChineseNumber(Math.floor(val * 1024)) + '兆余';
@@ -1325,9 +1325,9 @@ jQuery(async () => {
       }
     ];
 
-    // 如果是古风或像素风，则加上初遇时间显示 (现代简约默认不加)
+    // 如果是青纹信笺或像素风，则加上初遇时间显示 (现代简约默认不加)
     if (isAncient || isPixel) {
-      statsItems.unshift({ id: 'ccs-share-start', label: '初遇时间', value: $("#ccs-start").text().replace(/点/g, ':').replace(/分/g, '') });
+      statsItems.unshift({ id: 'ccs-share-start', label: '初遇时间', value: $("#ccs-start").text().replace(/约/g, '').replace(/点/g, ':').replace(/分/g, '') });
     }
 
     let stats = statsItems.filter(s => $(`#${s.id}`).is(":checked"));
@@ -1367,7 +1367,7 @@ jQuery(async () => {
           s.unit = '日';
         } else if (s.id === 'ccs-share-words') {
           newLabel = '字数';
-          newValue = toChineseNumber(parseInt(s.value.replace(/,/g, '')) || 0);
+          newValue = '约' + toChineseNumber(parseInt(s.value.replace(/,/g, '')) || 0);
           s.unit = '字';
         } else if (s.id === 'ccs-share-size') {
           newLabel = '忆存';
@@ -1438,7 +1438,7 @@ jQuery(async () => {
     // 尝试加载字体并等待加载完成
     try {
       if (document.fonts) {
-        // 使用最终处理后的 stats 数组（包含古风转换后的中文数字和单位）来提取字符，确保子集字体正确加载
+        // 使用最终处理后的 stats 数组（包含青纹信笺转换后的中文数字和单位）来提取字符，确保子集字体正确加载
         const statChars = Array.from(new Set(stats.map(s => (s.label + s.value + (s.unit || '')).split('')).flat())).join('');
 
         // Trigger font loading
@@ -1525,7 +1525,7 @@ jQuery(async () => {
 
     // 4. 绘制头像 (Moved to after background, before header logic)
     if (isAncient) {
-      // 古风专属竖排绘制
+      // 青纹信笺专属竖排绘制
       ctx.save();
       ctx.fillStyle = '#2c2824'; // 深墨色
       ctx.textAlign = 'center';
