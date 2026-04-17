@@ -1221,14 +1221,7 @@ jQuery(async () => {
     const isModern = shareStyle === 'modern' || shareStyle === 'modern-dark';
     const isAncient = shareStyle === 'ancient';
 
-    // 确保古风字体加载 (强制触发下载)
-    if (isAncient) {
-      try {
-        await document.fonts.load('12px "PING FANG GONG ZI TI"');
-      } catch (e) {
-        console.warn('Font load error:', e);
-      }
-    }
+    // 强制等待所有字体加载完毕，防止 Canvas 渲染时回退到默认字体
     await document.fonts.ready;
     
     const sampleEl = document.querySelector('.ccs-global-title') || document.body;
@@ -1454,7 +1447,8 @@ jQuery(async () => {
           document.fonts.load(`700 32px "LXGW Neo XiHei"`, statChars),
           document.fonts.load(`400 32px "PING FANG SHAO HUA"`, statChars),
           document.fonts.load(`400 32px "Cubic 11"`, charName + statChars + '初遇'),
-          document.fonts.load(`400 48px "Long Cang"`, '初遇')
+          document.fonts.load(`400 48px "Long Cang"`, '初遇'),
+          document.fonts.load(`400 32px "PING FANG GONG ZI TI"`, charName + statChars + '初见')
         ];
 
         // Wait for fonts to load, with a timeout to prevent hanging forever
