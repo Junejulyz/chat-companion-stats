@@ -897,8 +897,14 @@ jQuery(async () => {
 
   function extractDialogueKeywords(text, freqMap) {
     if (!text) return;
+    
+    // 剔除思维链及系统标签包裹的内容
+    let cleanText = text
+        .replace(/<(think|thinking|details|event)>[\s\S]*?(<\/\1>|$)/gi, '')
+        .replace(/<\|.*?analysis.*?\|>[\s\S]*?(?=<\||$)/gi, '');
+
     // 提取双引号内的内容
-    const quotes = text.match(/(["“”「」])(.*?)\1/g) || [];
+    const quotes = cleanText.match(/(["“”「」])(.*?)\1/g) || [];
     const dialogue = quotes.map(q => q.slice(1, -1)).join(' ');
     
     if (!dialogue.trim()) return;
@@ -946,11 +952,11 @@ jQuery(async () => {
     const emptyMsg = document.getElementById('ccs-wordcloud-empty');
     if (!container) return;
 
-    // 转换为 echarts 需要的数组格式并排序取前30
+    // 转换为 echarts 需要的数组格式并排序取前38
     const wordList = Object.entries(wordFreqMap)
       .map(([name, value]) => ({ name, value }))
       .sort((a, b) => b.value - a.value)
-      .slice(0, 30);
+      .slice(0, 38);
 
     if (wordList.length === 0) {
       container.style.display = 'none';
@@ -987,7 +993,7 @@ jQuery(async () => {
         height: '100%',
         right: null,
         bottom: null,
-        sizeRange: [12, 40],
+        sizeRange: [14, 55], // 加大字号范围，区分高低频词
         rotationRange: [0, 0], // 不旋转，保持易读性
         rotationStep: 0,
         gridSize: 8,
