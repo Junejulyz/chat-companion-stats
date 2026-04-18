@@ -574,10 +574,24 @@ jQuery(async () => {
     await loadD3();
     const words = Object.entries(wordFreq)
       .map(([text, size]) => ({ text, size }))
-      .sort((a, b) => b.size - a.size)
-      .slice(0, options.limit || 50);
+      .sort((a, b) => b.size - a.size);
 
-    if (words.length === 0) return null;
+    // 过滤子词冗余：如果“腹黑绿茶”和“绿茶”同时在榜，且频率相近，剔除短的
+    const filteredWords = [];
+    for (let i = 0; i < words.length; i++) {
+      const wordA = words[i];
+      const isSubWord = words.some((wordB, j) => {
+        if (i === j) return false;
+        // 如果 A 是 B 的子串，且 B 的频率至少是 A 的 60% (说明 A 很大程度上是随 B 出现的)
+        return wordB.text.includes(wordA.text) && wordB.size >= wordA.size * 0.6;
+      });
+      if (!isSubWord) {
+        filteredWords.push(wordA);
+      }
+    }
+
+    const finalWords = filteredWords.slice(0, options.limit || 50);
+    if (finalWords.length === 0) return null;
 
     const width = options.width || 400;
     const height = options.height || 250;
@@ -585,21 +599,21 @@ jQuery(async () => {
     if (!canvas) return;
     
     // 缩放比例
-    const maxSize = Math.max(...words.map(w => w.size));
-    const minSize = Math.min(...words.map(w => w.size));
+    const maxSize = Math.max(...finalWords.map(w => w.size));
+    const minSize = Math.min(...finalWords.map(w => w.size));
     const fontSizeScale = d3.scaleLinear()
       .domain([minSize, maxSize])
-      .range([16, 80]); // 增大最大字号，让云图更饱满
+      .range([16, 70]); // 略微调小最大字号，给间距留空间
 
     return new Promise((resolve) => {
       d3.layout.cloud()
         .size([width, height])
-        .words(words)
-        .padding(4) // 减小间距让排列更紧凑
-        .rotate(() => (Math.random() > 0.8 ? (Math.random() > 0.5 ? 90 : -90) : 0)) // 减少垂直排列的比例，更美观
-        .font('"LXGW Neo XiHei", sans-serif') // 使用 UI 字体
+        .words(finalWords)
+        .padding(8) // 增大间距，防止交叠
+        .rotate(() => (Math.random() > 0.9 ? (Math.random() > 0.5 ? 90 : -90) : 0)) // 进一步减少旋转比例
+        .font('bold 20px "LXGW Neo XiHei", sans-serif') // 关键：layout 阶段必须指定 bold，否则测量不准导致交叠
         .fontSize(d => fontSizeScale(d.size))
-        .spiral("archimedean") // 使用阿基米德螺旋线，更像云朵
+        .spiral("archimedean")
         .on("end", (renderedWords) => {
           const ctx = canvas.getContext("2d");
           canvas.width = width;
