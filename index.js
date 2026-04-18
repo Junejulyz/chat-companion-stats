@@ -35,7 +35,15 @@ async function loadD3() {
 }
 
 const CHINESE_STOP_WORDS = new Set([
-  '的', '了', '在', '是', '我', '你', '他', '她', '它', '们', '这', '那', '就', '也', '而', '及', '与', '还', '个', '子', '到', '说', '要', '去', '里', '好', '都', '一', '不', '没', '有', '会', '能', '可以', '这个', '那个', '因为', '所以', '虽然', '但是', '哈哈', '呵呵', '嗯嗯', '哦哦', '这样', '那样', '怎么', '什么', '多少', '觉得', '这种', '那种', '自己', '觉得', '知道', '看着', '感到', '开始', '一直', '已经', '变得', '有些', '这种', '一个', '两个', '一点', '一些', '还是', '只是', '就是', '那么', '这么', '这里', '那里', '不是', '知道了', '起来', '下来', '过来', '过去', '这种', '那种'
+  '的', '了', '在', '是', '我', '你', '他', '她', '它', '们', '这', '那', '就', '也', '而', '及', '与', '还', '个', '子', '到', '说', '要', '去', '里', '好', '都', '一', '不', '没', '有', '会', '能', '可以', '这个', '那个', '因为', '所以', '虽然', '但是', '哈哈', '呵呵', '嗯嗯', '哦哦', '这样', '那样', '怎么', '什么', '多少', '觉得', '这种', '那种', '自己', '知道', '看着', '感到', '开始', '一直', '已经', '变得', '有些', '一个', '两个', '一点', '一些', '还是', '只是', '就是', '那么', '这么', '这里', '那里', '不是', '知道了', '起来', '下来', '过来', '过去', '其实', '这种', '那个', '真的', '虽然', '知道', '看到', '发现', '好像', '有点', '东西', '有点', '似乎', '突然', '一种', '一种', '甚至', '大概', '也许', '不过', '还是', '或者', '为了', '由于', '因此', '从而'
+]);
+
+// 情感词表 (Sentiment Bias)
+const EMOTIONAL_WORDS = new Set([
+  '温柔', '偏执', '心动', '孤独', '喜欢', '讨厌', '难过', '兴奋', '绝望', '痛苦', '幸福', '期待', '愤怒',
+  '爱着', '思念', '迷恋', '占有', '疯狂', '卑微', '傲慢', '冷漠', '灼热', '渴望', '救赎', '沉沦', '窒息',
+  '深爱', '眷恋', '依恋', '亲吻', '拥抱', '颤抖', '哭泣', '微笑', '陪伴', '守护', '背叛', '抛弃', '恐惧',
+  '颤栗', '占有欲', '占有', '掠夺', '禁锢', '缠绵', '暧昧', '悸动', '羞涩', '委屈', '倔强', '怜惜'
 ]);
 
 jQuery(async () => {
@@ -538,33 +546,57 @@ jQuery(async () => {
       text = text.replace(/\[.*?\]\(.*?\)/g, ''); // 移除链接
       text = text.replace(/<[^>]*>/g, ' ');       // 移除剩余 HTML 标签
 
-      // 4. 内容提取：提取引号内的对话文本 (支持 "", “”, 「」, 『』)
+      // 4. 内容提取：提取引号内的对话文本
       const quoteRegex = /["“「『]([^"”」』]+)["”」』]/g;
       let match;
-      let dialogueText = '';
+      let dialogueBlocks = [];
       while ((match = quoteRegex.exec(text)) !== null) {
-        dialogueText += ' ' + match[1];
+        dialogueBlocks.push(match[1]);
       }
 
-      const targetText = dialogueText.trim() || text;
+      // 如果没有引号，则处理整段话
+      const textToProcess = dialogueBlocks.length > 0 ? dialogueBlocks.join(' ') : text;
 
-      // 5. 词频统计：仅匹配中文字符 (2-8 字)，彻底排除英文
-      const words = targetText.match(/[\u4e00-\u9fa5\u3400-\u4dbf]{2,8}/g) || [];
-      words.forEach(w => {
-        const lowerW = w.toLowerCase();
-        
-        // 名字部分匹配过滤：如果词汇包含名字，或名字包含词汇
-        const isNamePart = Array.from(dynamicStopWords).some(name => 
-          lowerW.includes(name) || name.includes(lowerW)
-        );
+      // 5. 分句处理：识别特定标点 (！, ？, ……) 进行加权
+      const sentences = textToProcess.split(/[。；\n]+/);
+      sentences.forEach(sentence => {
+        if (!sentence.trim()) return;
 
-        // 过滤：停用词、名字、技术词、纯数字
-        if (!CHINESE_STOP_WORDS.has(lowerW) && 
-            !isNamePart && 
-            !technicalStopWords.has(lowerW) &&
-            !/^\d+$/.test(w)) {
-          freqMap[lowerW] = (freqMap[lowerW] || 0) + 1;
+        // 标点加权因子 (破折号、感叹号、问号)
+        let sentenceMultiplier = 1.0;
+        if (/[！？…]{1,}/.test(sentence)) {
+          sentenceMultiplier = 1.3;
         }
+
+        // 仅匹配中文字符 (2-8 字)
+        const words = sentence.match(/[\u4e00-\u9fa5\u3400-\u4dbf]{2,8}/g) || [];
+        words.forEach(w => {
+          const lowerW = w.toLowerCase();
+          
+          // 名字过滤
+          const isNamePart = Array.from(dynamicStopWords).some(name => 
+            lowerW.includes(name) || name.includes(lowerW)
+          );
+
+          if (!CHINESE_STOP_WORDS.has(lowerW) && 
+              !isNamePart && 
+              !technicalStopWords.has(lowerW) &&
+              !/^\d+$/.test(w)) {
+            
+            // 基础权重计算: WordLength ^ 1.2
+            let weight = Math.pow(w.length, 1.2);
+            
+            // 情感加权
+            if (EMOTIONAL_WORDS.has(lowerW)) {
+              weight *= 1.8;
+            }
+            
+            // 句子环境加权
+            weight *= sentenceMultiplier;
+
+            freqMap[lowerW] = (freqMap[lowerW] || 0) + weight;
+          }
+        });
       });
     }
     return freqMap;
