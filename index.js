@@ -900,7 +900,9 @@ jQuery(async () => {
       // 高频副词、连词、代词、介词等
       '可以', '可是', '因为', '所以', '不过', '如果', '就是', '知道', '起来', '一些', '一点', '一样', '现在', '时候', '自己', '没有', '我们', '你们', '他们', '有些', '或者', '但是', '然后', '虽然', '可能', '应该', '需要', '这么', '那么', '其实', '只是', '为了', '开始', '一直', '这种', '那种', '关于', '刚好', '进行', '发现', '发生', '感觉', '听到', '出来', '下去', '而且', '并且', '与其', '不如', '只有', '只能', '所以说', '总之', '突然', '刚才', '马上', '立刻', '总是', '经常', '有时', '很多', '不少', '多少', '所有', '全部', '整个', '几乎', '大概', '似乎', '随便', '就算', '即使', '既然', '反正', '由于', '对于', '至于', '除了', '那个', '任何', '一下', '一次', '一定', '不能', '不要', '不会', '不是', '不知', '不同', '不够', '不好', '之前', '之后', '之间', '之内', '之中', '之外', '之下', '之上', '一般', '一切', '认为', '以为', '希望', '准备', '打算', '决定', '继续', '必须', '肯定', '当然', '必然', '果然', '居然', '竟然', '忽然', '固然', '纵然', '仍然', '依旧', '曾经', '正在', '将要', '就要', '快要', '偏偏', '难道', '莫非', '或许', '恐怕', '是否', '哪个', '哪些', '为什么', '怎么样', '什么样',
       // 常见语气词重复
-      '哈哈', '呵呵', '嘿嘿', '嘻嘻', '嗯嗯', '哦哦', '好的', '是的', '不行', '的话'
+      '哈哈', '呵呵', '嘿嘿', '嘻嘻', '嗯嗯', '哦哦', '好的', '是的', '不行', '的话',
+      // 常见代词+助词组合
+      '你的', '我的', '他的', '她的', '这个', '那个', '这些', '那些', '自己'
   ]);
 
   function extractDialogueKeywords(text, freqMap, charName) {
@@ -966,10 +968,14 @@ jQuery(async () => {
         if (existChart) existChart.dispose();
     }
 
-    // 转换为数组格式并排序取前38
+    // 转换为数组格式并排序
+    // 为了鼓励 3-6 个字的词出现，我们在排序权重上给长词一定的加成 (1.5倍权重)
     let wordList = Object.entries(wordFreqMap)
-      .map(([name, realValue]) => ({ name, realValue }))
-      .sort((a, b) => b.realValue - a.realValue)
+      .map(([name, realValue]) => {
+          const weightBonus = name.length >= 3 ? 1.5 : 1.0;
+          return { name, realValue, sortWeight: realValue * weightBonus };
+      })
+      .sort((a, b) => b.sortWeight - a.sortWeight)
       .slice(0, 38);
 
     if (wordList.length === 0) {
@@ -984,8 +990,10 @@ jQuery(async () => {
           justifyContent: 'center',
           alignContent: 'center',
           alignItems: 'center',
-          gap: '12px 18px',
-          padding: '10px'
+          gap: '10px 15px',
+          padding: '20px',
+          maxWidth: '500px', // 限制宽度，让形状更接近圆形/云状
+          margin: '0 auto'
       });
       if (emptyMsg) emptyMsg.style.display = 'none';
     }
@@ -1009,11 +1017,14 @@ jQuery(async () => {
         // 字体大小映射 (14px 到 48px)
         const fontSize = 14 + Math.pow(ratio, 2) * 34;
         
-        // 透明度映射 (0.5 到 1)，低频词更透明，充当背景
-        const opacity = 0.5 + ratio * 0.5;
+        // 透明度映射 (0.7 到 1)，提升整体亮度
+        const opacity = 0.7 + ratio * 0.3;
         
         // 随机颜色
         const color = colors[Math.floor(Math.random() * colors.length)];
+        
+        // 随机微小旋转，增加云图的灵动感 (-5度 到 5度)
+        const rotation = (Math.random() - 0.5) * 10;
 
         const span = document.createElement('span');
         span.textContent = item.name;
@@ -1027,7 +1038,9 @@ jQuery(async () => {
             fontWeight: ratio > 0.6 ? 'bold' : 'normal', // 高频词加粗
             transition: 'transform 0.2s, opacity 0.2s',
             cursor: 'default',
-            display: 'inline-block'
+            display: 'inline-block',
+            transform: `rotate(${rotation}deg)`,
+            margin: `${Math.random() * 10}px` // 随机间距，打破整齐感
         });
 
         // 简单悬浮动画
