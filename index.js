@@ -999,9 +999,9 @@ jQuery(async () => {
         if (maxFreq > minFreq) {
             ratio = (item.realValue - minFreq) / (maxFreq - minFreq);
         }
-        // 使用 2 次方曲线放大高低频之间的差异
-        // 这样高频词依然会显著更大，而低频词会迅速变小
-        item.value = Math.pow(ratio, 2); 
+        // ECharts 词云图对 0~1 的小数 value 处理有严重 BUG，会全部截断为同一个字号！
+        // 核心修复：把 value 放大为一个 10 ~ 100 之间的大整数，让 ECharts 能正确识别它并进行线性映射！
+        item.value = Math.round(10 + Math.pow(ratio, 2) * 90); 
         return item;
     });
 
@@ -1031,15 +1031,15 @@ jQuery(async () => {
         height: '100%',
         right: null,
         bottom: null,
-        // 核心修复：上限绝不能超过 48px！
-        // 如果字号过大，ECharts 会因为装不下而触发全局微缩防溢出机制，
-        // 导致所有词被等比例缩小 10 倍，最后全部变成浏览器的保底 12px！
-        sizeRange: [12, 48], 
+        // 禁用 ECharts 全局防溢出微缩机制！
+        // 如果 drawOutOfBound 是 false，一旦它觉得放不下，就会强行把整个画布缩小 10 倍！
+        // 设置为 true 后，它绝对不会缩小字号，宁可边缘被稍微裁切也要保证字够大！
+        sizeRange: [14, 56], 
         rotationRange: [0, 0], // 不旋转，保持易读性
         rotationStep: 0,
-        gridSize: 8,
-        drawOutOfBound: false,
-        shape: 'pentagon', // 使用五边形或 cardioid 能更好地撑满方形容器
+        gridSize: 4, // 稍微缩小间距，让词语更紧凑
+        drawOutOfBound: true,
+        shape: 'pentagon', // 使用五边形能更好地撑满方形容器
         layoutAnimation: true,
         textStyle: {
           fontFamily: 'inherit',
