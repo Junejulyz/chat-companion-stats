@@ -596,3 +596,14 @@ body.ccs-no-scroll {
   font-weight: bold;
   color: var(--SmartThemeEmColor);
 }
+/* 词云图特定样式 */
+#ccs-wordcloud-container {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+}
+
+#ccs-wordcloud-chart {
+  border-radius: 8px;
+}

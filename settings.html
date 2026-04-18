@@ -136,6 +136,12 @@
             <div class="ccs-advanced-card-date" id="ccs-peak-date">--</div>
             <div class="ccs-advanced-card-count" id="ccs-peak-count">0 <span class="ccs-advanced-unit">条消息</span></div>
           </div>
+          <!-- 词云图部分 -->
+          <div class="ccs-advanced-card" id="ccs-wordcloud-container" style="margin-top: 16px; padding: 16px 12px 12px;">
+            <div class="ccs-advanced-card-label" style="margin-bottom: 8px;">角色对话词云图</div>
+            <div id="ccs-wordcloud-chart" style="width: 100%; height: 200px;"></div>
+            <div id="ccs-wordcloud-empty" style="display: none; padding: 20px; font-size: 0.85em; opacity: 0.6;">暂无对话数据生成词云</div>
+          </div>
         </div>
         <div id="ccs-advanced-error" style="display: none; text-align: center; padding: 20px; color: var(--SmartThemeErrorColor);">
           当前数据量过大或没有互动，无法计算详细统计。

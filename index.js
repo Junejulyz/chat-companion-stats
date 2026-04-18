@@ -526,11 +526,16 @@ jQuery(async () => {
       let userMessages = 0;
       let earliestTimeInFile = null;
       const dayMap = {};
+      const charWordsMap = {};
 
       messagesArray.forEach(m => {
         if (m && (m.mes !== undefined || m.is_user !== undefined)) {
           totalWords += countWordsInMessage(m.mes || '');
           validMessages++;
+
+          if (m.is_user === false && m.mes) {
+            extractDialogueKeywords(m.mes, charWordsMap);
+          }
 
           // 统计发送日期
           if (m.send_date) {
@@ -558,7 +563,8 @@ jQuery(async () => {
         count: validMessages,
         userCount: userMessages,
         earliestTime: earliestTimeInFile,
-        dayMap
+        dayMap,
+        charWordsMap
       };
     } catch (e) {
       if (DEBUG) console.error(`[StatsDebug] Error processing chat data:`, e);
@@ -812,6 +818,7 @@ jQuery(async () => {
       let totalUserMessagesCalculated = 0;
       let absoluteEarliestTime = null;
       const globalDayMap = {};
+      const globalWordFreq = {};
 
       const batchSize = 3; // 降低并发数量保护服务器
       let processedFiles = 0;
@@ -836,6 +843,11 @@ jQuery(async () => {
                 globalDayMap[date] = (globalDayMap[date] || 0) + count;
               }
             }
+            if (res.charWordsMap) {
+              for (const [word, freq] of Object.entries(res.charWordsMap)) {
+                globalWordFreq[word] = (globalWordFreq[word] || 0) + freq;
+              }
+            }
             if (res.earliestTime && (!absoluteEarliestTime || res.earliestTime < absoluteEarliestTime)) {
               absoluteEarliestTime = res.earliestTime;
             }
@@ -848,6 +860,9 @@ jQuery(async () => {
       if (DEBUG) console.log(`[StatsDebug] Deep scan done: ${processedFiles - failedFiles} succeeded, ${failedFiles} failed out of ${processedFiles}`);
 
       const advanced = calculateAdvancedStats(globalDayMap);
+      if (advanced) {
+        advanced.wordFreq = globalWordFreq;
+      }
       
       // 深度扫描找出了贯穿所有聊天系统的绝对真理，霸道覆盖并永久锁定缓存！
       if (absoluteEarliestTime) {
@@ -875,6 +890,134 @@ jQuery(async () => {
       if (DEBUG) console.error('[StatsDebug] getFullStats error:', error);
       return null;
     }
+  }
+
+  // --- 词云图相关辅助函数 ---
+  const stopWords = new Set(['的', '了', '是', '我', '你', '他', '她', '它', '们', '这', '那', '就', '也', '还', '在', '不', '有', '个', '个人', '一个', '到', '说', '要', '去', '看到', '觉得', '还是', '这样', '那样', '怎么', '什么', '哪里', '已经', '真的', '好像', '甚至', '也许', '比较', '非常', '特别', '啊', '嗯', '哦', '吧', '吗', '呢', '和', '与', '为', '被', '让', '把', '跟', '做', '没', '能', '会', '好', '很', '最', '都']);
+
+  function extractDialogueKeywords(text, freqMap) {
+    if (!text) return;
+    // 提取双引号内的内容
+    const quotes = text.match(/(["“”「」])(.*?)\1/g) || [];
+    const dialogue = quotes.map(q => q.slice(1, -1)).join(' ');
+    
+    if (!dialogue.trim()) return;
+
+    // 简单分词：中文 >= 2个字符，英文 >= 3个字符
+    const cnWords = dialogue.match(/[\u4e00-\u9fa5]{2,}/g) || [];
+    const enWords = dialogue.match(/[a-zA-Z]{3,}/g) || [];
+    
+    const allWords = [...cnWords, ...enWords];
+    
+    for (let word of allWords) {
+        word = word.toLowerCase();
+        if (!stopWords.has(word)) {
+            freqMap[word] = (freqMap[word] || 0) + 1;
+        }
+    }
+  }
+
+  // 动态加载 ECharts 和 WordCloud 插件
+  function loadEChartsAndWordCloud() {
+    return new Promise((resolve, reject) => {
+      if (window.echarts && window.echarts.wordCloud) {
+        resolve();
+        return;
+      }
+      
+      const echartsScript = document.createElement('script');
+      echartsScript.src = 'https://cdn.jsdelivr.net/npm/echarts@5.5.0/dist/echarts.min.js';
+      
+      echartsScript.onload = () => {
+        const wordCloudScript = document.createElement('script');
+        wordCloudScript.src = 'https://cdn.jsdelivr.net/npm/echarts-wordcloud@2.1.0/dist/echarts-wordcloud.min.js';
+        wordCloudScript.onload = resolve;
+        wordCloudScript.onerror = () => reject(new Error('Failed to load echarts-wordcloud'));
+        document.head.appendChild(wordCloudScript);
+      };
+      echartsScript.onerror = () => reject(new Error('Failed to load echarts'));
+      document.head.appendChild(echartsScript);
+    });
+  }
+
+  // 渲染词云图
+  function renderWordCloud(wordFreqMap) {
+    const container = document.getElementById('ccs-wordcloud-chart');
+    const emptyMsg = document.getElementById('ccs-wordcloud-empty');
+    if (!container) return;
+
+    // 转换为 echarts 需要的数组格式并排序取前30
+    const wordList = Object.entries(wordFreqMap)
+      .map(([name, value]) => ({ name, value }))
+      .sort((a, b) => b.value - a.value)
+      .slice(0, 30);
+
+    if (wordList.length === 0) {
+      container.style.display = 'none';
+      if (emptyMsg) emptyMsg.style.display = 'block';
+      return;
+    } else {
+      container.style.display = 'block';
+      if (emptyMsg) emptyMsg.style.display = 'none';
+    }
+
+    // 初始化 ECharts
+    let myChart = echarts.getInstanceByDom(container);
+    if (!myChart) {
+      myChart = echarts.init(container);
+    }
+
+    // 简约低饱和度配色
+    const colors = ['#738598', '#A28C9D', '#8C9A86', '#AFA191', '#6D7C8A'];
+
+    const option = {
+      tooltip: {
+        show: true,
+        formatter: function(item) {
+           return `${item.name}: ${item.value} 次`;
+        }
+      },
+      series: [{
+        type: 'wordCloud',
+        shape: 'circle',
+        keepAspect: false,
+        left: 'center',
+        top: 'center',
+        width: '100%',
+        height: '100%',
+        right: null,
+        bottom: null,
+        sizeRange: [12, 40],
+        rotationRange: [0, 0], // 不旋转，保持易读性
+        rotationStep: 0,
+        gridSize: 8,
+        drawOutOfBound: false,
+        layoutAnimation: true,
+        textStyle: {
+          fontFamily: 'inherit',
+          fontWeight: 'bold',
+          color: function () {
+            return colors[Math.floor(Math.random() * colors.length)];
+          }
+        },
+        emphasis: {
+          focus: 'self',
+          textStyle: {
+            textShadowBlur: 10,
+            textShadowColor: '#333'
+          }
+        },
+        data: wordList
+      }]
+    };
+
+    myChart.setOption(option);
+    
+    // 自动重绘尺寸
+    const resizeObserver = new ResizeObserver(() => {
+        myChart.resize();
+    });
+    resizeObserver.observe(container);
   }
 
   // 计算连聊和高峰日
@@ -2427,6 +2570,17 @@ jQuery(async () => {
         $('#ccs-longest-streak').html(`${currentAdvancedStats.longestStreak} <span class="ccs-advanced-unit">天</span>`);
         $('#ccs-peak-date').text(currentAdvancedStats.peakDate || '--');
         $('#ccs-peak-count').html(`${currentAdvancedStats.peakCount} <span class="ccs-advanced-unit">条消息</span>`);
+
+        // 渲染词云图
+        if (currentAdvancedStats.wordFreq) {
+          loadEChartsAndWordCloud().then(() => {
+            renderWordCloud(currentAdvancedStats.wordFreq);
+          }).catch(err => {
+            console.error('[StatsDebug] Failed to load word cloud deps:', err);
+            $('#ccs-wordcloud-empty').text('加载词云组件失败').show();
+            $('#ccs-wordcloud-chart').hide();
+          });
+        }
 
         // 如果是部分数据，显示温和提示
         if (lastDeepScanPartial) {
