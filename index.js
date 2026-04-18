@@ -603,15 +603,15 @@ jQuery(async () => {
     const minSize = Math.min(...finalWords.map(w => w.size));
     const fontSizeScale = d3.scaleLinear()
       .domain([minSize, maxSize])
-      .range([16, 70]); // 略微调小最大字号，给间距留空间
+      .range(minSize === maxSize ? [40, 40] : [20, 80]); // 如果频率相同，统一用中等字号；否则范围扩大到 20-80
 
     return new Promise((resolve) => {
       d3.layout.cloud()
         .size([width, height])
         .words(finalWords)
-        .padding(8) // 增大间距，防止交叠
-        .rotate(() => (Math.random() > 0.9 ? (Math.random() > 0.5 ? 90 : -90) : 0)) // 进一步减少旋转比例
-        .font('bold 20px "LXGW Neo XiHei", sans-serif') // 关键：layout 阶段必须指定 bold，否则测量不准导致交叠
+        .padding(10) // 进一步增大间距，确保即使加粗也不交叠
+        .rotate(() => (Math.random() > 0.9 ? (Math.random() > 0.5 ? 90 : -90) : 0))
+        .font('"LXGW Neo XiHei", sans-serif') // 只提供字体族，避免 invalid font string
         .fontSize(d => fontSizeScale(d.size))
         .spiral("archimedean")
         .on("end", (renderedWords) => {
