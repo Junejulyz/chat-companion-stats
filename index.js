@@ -7,6 +7,37 @@ const extensionName = "chat-companion-stats";
 const extensionWebPath = import.meta.url.replace(/\/index\.js$/, '');
 const DEBUG = true;
 
+// --- D3-Cloud Integration ---
+let d3Loaded = false;
+async function loadD3() {
+  if (d3Loaded) return true;
+  if (window.d3 && window.d3.layout && window.d3.layout.cloud) {
+    d3Loaded = true;
+    return true;
+  }
+
+  return new Promise((resolve) => {
+    if (DEBUG) console.log("[CCStats] Loading D3 libraries...");
+    const d3Script = document.createElement('script');
+    d3Script.src = 'https://cdn.jsdelivr.net/npm/d3@7';
+    d3Script.onload = () => {
+      const cloudScript = document.createElement('script');
+      cloudScript.src = 'https://cdn.jsdelivr.net/npm/d3-cloud@1.2.7/build/d3.layout.cloud.min.js';
+      cloudScript.onload = () => {
+        if (DEBUG) console.log("[CCStats] D3 and D3-Cloud loaded.");
+        d3Loaded = true;
+        resolve(true);
+      };
+      document.head.appendChild(cloudScript);
+    };
+    document.head.appendChild(d3Script);
+  });
+}
+
+const CHINESE_STOP_WORDS = new Set([
+  '的', '了', '在', '是', '我', '你', '他', '她', '它', '们', '这', '那', '就', '也', '而', '及', '与', '还', '个', '子', '到', '说', '要', '去', '里', '好', '都', '一', '不', '没', '有', '会', '能', '可以', '这个', '那个', '因为', '所以', '虽然', '但是', '哈哈', '呵呵', '嗯嗯', '哦哦', '这样', '那样', '怎么', '什么', '多少', '觉得', '这种', '那种', '自己', '觉得', '知道', '看着', '感到', '开始', '一直', '已经', '变得', '有些', '这种', '一个', '两个', '一点', '一些'
+]);
+
 jQuery(async () => {
   if (DEBUG) console.log("[CCStats] Booting...");
   // 加载CSS文件 using dynamic path
@@ -460,7 +491,74 @@ jQuery(async () => {
   }
 
   // 获取单个聊天文件的统计数据 (使用 SillyTavern 官方 API 接口)
-  async function getChatFileStats(fileName, charId, charName) {
+  function getWordFrequencies(messages) {
+    const freqMap = {};
+    messages.forEach(m => {
+      const text = m.mes || '';
+      // 匹配中文字符、英文单词
+      const words = text.match(/[\u4e00-\u9fa5]{2,4}|[a-zA-Z]{3,}/g) || [];
+      words.forEach(w => {
+        if (!CHINESE_STOP_WORDS.has(w)) {
+          freqMap[w] = (freqMap[w] || 0) + 1;
+        }
+      });
+    });
+    return freqMap;
+  }
+
+  async function renderWordCloud(wordFreq, canvasId, options = {}) {
+    await loadD3();
+    const words = Object.entries(wordFreq)
+      .map(([text, size]) => ({ text, size }))
+      .sort((a, b) => b.size - a.size)
+      .slice(0, options.limit || 50);
+
+    if (words.length === 0) return null;
+
+    const width = options.width || 400;
+    const height = options.height || 250;
+    const canvas = document.getElementById(canvasId);
+    if (!canvas) return;
+    
+    // 缩放比例
+    const maxSize = Math.max(...words.map(w => w.size));
+    const minSize = Math.min(...words.map(w => w.size));
+    const fontSizeScale = d3.scaleLinear()
+      .domain([minSize, maxSize])
+      .range([12, 48]);
+
+    return new Promise((resolve) => {
+      d3.layout.cloud()
+        .size([width, height])
+        .words(words)
+        .padding(5)
+        .rotate(() => (~~(Math.random() * 2) * 90))
+        .font("Impact")
+        .fontSize(d => fontSizeScale(d.size))
+        .on("end", (renderedWords) => {
+          const ctx = canvas.getContext("2d");
+          canvas.width = width;
+          canvas.height = height;
+          ctx.clearRect(0, 0, width, height);
+          ctx.textAlign = "center";
+          ctx.textBaseline = "middle";
+          
+          renderedWords.forEach(w => {
+            ctx.save();
+            ctx.translate(w.x + width / 2, w.y + height / 2);
+            ctx.rotate(w.rotate * Math.PI / 180);
+            ctx.font = `${w.size}px ${w.font}`;
+            ctx.fillStyle = options.color || (shareStyle === 'modern-dark' ? '#FAFBF7' : '#333');
+            ctx.fillText(w.text, 0, 0);
+            ctx.restore();
+          });
+          resolve(canvas);
+        })
+        .start();
+    });
+  }
+
+  async function getChatFileStats(fileName, charId, charName, collectWords = false) {
     if (DEBUG) console.log(`[StatsDebug] Requesting chat content via API: ${fileName} for char: ${charId}, name: ${charName}`);
     
     let chatData = null;
@@ -526,18 +624,12 @@ jQuery(async () => {
       let userMessages = 0;
       let earliestTimeInFile = null;
       const dayMap = {};
-      const charWordsMap = {};
+      const wordsFreq = collectWords ? getWordFrequencies(messagesArray) : {};
 
       messagesArray.forEach(m => {
         if (m && (m.mes !== undefined || m.is_user !== undefined)) {
           totalWords += countWordsInMessage(m.mes || '');
           validMessages++;
-
-          const isUserMsg = m.is_user === true || m.is_user === 'true';
-          const isSystemMsg = m.is_system === true || m.is_system === 'true';
-          if (!isUserMsg && !isSystemMsg && m.mes) {
-            extractDialogueKeywords(m.mes, charWordsMap, charName);
-          }
 
           // 统计发送日期
           if (m.send_date) {
@@ -566,7 +658,7 @@ jQuery(async () => {
         userCount: userMessages,
         earliestTime: earliestTimeInFile,
         dayMap,
-        charWordsMap
+        wordsFreq
       };
     } catch (e) {
       if (DEBUG) console.error(`[StatsDebug] Error processing chat data:`, e);
@@ -817,17 +909,16 @@ jQuery(async () => {
 
       let totalWordsCalculated = 0;
       let totalMessagesCalculated = 0;
-      let totalUserMessagesCalculated = 0;
       let absoluteEarliestTime = null;
       const globalDayMap = {};
-      const globalWordFreq = {};
+      const globalWordsFreq = {};
 
       const batchSize = 3; // 降低并发数量保护服务器
       let processedFiles = 0;
       let failedFiles = 0;
       for (let i = 0; i < chats.length; i += batchSize) {
         const batch = chats.slice(i, i + batchSize);
-        const results = await Promise.all(batch.map(chat => getChatFileStats(chat.file_name, characterId, charNameForApi)));
+        const results = await Promise.all(batch.map(chat => getChatFileStats(chat.file_name, characterId, charNameForApi, true)));
 
         processedFiles += batch.length;
         if (onProgress && chats.length > 0) {
@@ -845,13 +936,13 @@ jQuery(async () => {
                 globalDayMap[date] = (globalDayMap[date] || 0) + count;
               }
             }
-            if (res.charWordsMap) {
-              for (const [word, freq] of Object.entries(res.charWordsMap)) {
-                globalWordFreq[word] = (globalWordFreq[word] || 0) + freq;
-              }
-            }
             if (res.earliestTime && (!absoluteEarliestTime || res.earliestTime < absoluteEarliestTime)) {
               absoluteEarliestTime = res.earliestTime;
+            }
+            if (res.wordsFreq) {
+              for (const [word, count] of Object.entries(res.wordsFreq)) {
+                globalWordsFreq[word] = (globalWordsFreq[word] || 0) + count;
+              }
             }
           } else {
             failedFiles++;
@@ -862,9 +953,6 @@ jQuery(async () => {
       if (DEBUG) console.log(`[StatsDebug] Deep scan done: ${processedFiles - failedFiles} succeeded, ${failedFiles} failed out of ${processedFiles}`);
 
       const advanced = calculateAdvancedStats(globalDayMap);
-      if (advanced) {
-        advanced.wordFreq = globalWordFreq;
-      }
       
       // 深度扫描找出了贯穿所有聊天系统的绝对真理，霸道覆盖并永久锁定缓存！
       if (absoluteEarliestTime) {
@@ -883,7 +971,7 @@ jQuery(async () => {
         totalDuration: totalDurationSeconds,
         totalSizeBytes: totalSizeBytesRaw,
         chatFilesCount,
-        advanced,
+        advanced: { ...advanced, wordsFreq: globalWordsFreq },
         deepScanPartial: failedFiles > 0,
         deepScanFailed: failedFiles,
         deepScanTotal: processedFiles
@@ -892,174 +980,6 @@ jQuery(async () => {
       if (DEBUG) console.error('[StatsDebug] getFullStats error:', error);
       return null;
     }
-  }
-
-  // --- 词云图相关辅助函数 ---
-  const stopWords = new Set([
-      '的', '了', '是', '我', '你', '他', '她', '它', '们', '这', '那', '就', '也', '还', '在', '不', '有', '个', '个人', '一个', '到', '说', '要', '去', '看到', '觉得', '还是', '这样', '那样', '怎么', '什么', '哪里', '已经', '真的', '好像', '甚至', '也许', '比较', '非常', '特别', '啊', '嗯', '哦', '吧', '吗', '呢', '和', '与', '为', '被', '让', '把', '跟', '做', '没', '能', '会', '好', '很', '最', '都',
-      // 高频副词、连词、代词、介词等
-      '可以', '可是', '因为', '所以', '不过', '如果', '就是', '知道', '起来', '一些', '一点', '一样', '现在', '时候', '自己', '没有', '我们', '你们', '他们', '有些', '或者', '但是', '然后', '虽然', '可能', '应该', '需要', '这么', '那么', '其实', '只是', '为了', '开始', '一直', '这种', '那种', '关于', '刚好', '进行', '发现', '发生', '感觉', '听到', '出来', '下去', '而且', '并且', '与其', '不如', '只有', '只能', '所以说', '总之', '突然', '刚才', '马上', '立刻', '总是', '经常', '有时', '很多', '不少', '多少', '所有', '全部', '整个', '几乎', '大概', '似乎', '随便', '就算', '即使', '既然', '反正', '由于', '对于', '至于', '除了', '那个', '任何', '一下', '一次', '一定', '不能', '不要', '不会', '不是', '不知', '不同', '不够', '不好', '之前', '之后', '之间', '之内', '之中', '之外', '之下', '之上', '一般', '一切', '认为', '以为', '希望', '准备', '打算', '决定', '继续', '必须', '肯定', '当然', '必然', '果然', '居然', '竟然', '忽然', '固然', '纵然', '仍然', '依旧', '曾经', '正在', '将要', '就要', '快要', '偏偏', '难道', '莫非', '或许', '恐怕', '是否', '哪个', '哪些', '为什么', '怎么样', '什么样',
-      // 常见语气词重复
-      '哈哈', '呵呵', '嘿嘿', '嘻嘻', '嗯嗯', '哦哦', '好的', '是的', '不行', '的话',
-      // 常见代词+助词组合
-      '你的', '我的', '他的', '她的', '这个', '那个', '这些', '那些', '自己'
-  ]);
-
-  function extractDialogueKeywords(text, freqMap, charName) {
-    if (!text) return;
-    
-    // 剔除思维链及系统标签包裹的内容
-    let cleanText = text
-        .replace(/<(think|thinking|details|event)>[\s\S]*?(<\/\1>|$)/gi, '')
-        .replace(/<\|.*?analysis.*?\|>[\s\S]*?(?=<\||$)/gi, '');
-
-    // 提取双引号内的内容
-    const quotes = cleanText.match(/(["“”「」])(.*?)\1/g) || [];
-    let dialogue = quotes.map(q => q.slice(1, -1)).join(' ');
-    
-    // 提前剔除角色名和用户名，防止它们被错误分词或与其他词相连
-    if (charName) dialogue = dialogue.replace(new RegExp(charName, 'gi'), '');
-    const userName = window.name1;
-    if (userName) dialogue = dialogue.replace(new RegExp(userName, 'gi'), '');
-    
-    if (!dialogue.trim()) return;
-
-    // 使用 Intl.Segmenter 进行真正的中文分词（现代浏览器/Electron自带）
-    let allWords = [];
-    if (window.Intl && Intl.Segmenter) {
-        const segmenter = new Intl.Segmenter('zh-CN', { granularity: 'word' });
-        const segments = segmenter.segment(dialogue);
-        allWords = Array.from(segments)
-            // 严格限制字数在 2 到 6 之间
-            .filter(s => s.isWordLike && s.segment.length >= 2 && s.segment.length <= 6 && /^[\u4e00-\u9fa5]+$/.test(s.segment))
-            .map(s => s.segment);
-    } else {
-        // Fallback: 如果不支持则粗略切分，并强制过滤长度
-        const fallbackMatch = dialogue.match(/[\u4e00-\u9fa5]{2,6}/g) || [];
-        allWords = fallbackMatch;
-    }
-    
-    for (let word of allWords) {
-        word = word.toLowerCase();
-        
-        // 过滤角色名、用户名等
-        const isCharName = charName && word === charName.toLowerCase();
-        const isUserName = window.name1 && word === window.name1.toLowerCase();
-        const isGenericUser = word === '用户' || word === '玩家';
-        
-        if (!stopWords.has(word) && !isCharName && !isUserName && !isGenericUser) {
-            freqMap[word] = (freqMap[word] || 0) + 1;
-        }
-    }
-  }
-
-  // 原生 CSS 标签云渲染（取代 ECharts 以彻底解决大小缩放 BUG）
-  function renderWordCloud(wordFreqMap) {
-    const container = document.getElementById('ccs-wordcloud-chart');
-    const emptyMsg = document.getElementById('ccs-wordcloud-empty');
-    const wrapper = document.getElementById('ccs-wordcloud-container');
-    if (!container) return;
-
-    // 清空现有内容，包括任何之前的 ECharts 实例
-    container.innerHTML = '';
-    // 销毁可能存在的 ECharts 实例防止内存泄漏
-    if (window.echarts) {
-        const existChart = echarts.getInstanceByDom(container);
-        if (existChart) existChart.dispose();
-    }
-
-    // 转换为数组格式并排序
-    // 为了鼓励 3-6 个字的词出现，我们在排序权重上给长词一定的加成 (1.5倍权重)
-    let wordList = Object.entries(wordFreqMap)
-      .map(([name, realValue]) => {
-          const weightBonus = name.length >= 3 ? 1.5 : 1.0;
-          return { name, realValue, sortWeight: realValue * weightBonus };
-      })
-      .sort((a, b) => b.sortWeight - a.sortWeight)
-      .slice(0, 38);
-
-    if (wordList.length === 0) {
-      if (wrapper) wrapper.style.display = 'none';
-      return;
-    } else {
-      if (wrapper) wrapper.style.display = 'block';
-      container.style.display = 'flex'; // 使用 Flexbox 布局
-      // 设置 Flex 样式
-      Object.assign(container.style, {
-          display: 'flex',
-          flexWrap: 'wrap',
-          justifyContent: 'center',
-          alignContent: 'center',
-          alignItems: 'center',
-          gap: '8px 12px',
-          padding: '20px',
-          width: '280px', // 固定宽度以形成更圆润的形状
-          height: '240px',
-          margin: '0 auto',
-          overflow: 'hidden',
-          borderRadius: '50%' // 辅助形成云朵轮廓感
-      });
-      if (emptyMsg) emptyMsg.style.display = 'none';
-    }
-
-    // 获取真实频次的最值
-    const maxFreq = wordList[0].realValue;
-    const minFreq = wordList[wordList.length - 1].realValue;
-
-    // 简约低饱和度配色
-    const colors = ['#738598', '#A28C9D', '#8C9A86', '#AFA191', '#6D7C8A'];
-
-    // 打乱顺序，避免全是大字挤在一起，产生自然的随机感
-    wordList = wordList.sort(() => Math.random() - 0.5);
-
-    wordList.forEach(item => {
-        let ratio = 1;
-        if (maxFreq > minFreq) {
-            ratio = (item.realValue - minFreq) / (maxFreq - minFreq);
-        }
-
-        // 字体大小映射 (12px 到 24px)
-        const fontSize = 12 + Math.pow(ratio, 2) * 12;
-        
-        // 透明度保持在高位 (0.9 到 1)
-        const opacity = 0.9 + ratio * 0.1;
-        
-        // 随机颜色
-        const color = colors[Math.floor(Math.random() * colors.length)];
-        
-        // 随机横竖切换 (约 20% 的概率为竖排)
-        const isVertical = Math.random() < 0.2;
-
-        const span = document.createElement('span');
-        span.textContent = item.name;
-        span.title = `出现 ${item.realValue} 次`;
-        
-        Object.assign(span.style, {
-            fontSize: `${fontSize}px`,
-            color: color,
-            opacity: opacity.toString(),
-            lineHeight: '1.1',
-            fontWeight: ratio > 0.5 ? 'bold' : '500', 
-            transition: 'transform 0.2s, opacity 0.2s',
-            cursor: 'default',
-            display: 'inline-block',
-            writingMode: isVertical ? 'vertical-rl' : 'horizontal-tb',
-            margin: '2px',
-            textAlign: 'center'
-        });
-
-        // 简单悬浮动画
-        span.addEventListener('mouseenter', () => {
-            span.style.transform = 'scale(1.1)';
-            span.style.opacity = '1';
-        });
-        span.addEventListener('mouseleave', () => {
-            span.style.transform = 'scale(1)';
-            span.style.opacity = opacity.toString();
-        });
-
-        container.appendChild(span);
-    });
   }
 
   // 计算连聊和高峰日
@@ -1596,7 +1516,10 @@ jQuery(async () => {
       totalStatsH = (stats.length > 0 ? (stats.length * boxH + (stats.length - 1) * boxGap + 80 * scaleFactor) : 0);
     }
 
-    let height = headerH + totalStatsH + (isPixel ? 0 : footerH);
+    const showWordCloud = $("#ccs-share-wordcloud").is(":checked") && currentAdvancedStats && currentAdvancedStats.wordsFreq;
+    const cloudH = showWordCloud ? (320 * scaleFactor) : 0;
+
+    let height = headerH + totalStatsH + cloudH + (isPixel ? 0 : footerH);
     if (shareStyle === 'ancient') {
       height = 816 * scaleFactor;
     }
@@ -1704,7 +1627,7 @@ jQuery(async () => {
       const contentAreaW = 599 * scaleFactor;
       const contentAreaX = (width - contentAreaW) / 2;
       // const contentAreaH = totalStatsH; // Already defined as totalStatsH
-      roundRect(contentAreaX, headerH, contentAreaW, totalStatsH, 24 * scaleFactor);
+      roundRect(contentAreaX, headerH, contentAreaW, totalStatsH + cloudH, 24 * scaleFactor);
     }
 
 
@@ -2129,6 +2052,34 @@ jQuery(async () => {
       drawPngIcon(insIcons.bookmark, width - startX - iconSize, iconY);
     }
     } // Close else block for modern/ins/pixel layout
+
+    // 绘制词云 (如果选中且不是古风样式)
+    if (showWordCloud && shareStyle !== 'ancient') {
+      const cloudCanvas = document.createElement('canvas');
+      cloudCanvas.id = 'ccs-temp-cloud-canvas';
+      cloudCanvas.style.display = 'none';
+      document.body.appendChild(cloudCanvas);
+      
+      try {
+        await renderWordCloud(currentAdvancedStats.wordsFreq, 'ccs-temp-cloud-canvas', {
+          width: 580 * scaleFactor,
+          height: 300 * scaleFactor,
+          color: isDark ? '#FAFBF7' : '#333',
+          limit: 40
+        });
+        
+        const cloudX = (width - 580 * scaleFactor) / 2;
+        // 这里的 Y 坐标应该是在统计列表下方
+        const cloudY = headerH + totalStatsH + (isPixel ? -20 : 0) * scaleFactor;
+        ctx.drawImage(cloudCanvas, cloudX, cloudY);
+      } catch (e) {
+        if (DEBUG) console.error("Failed to render word cloud on share image:", e);
+      } finally {
+        if (document.body.contains(cloudCanvas)) {
+          document.body.removeChild(cloudCanvas);
+        }
+      }
+    }
 
     ctx.restore(); // Restore from card-level 16px clipping
     return canvas.toDataURL('image/png');
@@ -2613,20 +2564,23 @@ jQuery(async () => {
         $('#ccs-peak-date').text(currentAdvancedStats.peakDate || '--');
         $('#ccs-peak-count').html(`${currentAdvancedStats.peakCount} <span class="ccs-advanced-unit">条消息</span>`);
 
-        // 渲染词云图
-        if (currentAdvancedStats.wordFreq) {
-          try {
-            renderWordCloud(currentAdvancedStats.wordFreq);
-          } catch (err) {
-            console.error('[StatsDebug] Failed to render word cloud:', err);
-            $('#ccs-wordcloud-empty').text('渲染词云失败').show();
-            $('#ccs-wordcloud-chart').hide();
-          }
-        }
-
         // 如果是部分数据，显示温和提示
         if (lastDeepScanPartial) {
           $error.html('部分聊天记录读取超时，当前为不完整统计。点击刷新可重试。').css('color', 'var(--SmartThemeEmColor)').show();
+        }
+
+        // 渲染词云
+        if (currentAdvancedStats.wordsFreq && Object.keys(currentAdvancedStats.wordsFreq).length > 0) {
+          $('#ccs-wordcloud-section').show();
+          // 等待一小会确保容器宽度已计算
+          setTimeout(() => {
+            renderWordCloud(currentAdvancedStats.wordsFreq, 'ccs-wordcloud-chart', {
+              width: $('#ccs-wordcloud-container').width() || 340,
+              height: 250
+            });
+          }, 100);
+        } else {
+          $('#ccs-wordcloud-section').hide();
         }
       } else {
         // 即使高级统计为空，尝试显示基础统计信息

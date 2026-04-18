@@ -45,6 +45,11 @@
             <input type="checkbox" id="ccs-share-user-avatar" checked>
             <label for="ccs-share-user-avatar" class="ccs-stat-label">用户头像</label>
           </div>
+          <!-- Word Cloud Toggle -->
+          <div class="ccs-stat-item ccs-share-option">
+            <input type="checkbox" id="ccs-share-wordcloud" checked>
+            <label for="ccs-share-wordcloud" class="ccs-stat-label">对话云图</label>
+          </div>
           <div class="ccs-tip" id="ccs-tip" style="display: none;">
             <span class="ccs-tip-icon">💡</span>
             <span class="ccs-tip-text">字数是根据当前对话和历史记录估算的，误差较大，仅供参考。</span>
@@ -136,11 +141,12 @@
             <div class="ccs-advanced-card-date" id="ccs-peak-date">--</div>
             <div class="ccs-advanced-card-count" id="ccs-peak-count">0 <span class="ccs-advanced-unit">条消息</span></div>
           </div>
-          <!-- 词云图部分 -->
-          <div class="ccs-advanced-card" id="ccs-wordcloud-container" style="margin-top: 16px; padding: 16px 12px 12px;">
-            <div class="ccs-advanced-card-label" style="margin-bottom: 8px;">聊天云图</div>
-            <div id="ccs-wordcloud-chart" style="width: 100%; height: 280px;"></div>
-            <div id="ccs-wordcloud-empty" style="display: none; padding: 20px; font-size: 0.85em; opacity: 0.6;">暂无对话数据生成词云</div>
+          <!-- Word Cloud Section -->
+          <div id="ccs-wordcloud-section" style="margin-top: 24px;">
+            <div class="ccs-advanced-card-label" style="text-align: center; margin-bottom: 12px;">对话云图</div>
+            <div id="ccs-wordcloud-container">
+              <canvas id="ccs-wordcloud-chart"></canvas>
+            </div>
           </div>
         </div>
         <div id="ccs-advanced-error" style="display: none; text-align: center; padding: 20px; color: var(--SmartThemeErrorColor);">
