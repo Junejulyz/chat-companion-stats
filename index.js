@@ -610,7 +610,7 @@ jQuery(async () => {
         .size([width, height])
         .words(finalWords)
         .padding(6) // 减小间距至 6，增加词汇密度
-        .rotate(() => (Math.random() > 0.9 ? (Math.random() > 0.5 ? 90 : -90) : 0))
+        .rotate(() => 0) // 全部水平显示，阅读更友好
         .font('"LXGW Neo XiHei", sans-serif') // 只提供字体族，避免 invalid font string
         .fontSize(d => fontSizeScale(d.size))
         .spiral("archimedean")
