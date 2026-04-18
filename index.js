@@ -533,7 +533,9 @@ jQuery(async () => {
           totalWords += countWordsInMessage(m.mes || '');
           validMessages++;
 
-          if (m.is_user === false && m.mes) {
+          const isUserMsg = m.is_user === true || m.is_user === 'true';
+          const isSystemMsg = m.is_system === true || m.is_system === 'true';
+          if (!isUserMsg && !isSystemMsg && m.mes) {
             extractDialogueKeywords(m.mes, charWordsMap, charName);
           }
 
@@ -962,7 +964,7 @@ jQuery(async () => {
     let wordList = Object.entries(wordFreqMap)
       .map(([name, realValue]) => ({ name, realValue }))
       .sort((a, b) => b.realValue - a.realValue)
-      .slice(0, 38);
+      .slice(0, 30);
 
     if (wordList.length === 0) {
       if (wrapper) wrapper.style.display = 'none';
@@ -982,8 +984,8 @@ jQuery(async () => {
         if (maxFreq > minFreq) {
             ratio = (item.realValue - minFreq) / (maxFreq - minFreq);
         }
-        // 使用 2.5 次方曲线，使得频次高的词在视觉上巨大化
-        item.value = 14 + Math.pow(ratio, 2.5) * 86; // 映射到 14 ~ 100 范围
+        // 使用 4 次方曲线，使得频次稍微高一点的词在视觉上就巨大化
+        item.value = 14 + Math.pow(ratio, 4) * 146; // 映射到 14 ~ 160 范围
         return item;
     });
 
@@ -1013,7 +1015,7 @@ jQuery(async () => {
         height: '100%',
         right: null,
         bottom: null,
-        sizeRange: [12, 100], // 极大拉开高低频字号差距
+        sizeRange: [14, 160], // 极大拉开高低频字号差距
         rotationRange: [0, 0], // 不旋转，保持易读性
         rotationStep: 0,
         gridSize: 8,
