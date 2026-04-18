@@ -986,14 +986,18 @@ jQuery(async () => {
       container.style.display = 'flex'; // 使用 Flexbox 布局
       // 设置 Flex 样式
       Object.assign(container.style, {
+          display: 'flex',
           flexWrap: 'wrap',
           justifyContent: 'center',
           alignContent: 'center',
           alignItems: 'center',
-          gap: '10px 15px',
+          gap: '8px 12px',
           padding: '20px',
-          maxWidth: '500px', // 限制宽度，让形状更接近圆形/云状
-          margin: '0 auto'
+          width: '280px', // 固定宽度以形成更圆润的形状
+          height: '240px',
+          margin: '0 auto',
+          overflow: 'hidden',
+          borderRadius: '50%' // 辅助形成云朵轮廓感
       });
       if (emptyMsg) emptyMsg.style.display = 'none';
     }
@@ -1014,17 +1018,17 @@ jQuery(async () => {
             ratio = (item.realValue - minFreq) / (maxFreq - minFreq);
         }
 
-        // 字体大小映射 (14px 到 48px)
-        const fontSize = 14 + Math.pow(ratio, 2) * 34;
+        // 字体大小映射 (12px 到 24px)
+        const fontSize = 12 + Math.pow(ratio, 2) * 12;
         
-        // 透明度映射 (0.7 到 1)，提升整体亮度
-        const opacity = 0.7 + ratio * 0.3;
+        // 透明度保持在高位 (0.9 到 1)
+        const opacity = 0.9 + ratio * 0.1;
         
         // 随机颜色
         const color = colors[Math.floor(Math.random() * colors.length)];
         
-        // 随机微小旋转，增加云图的灵动感 (-5度 到 5度)
-        const rotation = (Math.random() - 0.5) * 10;
+        // 随机横竖切换 (约 20% 的概率为竖排)
+        const isVertical = Math.random() < 0.2;
 
         const span = document.createElement('span');
         span.textContent = item.name;
@@ -1034,13 +1038,14 @@ jQuery(async () => {
             fontSize: `${fontSize}px`,
             color: color,
             opacity: opacity.toString(),
-            lineHeight: '1.2',
-            fontWeight: ratio > 0.6 ? 'bold' : 'normal', // 高频词加粗
+            lineHeight: '1.1',
+            fontWeight: ratio > 0.5 ? 'bold' : '500', 
             transition: 'transform 0.2s, opacity 0.2s',
             cursor: 'default',
             display: 'inline-block',
-            transform: `rotate(${rotation}deg)`,
-            margin: `${Math.random() * 10}px` // 随机间距，打破整齐感
+            writingMode: isVertical ? 'vertical-rl' : 'horizontal-tb',
+            margin: '2px',
+            textAlign: 'center'
         });
 
         // 简单悬浮动画
