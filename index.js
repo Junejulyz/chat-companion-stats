@@ -909,11 +909,10 @@ jQuery(async () => {
     
     if (!dialogue.trim()) return;
 
-    // 简单分词：中文 >= 2个字符，英文 >= 3个字符
+    // 简单分词：仅针对中文，提取连续的中文词组 (>= 2个字符)
     const cnWords = dialogue.match(/[\u4e00-\u9fa5]{2,}/g) || [];
-    const enWords = dialogue.match(/[a-zA-Z]{3,}/g) || [];
     
-    const allWords = [...cnWords, ...enWords];
+    const allWords = cnWords;
     
     for (let word of allWords) {
         word = word.toLowerCase();
