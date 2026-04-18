@@ -534,7 +534,7 @@ jQuery(async () => {
           validMessages++;
 
           if (m.is_user === false && m.mes) {
-            extractDialogueKeywords(m.mes, charWordsMap);
+            extractDialogueKeywords(m.mes, charWordsMap, charName);
           }
 
           // 统计发送日期
@@ -895,7 +895,7 @@ jQuery(async () => {
   // --- 词云图相关辅助函数 ---
   const stopWords = new Set(['的', '了', '是', '我', '你', '他', '她', '它', '们', '这', '那', '就', '也', '还', '在', '不', '有', '个', '个人', '一个', '到', '说', '要', '去', '看到', '觉得', '还是', '这样', '那样', '怎么', '什么', '哪里', '已经', '真的', '好像', '甚至', '也许', '比较', '非常', '特别', '啊', '嗯', '哦', '吧', '吗', '呢', '和', '与', '为', '被', '让', '把', '跟', '做', '没', '能', '会', '好', '很', '最', '都']);
 
-  function extractDialogueKeywords(text, freqMap) {
+  function extractDialogueKeywords(text, freqMap, charName) {
     if (!text) return;
     
     // 剔除思维链及系统标签包裹的内容
@@ -916,7 +916,13 @@ jQuery(async () => {
     
     for (let word of allWords) {
         word = word.toLowerCase();
-        if (!stopWords.has(word)) {
+        
+        // 过滤角色名、用户名等
+        const isCharName = charName && word === charName.toLowerCase();
+        const isUserName = window.name1 && word === window.name1.toLowerCase();
+        const isGenericUser = word === '用户' || word === '玩家';
+        
+        if (!stopWords.has(word) && !isCharName && !isUserName && !isGenericUser) {
             freqMap[word] = (freqMap[word] || 0) + 1;
         }
     }
@@ -953,9 +959,9 @@ jQuery(async () => {
     if (!container) return;
 
     // 转换为 echarts 需要的数组格式并排序取前38
-    const wordList = Object.entries(wordFreqMap)
-      .map(([name, value]) => ({ name, value }))
-      .sort((a, b) => b.value - a.value)
+    let wordList = Object.entries(wordFreqMap)
+      .map(([name, realValue]) => ({ name, realValue }))
+      .sort((a, b) => b.realValue - a.realValue)
       .slice(0, 38);
 
     if (wordList.length === 0) {
@@ -966,6 +972,20 @@ jQuery(async () => {
       container.style.display = 'block';
       if (emptyMsg) emptyMsg.style.display = 'none';
     }
+
+    // 动态非线性计算词汇的显示大小 (value)，确保大小差距悬殊
+    const maxFreq = wordList[0].realValue;
+    const minFreq = wordList[wordList.length - 1].realValue;
+
+    wordList = wordList.map(item => {
+        let ratio = 1; // 如果所有词频率一样，默认给最大尺寸
+        if (maxFreq > minFreq) {
+            ratio = (item.realValue - minFreq) / (maxFreq - minFreq);
+        }
+        // 使用 2.5 次方曲线，使得频次高的词在视觉上巨大化
+        item.value = 14 + Math.pow(ratio, 2.5) * 86; // 映射到 14 ~ 100 范围
+        return item;
+    });
 
     // 初始化 ECharts
     let myChart = echarts.getInstanceByDom(container);
@@ -980,7 +1000,7 @@ jQuery(async () => {
       tooltip: {
         show: true,
         formatter: function(item) {
-           return `${item.name}: ${item.value} 次`;
+           return `${item.name}: ${item.data.realValue} 次`;
         }
       },
       series: [{
