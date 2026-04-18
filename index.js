@@ -895,7 +895,7 @@ jQuery(async () => {
   }
 
   // --- 词云图相关辅助函数 ---
-  const stopWords = new Set(['的', '了', '是', '我', '你', '他', '她', '它', '们', '这', '那', '就', '也', '还', '在', '不', '有', '个', '个人', '一个', '到', '说', '要', '去', '看到', '觉得', '还是', '这样', '那样', '怎么', '什么', '哪里', '已经', '真的', '好像', '甚至', '也许', '比较', '非常', '特别', '啊', '嗯', '哦', '吧', '吗', '呢', '和', '与', '为', '被', '让', '把', '跟', '做', '没', '能', '会', '好', '很', '最', '都']);
+  const stopWords = new Set(['的', '了', '是', '我', '你', '他', '她', '它', '们', '这', '那', '就', '也', '还', '在', '不', '有', '个', '个人', '一个', '到', '说', '要', '去', '看到', '觉得', '还是', '这样', '那样', '怎么', '什么', '哪里', '已经', '真的', '好像', '甚至', '也许', '比较', '非常', '特别', '啊', '嗯', '哦', '吧', '吗', '呢', '和', '与', '为', '被', '让', '把', '跟', '做', '没', '能', '会', '好', '很', '最', '都', '可以', '可是', '因为', '所以', '不过', '如果', '就是', '知道', '起来', '一些', '一点', '一样', '现在', '时候', '自己', '没有', '我们', '你们', '他们', '有些', '或者', '但是', '然后', '虽然', '可能', '应该', '需要', '这么', '那么', '其实', '只是', '为了', '开始', '一直', '这种', '那种']);
 
   function extractDialogueKeywords(text, freqMap, charName) {
     if (!text) return;
@@ -911,10 +911,19 @@ jQuery(async () => {
     
     if (!dialogue.trim()) return;
 
-    // 简单分词：仅针对中文，提取连续的中文词组 (>= 2个字符)
-    const cnWords = dialogue.match(/[\u4e00-\u9fa5]{2,}/g) || [];
-    
-    const allWords = cnWords;
+    // 使用 Intl.Segmenter 进行真正的中文分词（现代浏览器/Electron自带）
+    let allWords = [];
+    if (window.Intl && Intl.Segmenter) {
+        const segmenter = new Intl.Segmenter('zh-CN', { granularity: 'word' });
+        const segments = segmenter.segment(dialogue);
+        allWords = Array.from(segments)
+            .filter(s => s.isWordLike && s.segment.length >= 2 && /^[\u4e00-\u9fa5]+$/.test(s.segment))
+            .map(s => s.segment);
+    } else {
+        // Fallback: 如果不支持则粗略按2个字符滑动切分（极为罕见）
+        const fallbackMatch = dialogue.match(/[\u4e00-\u9fa5]{2,}/g) || [];
+        allWords = fallbackMatch;
+    }
     
     for (let word of allWords) {
         word = word.toLowerCase();
