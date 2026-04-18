@@ -922,12 +922,12 @@ jQuery(async () => {
         const segmenter = new Intl.Segmenter('zh-CN', { granularity: 'word' });
         const segments = segmenter.segment(dialogue);
         allWords = Array.from(segments)
-            // 严格限制字数在 2 到 4 之间，防止整句或过长的无意义短语
-            .filter(s => s.isWordLike && s.segment.length >= 2 && s.segment.length <= 4 && /^[\u4e00-\u9fa5]+$/.test(s.segment))
+            // 严格限制字数在 2 到 6 之间
+            .filter(s => s.isWordLike && s.segment.length >= 2 && s.segment.length <= 6 && /^[\u4e00-\u9fa5]+$/.test(s.segment))
             .map(s => s.segment);
     } else {
         // Fallback: 如果不支持则粗略切分，并强制过滤长度
-        const fallbackMatch = dialogue.match(/[\u4e00-\u9fa5]{2,4}/g) || [];
+        const fallbackMatch = dialogue.match(/[\u4e00-\u9fa5]{2,6}/g) || [];
         allWords = fallbackMatch;
     }
     
@@ -990,17 +990,10 @@ jQuery(async () => {
       if (emptyMsg) emptyMsg.style.display = 'none';
     }
 
-    // 动态非线性计算词汇的显示大小 (value)，确保大小差距悬殊
-    const maxFreq = wordList[0].realValue;
-    const minFreq = wordList[wordList.length - 1].realValue;
-
     wordList = wordList.map(item => {
-        let ratio = 1; // 如果所有词频率一样，默认给最大尺寸
-        if (maxFreq > minFreq) {
-            ratio = (item.realValue - minFreq) / (maxFreq - minFreq);
-        }
-        // 使用 4 次方曲线，使得频次稍微高一点的词在视觉上就巨大化
-        item.value = 14 + Math.pow(ratio, 4) * 146; // 映射到 14 ~ 160 范围
+        // 利用指数函数放大频次差异，然后由 echarts 的 sizeRange 自动进行线性映射
+        // 这样可以避免各种极端分布情况导致的问题
+        item.value = Math.pow(item.realValue, 3);
         return item;
     });
 
@@ -1030,10 +1023,10 @@ jQuery(async () => {
         height: '100%',
         right: null,
         bottom: null,
-        sizeRange: [14, 160], // 极大拉开高低频字号差距
+        sizeRange: [14, 64], // 合理的字号范围，避免过大导致整体被严重缩小
         rotationRange: [0, 0], // 不旋转，保持易读性
         rotationStep: 0,
-        gridSize: 8,
+        gridSize: 4,
         drawOutOfBound: false,
         layoutAnimation: true,
         textStyle: {
