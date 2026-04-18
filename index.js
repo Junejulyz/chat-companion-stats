@@ -548,9 +548,8 @@ jQuery(async () => {
 
       const targetText = dialogueText.trim() || text;
 
-      // 5. 词频统计：中文 2-8 字，英文 3-12 字
-      // 优化正则：明确中文字组和英文单词的范围
-      const words = targetText.match(/[\u4e00-\u9fa5\u3400-\u4dbf]{2,8}|[a-zA-Z]{3,12}/g) || [];
+      // 5. 词频统计：仅匹配中文字符 (2-8 字)，彻底排除英文
+      const words = targetText.match(/[\u4e00-\u9fa5\u3400-\u4dbf]{2,8}/g) || [];
       words.forEach(w => {
         const lowerW = w.toLowerCase();
         // 过滤：停用词、名字、技术词、纯数字
