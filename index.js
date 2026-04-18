@@ -35,7 +35,7 @@ async function loadD3() {
 }
 
 const CHINESE_STOP_WORDS = new Set([
-  '的', '了', '在', '是', '我', '你', '他', '她', '它', '们', '这', '那', '就', '也', '而', '及', '与', '还', '个', '子', '到', '说', '要', '去', '里', '好', '都', '一', '不', '没', '有', '会', '能', '可以', '这个', '那个', '因为', '所以', '虽然', '但是', '哈哈', '呵呵', '嗯嗯', '哦哦', '这样', '那样', '怎么', '什么', '多少', '觉得', '这种', '那种', '自己', '觉得', '知道', '看着', '感到', '开始', '一直', '已经', '变得', '有些', '这种', '一个', '两个', '一点', '一些'
+  '的', '了', '在', '是', '我', '你', '他', '她', '它', '们', '这', '那', '就', '也', '而', '及', '与', '还', '个', '子', '到', '说', '要', '去', '里', '好', '都', '一', '不', '没', '有', '会', '能', '可以', '这个', '那个', '因为', '所以', '虽然', '但是', '哈哈', '呵呵', '嗯嗯', '哦哦', '这样', '那样', '怎么', '什么', '多少', '觉得', '这种', '那种', '自己', '觉得', '知道', '看着', '感到', '开始', '一直', '已经', '变得', '有些', '这种', '一个', '两个', '一点', '一些', '还是', '只是', '就是', '那么', '这么', '这里', '那里', '不是', '知道了', '起来', '下来', '过来', '过去', '这种', '那种'
 ]);
 
 jQuery(async () => {
@@ -552,9 +552,15 @@ jQuery(async () => {
       const words = targetText.match(/[\u4e00-\u9fa5\u3400-\u4dbf]{2,8}/g) || [];
       words.forEach(w => {
         const lowerW = w.toLowerCase();
+        
+        // 名字部分匹配过滤：如果词汇包含名字，或名字包含词汇
+        const isNamePart = Array.from(dynamicStopWords).some(name => 
+          lowerW.includes(name) || name.includes(lowerW)
+        );
+
         // 过滤：停用词、名字、技术词、纯数字
         if (!CHINESE_STOP_WORDS.has(lowerW) && 
-            !dynamicStopWords.has(lowerW) && 
+            !isNamePart && 
             !technicalStopWords.has(lowerW) &&
             !/^\d+$/.test(w)) {
           freqMap[lowerW] = (freqMap[lowerW] || 0) + 1;
@@ -583,16 +589,17 @@ jQuery(async () => {
     const minSize = Math.min(...words.map(w => w.size));
     const fontSizeScale = d3.scaleLinear()
       .domain([minSize, maxSize])
-      .range([12, 48]);
+      .range([16, 80]); // 增大最大字号，让云图更饱满
 
     return new Promise((resolve) => {
       d3.layout.cloud()
         .size([width, height])
         .words(words)
-        .padding(5)
-        .rotate(() => (~~(Math.random() * 2) * 90))
-        .font("Impact")
+        .padding(4) // 减小间距让排列更紧凑
+        .rotate(() => (Math.random() > 0.8 ? (Math.random() > 0.5 ? 90 : -90) : 0)) // 减少垂直排列的比例，更美观
+        .font('"LXGW Neo XiHei", sans-serif') // 使用 UI 字体
         .fontSize(d => fontSizeScale(d.size))
+        .spiral("archimedean") // 使用阿基米德螺旋线，更像云朵
         .on("end", (renderedWords) => {
           const ctx = canvas.getContext("2d");
           canvas.width = width;
@@ -605,8 +612,12 @@ jQuery(async () => {
             ctx.save();
             ctx.translate(w.x + width / 2, w.y + height / 2);
             ctx.rotate(w.rotate * Math.PI / 180);
-            ctx.font = `${w.size}px ${w.font}`;
-            ctx.fillStyle = options.color || (shareStyle === 'modern-dark' ? '#FAFBF7' : '#333');
+            ctx.font = `bold ${w.size}px ${w.font}`;
+            
+            // 颜色：使用随机的主题色系，增加美感
+            const colors = ['#5c7cfa', '#3b5bdb', '#2b8a3e', '#e67700', '#c92a2a', '#5f3dc4'];
+            ctx.fillStyle = options.color || colors[Math.floor(Math.random() * colors.length)];
+            
             ctx.fillText(w.text, 0, 0);
             ctx.restore();
           });
