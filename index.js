@@ -490,19 +490,50 @@ jQuery(async () => {
     return null;
   }
 
-  // 获取单个聊天文件的统计数据 (使用 SillyTavern 官方 API 接口)
-  function getWordFrequencies(messages) {
+  // 获取单个聊天文件的词频统计 (异步处理防止阻塞)
+  async function getWordFrequencies(messages) {
     const freqMap = {};
-    messages.forEach(m => {
-      const text = m.mes || '';
-      // 匹配中文字符、英文单词
-      const words = text.match(/[\u4e00-\u9fa5]{2,4}|[a-zA-Z]{3,}/g) || [];
+    if (!messages || !Array.isArray(messages)) return freqMap;
+
+    const CHUNK_SIZE = 50; 
+    for (let i = 0; i < messages.length; i++) {
+      if (i > 0 && i % CHUNK_SIZE === 0) {
+        await new Promise(resolve => setTimeout(resolve, 0));
+      }
+
+      const m = messages[i];
+      // 1. 身份过滤：仅分析角色（Assistant/Character）发送的消息
+      if (m.is_user === true) continue;
+
+      let text = m.mes || '';
+      if (!text) continue;
+
+      // 2. 内容过滤：使用正则表达式避免提取思维链 (CoT) 内容
+      text = text.replace(/<(think|thinking|details|start|assistant|event|\|start\||\|channel\||\|message\|)>[\s\S]*?<\/\1>/gi, '');
+      text = text.replace(/<(think|thinking|details|start|assistant|event|\|start\||\|channel\||\|message\|)>/gi, '');
+      text = text.replace(/<\|start\|>assistant|<\|channel\|>analysis|<\|message\|>/gi, '');
+
+      // 3. 内容提取：提取引号内的对话文本 (支持 "", “”, 「」, 『』)
+      const quoteRegex = /["“「『]([^"”」』]+)["”」』]/g;
+      let match;
+      let dialogueText = '';
+      while ((match = quoteRegex.exec(text)) !== null) {
+        dialogueText += ' ' + match[1];
+      }
+
+      // 如果完全没有提取到引号内容，则使用过滤后的全文 (适应不带引号的对话风格)
+      const targetText = dialogueText.trim() || text;
+
+      // 4. 匹配中文字符、英文单词
+      // 中文 2-4 字，英文 3 字以上
+      const words = targetText.match(/[\u4e00-\u9fa5\u3400-\u4dbf]{2,4}|[a-zA-Z]{3,}/g) || [];
       words.forEach(w => {
-        if (!CHINESE_STOP_WORDS.has(w)) {
-          freqMap[w] = (freqMap[w] || 0) + 1;
+        const lowerW = w.toLowerCase();
+        if (!CHINESE_STOP_WORDS.has(lowerW)) {
+          freqMap[lowerW] = (freqMap[lowerW] || 0) + 1;
         }
       });
-    });
+    }
     return freqMap;
   }
 
@@ -624,7 +655,7 @@ jQuery(async () => {
       let userMessages = 0;
       let earliestTimeInFile = null;
       const dayMap = {};
-      const wordsFreq = collectWords ? getWordFrequencies(messagesArray) : {};
+      const wordsFreq = collectWords ? await getWordFrequencies(messagesArray) : {};
 
       messagesArray.forEach(m => {
         if (m && (m.mes !== undefined || m.is_user !== undefined)) {
