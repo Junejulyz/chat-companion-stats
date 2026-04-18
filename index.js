@@ -628,11 +628,11 @@ jQuery(async () => {
             ctx.rotate(w.rotate * Math.PI / 180);
             ctx.font = `bold ${w.size}px ${w.font}`;
             
-            // 颜色：使用低饱和度的优雅色系
+            // 颜色：清新莫兰迪色系 (低饱和度但色彩轻盈)
             const colors = [
-              '#546e7a', '#78909c', '#6d4c41', '#8d6e63', 
-              '#5d4037', '#455a64', '#37474f', '#4e342e',
-              '#556b2f', '#6b8e23', '#4682b4', '#708090'
+              '#9bb7d4', '#b6cfb6', '#d4a5a5', '#a594b7', 
+              '#97c1a9', '#c6dbda', '#e1ccec', '#f1e1a6',
+              '#88b0ac', '#b0c4de', '#ffccbb', '#c5d0e6'
             ];
             ctx.fillStyle = options.color || colors[Math.floor(Math.random() * colors.length)];
             
