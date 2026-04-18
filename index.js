@@ -506,13 +506,15 @@ jQuery(async () => {
     // 1. 构建动态黑名单 (角色名、用户名及其分词)
     const dynamicStopWords = new Set();
     if (charName) {
+      dynamicStopWords.add(charName.toLowerCase());
       charName.split(/[\s·._-]+/).forEach(n => {
-        if (n.length > 1) dynamicStopWords.add(n.toLowerCase());
+        if (n.length > 0) dynamicStopWords.add(n.toLowerCase());
       });
     }
     if (userName) {
+      dynamicStopWords.add(userName.toLowerCase());
       userName.split(/[\s·._-]+/).forEach(n => {
-        if (n.length > 1) dynamicStopWords.add(n.toLowerCase());
+        if (n.length > 0) dynamicStopWords.add(n.toLowerCase());
       });
     }
 
@@ -743,7 +745,8 @@ jQuery(async () => {
       let userMessages = 0;
       let earliestTimeInFile = null;
       const dayMap = {};
-      const userName = typeof name1 !== 'undefined' ? name1 : '';
+      const context = getContext();
+      const userName = context.name1 || (typeof name1 !== 'undefined' ? name1 : '');
       const wordsFreq = collectWords ? await getWordFrequencies(messagesArray, charName, userName) : {};
 
       messagesArray.forEach(m => {
