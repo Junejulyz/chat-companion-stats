@@ -990,10 +990,21 @@ jQuery(async () => {
       if (emptyMsg) emptyMsg.style.display = 'none';
     }
 
-    wordList = wordList.map(item => {
-        // 利用指数函数放大频次差异，然后由 echarts 的 sizeRange 自动进行线性映射
-        // 这样可以避免各种极端分布情况导致的问题
-        item.value = Math.pow(item.realValue, 3);
+    // 无论真实频次分布如何极度集中（例如全部出现1次或2次），
+    // 我们都强制根据它在列表中的“排名”来分配字号权重。
+    // 这样能确保每次生成的云图都拥有绝对的“大小层级”，呈现出完美的云状，
+    // 彻底解决因为分布太平缓导致所有字被 ECharts 统一缩小为 12px 的 BUG。
+    const totalWords = wordList.length;
+    wordList = wordList.map((item, index) => {
+        let normalizedRank = 0;
+        if (totalWords > 1) {
+            normalizedRank = index / (totalWords - 1);
+        }
+        // 使用 2 次方曲线反转权重：排名第一(0)权重最大(1)，最后一名(1)权重为(0)
+        // 这样前几个词会极大，后面的词平缓缩小充当背景点缀
+        const weight = Math.pow(1 - normalizedRank, 2); 
+        // 生成的 value 会平滑散布在 14 ~ 100 之间
+        item.value = 14 + weight * 86; 
         return item;
     });
 
@@ -1023,10 +1034,10 @@ jQuery(async () => {
         height: '100%',
         right: null,
         bottom: null,
-        sizeRange: [14, 64], // 合理的字号范围，避免过大导致整体被严重缩小
+        sizeRange: [14, 80], // 基于排名分配的权重，可以放心把上限调大
         rotationRange: [0, 0], // 不旋转，保持易读性
         rotationStep: 0,
-        gridSize: 4,
+        gridSize: 6,
         drawOutOfBound: false,
         layoutAnimation: true,
         textStyle: {
