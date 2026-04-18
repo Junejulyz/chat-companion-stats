@@ -949,6 +949,7 @@ jQuery(async () => {
   function renderWordCloud(wordFreqMap) {
     const container = document.getElementById('ccs-wordcloud-chart');
     const emptyMsg = document.getElementById('ccs-wordcloud-empty');
+    const wrapper = document.getElementById('ccs-wordcloud-container');
     if (!container) return;
 
     // 转换为 echarts 需要的数组格式并排序取前38
@@ -958,10 +959,10 @@ jQuery(async () => {
       .slice(0, 38);
 
     if (wordList.length === 0) {
-      container.style.display = 'none';
-      if (emptyMsg) emptyMsg.style.display = 'block';
+      if (wrapper) wrapper.style.display = 'none';
       return;
     } else {
+      if (wrapper) wrapper.style.display = 'block';
       container.style.display = 'block';
       if (emptyMsg) emptyMsg.style.display = 'none';
     }
@@ -992,7 +993,7 @@ jQuery(async () => {
         height: '100%',
         right: null,
         bottom: null,
-        sizeRange: [14, 55], // 加大字号范围，区分高低频词
+        sizeRange: [12, 100], // 极大拉开高低频字号差距
         rotationRange: [0, 0], // 不旋转，保持易读性
         rotationStep: 0,
         gridSize: 8,
