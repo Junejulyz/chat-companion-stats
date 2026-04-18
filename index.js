@@ -909,6 +909,7 @@ jQuery(async () => {
 
       let totalWordsCalculated = 0;
       let totalMessagesCalculated = 0;
+      let totalUserMessagesCalculated = 0;
       let absoluteEarliestTime = null;
       const globalDayMap = {};
       const globalWordsFreq = {};
