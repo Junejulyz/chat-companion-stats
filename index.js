@@ -907,7 +907,12 @@ jQuery(async () => {
 
     // 提取双引号内的内容
     const quotes = cleanText.match(/(["“”「」])(.*?)\1/g) || [];
-    const dialogue = quotes.map(q => q.slice(1, -1)).join(' ');
+    let dialogue = quotes.map(q => q.slice(1, -1)).join(' ');
+    
+    // 提前剔除角色名和用户名，防止它们被错误分词或与其他词相连
+    if (charName) dialogue = dialogue.replace(new RegExp(charName, 'gi'), '');
+    const userName = window.name1;
+    if (userName) dialogue = dialogue.replace(new RegExp(userName, 'gi'), '');
     
     if (!dialogue.trim()) return;
 
@@ -917,11 +922,12 @@ jQuery(async () => {
         const segmenter = new Intl.Segmenter('zh-CN', { granularity: 'word' });
         const segments = segmenter.segment(dialogue);
         allWords = Array.from(segments)
-            .filter(s => s.isWordLike && s.segment.length >= 2 && /^[\u4e00-\u9fa5]+$/.test(s.segment))
+            // 严格限制字数在 2 到 4 之间，防止整句或过长的无意义短语
+            .filter(s => s.isWordLike && s.segment.length >= 2 && s.segment.length <= 4 && /^[\u4e00-\u9fa5]+$/.test(s.segment))
             .map(s => s.segment);
     } else {
-        // Fallback: 如果不支持则粗略按2个字符滑动切分（极为罕见）
-        const fallbackMatch = dialogue.match(/[\u4e00-\u9fa5]{2,}/g) || [];
+        // Fallback: 如果不支持则粗略切分，并强制过滤长度
+        const fallbackMatch = dialogue.match(/[\u4e00-\u9fa5]{2,4}/g) || [];
         allWords = fallbackMatch;
     }
     
