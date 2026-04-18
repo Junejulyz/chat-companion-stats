@@ -1576,10 +1576,7 @@ jQuery(async () => {
       totalStatsH = (stats.length > 0 ? (stats.length * boxH + (stats.length - 1) * boxGap + 80 * scaleFactor) : 0);
     }
 
-    const showWordCloud = $("#ccs-share-wordcloud").is(":checked") && currentAdvancedStats && currentAdvancedStats.wordsFreq;
-    const cloudH = showWordCloud ? (320 * scaleFactor) : 0;
-
-    let height = headerH + totalStatsH + cloudH + (isPixel ? 0 : footerH);
+    let height = headerH + totalStatsH + (isPixel ? 0 : footerH);
     if (shareStyle === 'ancient') {
       height = 816 * scaleFactor;
     }
@@ -1687,7 +1684,7 @@ jQuery(async () => {
       const contentAreaW = 599 * scaleFactor;
       const contentAreaX = (width - contentAreaW) / 2;
       // const contentAreaH = totalStatsH; // Already defined as totalStatsH
-      roundRect(contentAreaX, headerH, contentAreaW, totalStatsH + cloudH, 24 * scaleFactor);
+      roundRect(contentAreaX, headerH, contentAreaW, totalStatsH, 24 * scaleFactor);
     }
 
 
@@ -2113,33 +2110,6 @@ jQuery(async () => {
     }
     } // Close else block for modern/ins/pixel layout
 
-    // 绘制词云 (如果选中且不是古风样式)
-    if (showWordCloud && shareStyle !== 'ancient') {
-      const cloudCanvas = document.createElement('canvas');
-      cloudCanvas.id = 'ccs-temp-cloud-canvas';
-      cloudCanvas.style.display = 'none';
-      document.body.appendChild(cloudCanvas);
-      
-      try {
-        await renderWordCloud(currentAdvancedStats.wordsFreq, 'ccs-temp-cloud-canvas', {
-          width: 580 * scaleFactor,
-          height: 300 * scaleFactor,
-          color: isDark ? '#FAFBF7' : '#333',
-          limit: 40
-        });
-        
-        const cloudX = (width - 580 * scaleFactor) / 2;
-        // 这里的 Y 坐标应该是在统计列表下方
-        const cloudY = headerH + totalStatsH + (isPixel ? -20 : 0) * scaleFactor;
-        ctx.drawImage(cloudCanvas, cloudX, cloudY);
-      } catch (e) {
-        if (DEBUG) console.error("Failed to render word cloud on share image:", e);
-      } finally {
-        if (document.body.contains(cloudCanvas)) {
-          document.body.removeChild(cloudCanvas);
-        }
-      }
-    }
 
     ctx.restore(); // Restore from card-level 16px clipping
     return canvas.toDataURL('image/png');
