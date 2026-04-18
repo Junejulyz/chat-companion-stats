@@ -990,21 +990,18 @@ jQuery(async () => {
       if (emptyMsg) emptyMsg.style.display = 'none';
     }
 
-    // 无论真实频次分布如何极度集中（例如全部出现1次或2次），
-    // 我们都强制根据它在列表中的“排名”来分配字号权重。
-    // 这样能确保每次生成的云图都拥有绝对的“大小层级”，呈现出完美的云状，
-    // 彻底解决因为分布太平缓导致所有字被 ECharts 统一缩小为 12px 的 BUG。
-    const totalWords = wordList.length;
-    wordList = wordList.map((item, index) => {
-        let normalizedRank = 0;
-        if (totalWords > 1) {
-            normalizedRank = index / (totalWords - 1);
+    // 获取真实频次的最值
+    const maxFreq = wordList[0].realValue;
+    const minFreq = wordList[wordList.length - 1].realValue;
+
+    wordList = wordList.map((item) => {
+        let ratio = 1;
+        if (maxFreq > minFreq) {
+            ratio = (item.realValue - minFreq) / (maxFreq - minFreq);
         }
-        // 使用 2 次方曲线反转权重：排名第一(0)权重最大(1)，最后一名(1)权重为(0)
-        // 这样前几个词会极大，后面的词平缓缩小充当背景点缀
-        const weight = Math.pow(1 - normalizedRank, 2); 
-        // 生成的 value 会平滑散布在 14 ~ 100 之间
-        item.value = 14 + weight * 86; 
+        // 使用 2 次方曲线放大高低频之间的差异
+        // 这样高频词依然会显著更大，而低频词会迅速变小
+        item.value = Math.pow(ratio, 2); 
         return item;
     });
 
@@ -1034,11 +1031,15 @@ jQuery(async () => {
         height: '100%',
         right: null,
         bottom: null,
-        sizeRange: [14, 80], // 基于排名分配的权重，可以放心把上限调大
+        // 核心修复：上限绝不能超过 48px！
+        // 如果字号过大，ECharts 会因为装不下而触发全局微缩防溢出机制，
+        // 导致所有词被等比例缩小 10 倍，最后全部变成浏览器的保底 12px！
+        sizeRange: [12, 48], 
         rotationRange: [0, 0], // 不旋转，保持易读性
         rotationStep: 0,
-        gridSize: 6,
+        gridSize: 8,
         drawOutOfBound: false,
+        shape: 'pentagon', // 使用五边形或 cardioid 能更好地撑满方形容器
         layoutAnimation: true,
         textStyle: {
           fontFamily: 'inherit',
