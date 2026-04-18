@@ -491,9 +491,32 @@ jQuery(async () => {
   }
 
   // 获取单个聊天文件的词频统计 (异步处理防止阻塞)
-  async function getWordFrequencies(messages) {
+  async function getWordFrequencies(messages, charName, userName) {
     const freqMap = {};
     if (!messages || !Array.isArray(messages)) return freqMap;
+
+    // 1. 构建动态黑名单 (角色名、用户名及其分词)
+    const dynamicStopWords = new Set();
+    if (charName) {
+      charName.split(/[\s·._-]+/).forEach(n => {
+        if (n.length > 1) dynamicStopWords.add(n.toLowerCase());
+      });
+    }
+    if (userName) {
+      userName.split(/[\s·._-]+/).forEach(n => {
+        if (n.length > 1) dynamicStopWords.add(n.toLowerCase());
+      });
+    }
+
+    // 2. 额外过滤常见的技术/排版词汇 (防止 Markdown/HTML/CSS 泄露)
+    const technicalStopWords = new Set([
+      'color', 'style', 'font', 'size', 'family', 'weight', 'align', 'decoration', 
+      'px', 'em', 'rem', 'rgb', 'rgba', 'hex', 'class', 'id', 'div', 'span', 'br', 
+      'margin', 'padding', 'border', 'background', 'height', 'width', 'display',
+      'center', 'left', 'right', 'top', 'bottom', 'none', 'block', 'inline',
+      'shadow', 'radius', 'solid', 'dashed', 'hidden', 'visible', 'important',
+      'text', 'val', 'attr', 'props', 'true', 'false', 'null', 'undefined'
+    ]);
 
     const CHUNK_SIZE = 50; 
     for (let i = 0; i < messages.length; i++) {
@@ -502,18 +525,20 @@ jQuery(async () => {
       }
 
       const m = messages[i];
-      // 1. 身份过滤：仅分析角色（Assistant/Character）发送的消息
       if (m.is_user === true) continue;
 
       let text = m.mes || '';
       if (!text) continue;
 
-      // 2. 内容过滤：使用正则表达式避免提取思维链 (CoT) 内容
+      // 3. 基础清理：移除 HTML 标签、Markdown 链接和图片
       text = text.replace(/<(think|thinking|details|start|assistant|event|\|start\||\|channel\||\|message\|)>[\s\S]*?<\/\1>/gi, '');
       text = text.replace(/<(think|thinking|details|start|assistant|event|\|start\||\|channel\||\|message\|)>/gi, '');
       text = text.replace(/<\|start\|>assistant|<\|channel\|>analysis|<\|message\|>/gi, '');
+      text = text.replace(/!\[.*?\]\(.*?\)/g, ''); // 移除图片
+      text = text.replace(/\[.*?\]\(.*?\)/g, ''); // 移除链接
+      text = text.replace(/<[^>]*>/g, ' ');       // 移除剩余 HTML 标签
 
-      // 3. 内容提取：提取引号内的对话文本 (支持 "", “”, 「」, 『』)
+      // 4. 内容提取：提取引号内的对话文本 (支持 "", “”, 「」, 『』)
       const quoteRegex = /["“「『]([^"”」』]+)["”」』]/g;
       let match;
       let dialogueText = '';
@@ -521,15 +546,18 @@ jQuery(async () => {
         dialogueText += ' ' + match[1];
       }
 
-      // 如果完全没有提取到引号内容，则使用过滤后的全文 (适应不带引号的对话风格)
       const targetText = dialogueText.trim() || text;
 
-      // 4. 匹配中文字符、英文单词
-      // 中文 2-4 字，英文 3 字以上
-      const words = targetText.match(/[\u4e00-\u9fa5\u3400-\u4dbf]{2,4}|[a-zA-Z]{3,}/g) || [];
+      // 5. 词频统计：中文 2-8 字，英文 3-12 字
+      // 优化正则：明确中文字组和英文单词的范围
+      const words = targetText.match(/[\u4e00-\u9fa5\u3400-\u4dbf]{2,8}|[a-zA-Z]{3,12}/g) || [];
       words.forEach(w => {
         const lowerW = w.toLowerCase();
-        if (!CHINESE_STOP_WORDS.has(lowerW)) {
+        // 过滤：停用词、名字、技术词、纯数字
+        if (!CHINESE_STOP_WORDS.has(lowerW) && 
+            !dynamicStopWords.has(lowerW) && 
+            !technicalStopWords.has(lowerW) &&
+            !/^\d+$/.test(w)) {
           freqMap[lowerW] = (freqMap[lowerW] || 0) + 1;
         }
       });
@@ -655,7 +683,8 @@ jQuery(async () => {
       let userMessages = 0;
       let earliestTimeInFile = null;
       const dayMap = {};
-      const wordsFreq = collectWords ? await getWordFrequencies(messagesArray) : {};
+      const userName = typeof name1 !== 'undefined' ? name1 : '';
+      const wordsFreq = collectWords ? await getWordFrequencies(messagesArray, charName, userName) : {};
 
       messagesArray.forEach(m => {
         if (m && (m.mes !== undefined || m.is_user !== undefined)) {
