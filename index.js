@@ -603,13 +603,13 @@ jQuery(async () => {
     const minSize = Math.min(...finalWords.map(w => w.size));
     const fontSizeScale = d3.scaleLinear()
       .domain([minSize, maxSize])
-      .range(minSize === maxSize ? [40, 40] : [20, 80]); // 如果频率相同，统一用中等字号；否则范围扩大到 20-80
+      .range(minSize === maxSize ? [30, 30] : [14, 60]); // 缩小范围至 14-60，方便容纳更多词汇
 
     return new Promise((resolve) => {
       d3.layout.cloud()
         .size([width, height])
         .words(finalWords)
-        .padding(10) // 进一步增大间距，确保即使加粗也不交叠
+        .padding(6) // 减小间距至 6，增加词汇密度
         .rotate(() => (Math.random() > 0.9 ? (Math.random() > 0.5 ? 90 : -90) : 0))
         .font('"LXGW Neo XiHei", sans-serif') // 只提供字体族，避免 invalid font string
         .fontSize(d => fontSizeScale(d.size))
@@ -628,8 +628,12 @@ jQuery(async () => {
             ctx.rotate(w.rotate * Math.PI / 180);
             ctx.font = `bold ${w.size}px ${w.font}`;
             
-            // 颜色：使用随机的主题色系，增加美感
-            const colors = ['#5c7cfa', '#3b5bdb', '#2b8a3e', '#e67700', '#c92a2a', '#5f3dc4'];
+            // 颜色：使用低饱和度的优雅色系
+            const colors = [
+              '#546e7a', '#78909c', '#6d4c41', '#8d6e63', 
+              '#5d4037', '#455a64', '#37474f', '#4e342e',
+              '#556b2f', '#6b8e23', '#4682b4', '#708090'
+            ];
             ctx.fillStyle = options.color || colors[Math.floor(Math.random() * colors.length)];
             
             ctx.fillText(w.text, 0, 0);
