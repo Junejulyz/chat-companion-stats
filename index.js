@@ -895,7 +895,13 @@ jQuery(async () => {
   }
 
   // --- 词云图相关辅助函数 ---
-  const stopWords = new Set(['的', '了', '是', '我', '你', '他', '她', '它', '们', '这', '那', '就', '也', '还', '在', '不', '有', '个', '个人', '一个', '到', '说', '要', '去', '看到', '觉得', '还是', '这样', '那样', '怎么', '什么', '哪里', '已经', '真的', '好像', '甚至', '也许', '比较', '非常', '特别', '啊', '嗯', '哦', '吧', '吗', '呢', '和', '与', '为', '被', '让', '把', '跟', '做', '没', '能', '会', '好', '很', '最', '都', '可以', '可是', '因为', '所以', '不过', '如果', '就是', '知道', '起来', '一些', '一点', '一样', '现在', '时候', '自己', '没有', '我们', '你们', '他们', '有些', '或者', '但是', '然后', '虽然', '可能', '应该', '需要', '这么', '那么', '其实', '只是', '为了', '开始', '一直', '这种', '那种']);
+  const stopWords = new Set([
+      '的', '了', '是', '我', '你', '他', '她', '它', '们', '这', '那', '就', '也', '还', '在', '不', '有', '个', '个人', '一个', '到', '说', '要', '去', '看到', '觉得', '还是', '这样', '那样', '怎么', '什么', '哪里', '已经', '真的', '好像', '甚至', '也许', '比较', '非常', '特别', '啊', '嗯', '哦', '吧', '吗', '呢', '和', '与', '为', '被', '让', '把', '跟', '做', '没', '能', '会', '好', '很', '最', '都',
+      // 高频副词、连词、代词、介词等
+      '可以', '可是', '因为', '所以', '不过', '如果', '就是', '知道', '起来', '一些', '一点', '一样', '现在', '时候', '自己', '没有', '我们', '你们', '他们', '有些', '或者', '但是', '然后', '虽然', '可能', '应该', '需要', '这么', '那么', '其实', '只是', '为了', '开始', '一直', '这种', '那种', '关于', '刚好', '进行', '发现', '发生', '感觉', '听到', '出来', '下去', '而且', '并且', '与其', '不如', '只有', '只能', '所以说', '总之', '突然', '刚才', '马上', '立刻', '总是', '经常', '有时', '很多', '不少', '多少', '所有', '全部', '整个', '几乎', '大概', '似乎', '随便', '就算', '即使', '既然', '反正', '由于', '对于', '至于', '除了', '那个', '任何', '一下', '一次', '一定', '不能', '不要', '不会', '不是', '不知', '不同', '不够', '不好', '之前', '之后', '之间', '之内', '之中', '之外', '之下', '之上', '一般', '一切', '认为', '以为', '希望', '准备', '打算', '决定', '继续', '必须', '肯定', '当然', '必然', '果然', '居然', '竟然', '忽然', '固然', '纵然', '仍然', '依旧', '曾经', '正在', '将要', '就要', '快要', '偏偏', '难道', '莫非', '或许', '恐怕', '是否', '哪个', '哪些', '为什么', '怎么样', '什么样',
+      // 常见语气词重复
+      '哈哈', '呵呵', '嘿嘿', '嘻嘻', '嗯嗯', '哦哦', '好的', '是的', '不行', '的话'
+  ]);
 
   function extractDialogueKeywords(text, freqMap, charName) {
     if (!text) return;
@@ -945,48 +951,42 @@ jQuery(async () => {
     }
   }
 
-  // 动态加载 ECharts 和 WordCloud 插件
-  function loadEChartsAndWordCloud() {
-    return new Promise((resolve, reject) => {
-      if (window.echarts && window.echarts.wordCloud) {
-        resolve();
-        return;
-      }
-      
-      const echartsScript = document.createElement('script');
-      echartsScript.src = 'https://cdn.jsdelivr.net/npm/echarts@5.5.0/dist/echarts.min.js';
-      
-      echartsScript.onload = () => {
-        const wordCloudScript = document.createElement('script');
-        wordCloudScript.src = 'https://cdn.jsdelivr.net/npm/echarts-wordcloud@2.1.0/dist/echarts-wordcloud.min.js';
-        wordCloudScript.onload = resolve;
-        wordCloudScript.onerror = () => reject(new Error('Failed to load echarts-wordcloud'));
-        document.head.appendChild(wordCloudScript);
-      };
-      echartsScript.onerror = () => reject(new Error('Failed to load echarts'));
-      document.head.appendChild(echartsScript);
-    });
-  }
-
-  // 渲染词云图
+  // 原生 CSS 标签云渲染（取代 ECharts 以彻底解决大小缩放 BUG）
   function renderWordCloud(wordFreqMap) {
     const container = document.getElementById('ccs-wordcloud-chart');
     const emptyMsg = document.getElementById('ccs-wordcloud-empty');
     const wrapper = document.getElementById('ccs-wordcloud-container');
     if (!container) return;
 
-    // 转换为 echarts 需要的数组格式并排序取前38
+    // 清空现有内容，包括任何之前的 ECharts 实例
+    container.innerHTML = '';
+    // 销毁可能存在的 ECharts 实例防止内存泄漏
+    if (window.echarts) {
+        const existChart = echarts.getInstanceByDom(container);
+        if (existChart) existChart.dispose();
+    }
+
+    // 转换为数组格式并排序取前38
     let wordList = Object.entries(wordFreqMap)
       .map(([name, realValue]) => ({ name, realValue }))
       .sort((a, b) => b.realValue - a.realValue)
-      .slice(0, 30);
+      .slice(0, 38);
 
     if (wordList.length === 0) {
       if (wrapper) wrapper.style.display = 'none';
       return;
     } else {
       if (wrapper) wrapper.style.display = 'block';
-      container.style.display = 'block';
+      container.style.display = 'flex'; // 使用 Flexbox 布局
+      // 设置 Flex 样式
+      Object.assign(container.style, {
+          flexWrap: 'wrap',
+          justifyContent: 'center',
+          alignContent: 'center',
+          alignItems: 'center',
+          gap: '12px 18px',
+          padding: '10px'
+      });
       if (emptyMsg) emptyMsg.style.display = 'none';
     }
 
@@ -994,78 +994,54 @@ jQuery(async () => {
     const maxFreq = wordList[0].realValue;
     const minFreq = wordList[wordList.length - 1].realValue;
 
-    wordList = wordList.map((item) => {
+    // 简约低饱和度配色
+    const colors = ['#738598', '#A28C9D', '#8C9A86', '#AFA191', '#6D7C8A'];
+
+    // 打乱顺序，避免全是大字挤在一起，产生自然的随机感
+    wordList = wordList.sort(() => Math.random() - 0.5);
+
+    wordList.forEach(item => {
         let ratio = 1;
         if (maxFreq > minFreq) {
             ratio = (item.realValue - minFreq) / (maxFreq - minFreq);
         }
-        // ECharts 词云图对 0~1 的小数 value 处理有严重 BUG，会全部截断为同一个字号！
-        // 核心修复：把 value 放大为一个 10 ~ 100 之间的大整数，让 ECharts 能正确识别它并进行线性映射！
-        item.value = Math.round(10 + Math.pow(ratio, 2) * 90); 
-        return item;
+
+        // 字体大小映射 (14px 到 48px)
+        const fontSize = 14 + Math.pow(ratio, 2) * 34;
+        
+        // 透明度映射 (0.5 到 1)，低频词更透明，充当背景
+        const opacity = 0.5 + ratio * 0.5;
+        
+        // 随机颜色
+        const color = colors[Math.floor(Math.random() * colors.length)];
+
+        const span = document.createElement('span');
+        span.textContent = item.name;
+        span.title = `出现 ${item.realValue} 次`;
+        
+        Object.assign(span.style, {
+            fontSize: `${fontSize}px`,
+            color: color,
+            opacity: opacity.toString(),
+            lineHeight: '1.2',
+            fontWeight: ratio > 0.6 ? 'bold' : 'normal', // 高频词加粗
+            transition: 'transform 0.2s, opacity 0.2s',
+            cursor: 'default',
+            display: 'inline-block'
+        });
+
+        // 简单悬浮动画
+        span.addEventListener('mouseenter', () => {
+            span.style.transform = 'scale(1.1)';
+            span.style.opacity = '1';
+        });
+        span.addEventListener('mouseleave', () => {
+            span.style.transform = 'scale(1)';
+            span.style.opacity = opacity.toString();
+        });
+
+        container.appendChild(span);
     });
-
-    // 初始化 ECharts
-    let myChart = echarts.getInstanceByDom(container);
-    if (!myChart) {
-      myChart = echarts.init(container);
-    }
-
-    // 简约低饱和度配色
-    const colors = ['#738598', '#A28C9D', '#8C9A86', '#AFA191', '#6D7C8A'];
-
-    const option = {
-      tooltip: {
-        show: true,
-        formatter: function(item) {
-           return `${item.name}: ${item.data.realValue} 次`;
-        }
-      },
-      series: [{
-        type: 'wordCloud',
-        shape: 'circle',
-        keepAspect: false,
-        left: 'center',
-        top: 'center',
-        width: '100%',
-        height: '100%',
-        right: null,
-        bottom: null,
-        // 禁用 ECharts 全局防溢出微缩机制！
-        // 如果 drawOutOfBound 是 false，一旦它觉得放不下，就会强行把整个画布缩小 10 倍！
-        // 设置为 true 后，它绝对不会缩小字号，宁可边缘被稍微裁切也要保证字够大！
-        sizeRange: [14, 56], 
-        rotationRange: [0, 0], // 不旋转，保持易读性
-        rotationStep: 0,
-        gridSize: 4, // 稍微缩小间距，让词语更紧凑
-        drawOutOfBound: true,
-        shape: 'pentagon', // 使用五边形能更好地撑满方形容器
-        layoutAnimation: true,
-        textStyle: {
-          fontFamily: 'inherit',
-          fontWeight: 'bold',
-          color: function () {
-            return colors[Math.floor(Math.random() * colors.length)];
-          }
-        },
-        emphasis: {
-          focus: 'self',
-          textStyle: {
-            textShadowBlur: 10,
-            textShadowColor: '#333'
-          }
-        },
-        data: wordList
-      }]
-    };
-
-    myChart.setOption(option);
-    
-    // 自动重绘尺寸
-    const resizeObserver = new ResizeObserver(() => {
-        myChart.resize();
-    });
-    resizeObserver.observe(container);
   }
 
   // 计算连聊和高峰日
@@ -2621,13 +2597,13 @@ jQuery(async () => {
 
         // 渲染词云图
         if (currentAdvancedStats.wordFreq) {
-          loadEChartsAndWordCloud().then(() => {
+          try {
             renderWordCloud(currentAdvancedStats.wordFreq);
-          }).catch(err => {
-            console.error('[StatsDebug] Failed to load word cloud deps:', err);
-            $('#ccs-wordcloud-empty').text('加载词云组件失败').show();
+          } catch (err) {
+            console.error('[StatsDebug] Failed to render word cloud:', err);
+            $('#ccs-wordcloud-empty').text('渲染词云失败').show();
             $('#ccs-wordcloud-chart').hide();
-          });
+          }
         }
 
         // 如果是部分数据，显示温和提示
