@@ -1334,7 +1334,7 @@ jQuery(async () => {
     ];
 
     // 如果是青纹信笺或像素风，则加上初遇时间显示 (现代简约默认不加)
-    if (isAncient || isPixel || isPocketSticker) {
+    if (isAncient || isPixel) {
       statsItems.unshift({ id: 'ccs-share-start', label: '初遇时间', value: $("#ccs-start").text().replace(/约/g, '').replace(/点/g, ':').replace(/分/g, '') });
     }
 
@@ -1744,34 +1744,39 @@ jQuery(async () => {
 
     } else if (isPocketSticker) {
       // 5. Pocket Sticker Avatars & Name
-      const frameLeftX = 115 * scaleFactor;
-      const frameRightX = 460 * scaleFactor;
-      const frameY = 25 * scaleFactor;
-      const frameW = 322 * scaleFactor;
-      const frameH = 348 * scaleFactor;
+      const avatarW = 253 * scaleFactor;
+      const avatarH = 276 * scaleFactor;
+      const charAvatarX = 152 * scaleFactor;
+      const userAvatarX = 492 * scaleFactor;
+      const avatarY = 64 * scaleFactor;
       
-      const avatarSize = 220 * scaleFactor; // Smaller avatar to fit inside the inner frame
-      const offsetX = (frameW - avatarSize) / 2;
-      const offsetY = (frameH - avatarSize) / 2 + 10 * scaleFactor; // Push down slightly
-      
-      drawRoundedAvatar(charImg, frameLeftX + offsetX, frameY + offsetY, avatarSize, avatarSize, 12 * scaleFactor);
+      // No rounded corners
+      ctx.drawImage(charImg, charAvatarX, avatarY, avatarW, avatarH);
       if (showUser) {
-        drawRoundedAvatar(userImg, frameRightX + offsetX, frameY + offsetY, avatarSize, avatarSize, 12 * scaleFactor);
+        ctx.drawImage(userImg, userAvatarX, avatarY, avatarW, avatarH);
       }
 
       // Draw leaf decor
       if (pocketAssets.leaf) {
         const leafW = 115 * scaleFactor;
         const leafH = 113 * scaleFactor;
-        const gapCenterX = (frameLeftX + frameW + frameRightX) / 2;
-        ctx.drawImage(pocketAssets.leaf, gapCenterX - leafW / 2, frameY + frameH / 2 - leafH / 2, leafW, leafH);
+        const gapCenterX = (charAvatarX + avatarW + userAvatarX) / 2;
+        ctx.drawImage(pocketAssets.leaf, gapCenterX - leafW / 2, avatarY + avatarH / 2 - leafH / 2, leafW, leafH);
       }
       
-      // Name
+      // Name and Encounter
       ctx.textAlign = 'center';
+      ctx.textBaseline = 'top';
       ctx.fillStyle = '#6B3E26'; // Same as pixelText
       ctx.font = `400 ${45 * scaleFactor}px "Cubic 11", sans-serif`;
-      ctx.fillText(charName || "角色名", width / 2, 450 * scaleFactor);
+      ctx.fillText(charName || "角色名", width / 2, 393 * scaleFactor);
+      
+      if (showEncounterDate) {
+        ctx.font = `400 ${26 * scaleFactor}px "Cubic 11", sans-serif`;
+        const encounterText = `初遇于 ${$("#ccs-start").text()}`;
+        ctx.fillText(encounterText, width / 2, 456 * scaleFactor);
+      }
+      ctx.textBaseline = 'alphabetic'; // Reset
 
     } else {
       // Modern style header logic...
@@ -1881,33 +1886,43 @@ jQuery(async () => {
         ctx.fillText(labelText, 40 * scaleFactor, cy + boxH / 2 + 10 * scaleFactor);
 
       } else if (isPocketSticker) {
-        // Specific positions for each sticker
         const pocketPositions = {
-          '聊天对话': { cx: 250 * scaleFactor, cy: 680 * scaleFactor }, // Blue
-          '相伴天数': { cx: 645 * scaleFactor, cy: 710 * scaleFactor }, // Yellow
-          '聊天字数': { cx: 250 * scaleFactor, cy: 980 * scaleFactor }, // Pink
-          '回忆大小': { cx: 645 * scaleFactor, cy: 1010 * scaleFactor } // Green
+          '聊天对话': { x: 169.8 * scaleFactor, y: 619.58 * scaleFactor, rotation: -4.48 },
+          '相伴天数': { x: 574.41 * scaleFactor, y: 663.19 * scaleFactor, rotation: 6.3 },
+          '聊天字数': { x: 188.0 * scaleFactor, y: 933.53 * scaleFactor, rotation: -4.48 },
+          '回忆大小': { x: 574.0 * scaleFactor, y: 994.45 * scaleFactor, rotation: 6.3 }
         };
         
-        let cx = width / 2;
-        let pcy = cy + boxH / 2 + 10 * scaleFactor;
-        if (pocketPositions[stat.label]) {
-          cx = pocketPositions[stat.label].cx;
-          pcy = pocketPositions[stat.label].cy;
-        } else {
-          // Fallback if there are other stats
-          cx = 448 * scaleFactor;
-          pcy = cy + boxH / 2 + 10 * scaleFactor;
-        }
+        const pos = pocketPositions[stat.label] || { x: 100 * scaleFactor, y: cy, rotation: 0 };
 
-        ctx.textAlign = 'center';
-        ctx.fillStyle = '#6B3E26'; // Same as pixelText
-        ctx.font = `400 ${36 * scaleFactor}px "Cubic 11", sans-serif`;
+        ctx.save();
+        ctx.translate(pos.x, pos.y);
+        ctx.rotate(pos.rotation * Math.PI / 180);
+
+        ctx.textAlign = 'left';
+        ctx.fillStyle = '#6B3E26'; 
         
-        // Multi-line for pocket sticker: Label on top, value below
-        ctx.fillText(stat.label, cx, pcy - 20 * scaleFactor);
-        const text = `${stat.value} ${stat.unit || ''}`;
-        ctx.fillText(text, cx, pcy + 24 * scaleFactor);
+        const labelSize = 28 * scaleFactor;
+        const valSize = 64 * scaleFactor;
+        const unitSize = 28 * scaleFactor;
+
+        // Draw label (top baseline so y is precise to user coords)
+        ctx.textBaseline = 'top';
+        ctx.font = `400 ${labelSize}px "Cubic 11", sans-serif`;
+        ctx.fillText(stat.label, 0, 0);
+
+        // Draw value (alphabetic baseline for bottom alignment)
+        const valY = labelSize + 10 * scaleFactor + valSize; // Approximate baseline position
+        ctx.textBaseline = 'alphabetic';
+        ctx.font = `400 ${valSize}px "Cubic 11", sans-serif`;
+        ctx.fillText(stat.value, 0, valY);
+
+        // Draw unit
+        const valW = ctx.measureText(stat.value).width;
+        ctx.font = `400 ${unitSize}px "Cubic 11", sans-serif`;
+        ctx.fillText(stat.unit || '', valW + 8 * scaleFactor, valY);
+
+        ctx.restore();
 
       } else if (isPixel) {
         // --- NEW PINK PIXEL STAT BOX ---
