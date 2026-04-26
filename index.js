@@ -1218,6 +1218,7 @@ jQuery(async () => {
   async function generateShareImage() {
     const isDark = shareStyle === 'modern-dark' || shareStyle === 'dark';
     const isPixel = shareStyle === 'pixel-pink';
+    const isPocketSticker = shareStyle === 'pocket-sticker';
     const isModern = shareStyle === 'modern-light' || shareStyle === 'modern-dark' || shareStyle === 'modern';
     const isAncient = shareStyle === 'ancient';
 
@@ -1231,8 +1232,8 @@ jQuery(async () => {
     const ctx = canvas.getContext('2d');
     const charName = getCurrentCharacterName();
 
-    const scaleFactor = 2;
-    const width = 663 * scaleFactor;
+    const scaleFactor = isPocketSticker ? 1 : 2;
+    const width = isPocketSticker ? 896 : 663 * scaleFactor;
 
     // Scrapbook Pixel Colors
     const pixelBg = '#FEF9F0'; // Warm Cream
@@ -1258,6 +1259,7 @@ jQuery(async () => {
     const insAssets = {};
     const pixelAssets = {};
     const ancientAssets = {};
+    const pocketAssets = {};
     
     const loadAssetImg = (url) => new Promise((resolve) => {
       const img = new Image();
@@ -1274,6 +1276,12 @@ jQuery(async () => {
     if (shareStyle === 'ancient') {
       const v = Date.now();
       ancientAssets.bg = await loadAssetImg(`${extensionWebPath}/assets/ancient-bg.png?v=${v}`);
+    }
+
+    if (shareStyle === 'pocket-sticker') {
+      const v = Date.now();
+      pocketAssets.bg = await loadAssetImg(`${extensionWebPath}/assets/sticker-bg.png?v=${v}`);
+      pocketAssets.leaf = await loadAssetImg(`${extensionWebPath}/assets/leaf-decor.svg?v=${v}`);
     }
 
     if (shareStyle === 'ins') {
@@ -1326,7 +1334,7 @@ jQuery(async () => {
     ];
 
     // 如果是青纹信笺或像素风，则加上初遇时间显示 (现代简约默认不加)
-    if (isAncient || isPixel) {
+    if (isAncient || isPixel || isPocketSticker) {
       statsItems.unshift({ id: 'ccs-share-start', label: '初遇时间', value: $("#ccs-start").text().replace(/约/g, '').replace(/点/g, ':').replace(/分/g, '') });
     }
 
@@ -1335,6 +1343,23 @@ jQuery(async () => {
     // Filter out duplicate Encounter stat from bottom panels in Pink Pixel mode
     if (isPixel) {
       stats = stats.filter(s => s.id !== 'ccs-share-start');
+    }
+
+    if (shareStyle === 'pocket-sticker') {
+      stats = stats.map(s => {
+        let newValue = s.value;
+        if (s.id === 'ccs-share-words') {
+          let num = parseInt(s.value.replace(/,/g, '')) || 0;
+          if (num >= 10000) {
+            let formatted = (num / 10000).toFixed(1);
+            if (formatted.endsWith('.0')) {
+              formatted = formatted.substring(0, formatted.length - 2);
+            }
+            newValue = formatted + 'w';
+          }
+        }
+        return { ...s, label: s.label, value: newValue, unit: s.unit };
+      });
     }
 
     if (shareStyle === 'ancient') {
@@ -1391,9 +1416,9 @@ jQuery(async () => {
     const headerH = (shareStyle === 'ins' ? 144 : (isPixel ? (baseHeaderH_Pixel + baseHeaderPadding) : 214)) * scaleFactor;
     const footerH = (shareStyle === 'ins' ? 92 : 48) * scaleFactor;
     
-    const boxW = isPixel ? 615 * scaleFactor : 519 * scaleFactor;
-    const boxH = (isPixel ? baseBoxH_Pixel : 80) * scaleFactor;
-    const boxGap = (shareStyle === 'ins' ? 24 : (isPixel ? baseBoxGap_Pixel : 32)) * scaleFactor;
+    const boxW = isPocketSticker ? 600 * scaleFactor : (isPixel ? 615 * scaleFactor : 519 * scaleFactor);
+    const boxH = (isPocketSticker ? 50 : (isPixel ? baseBoxH_Pixel : 80)) * scaleFactor;
+    const boxGap = (isPocketSticker ? 30 : (shareStyle === 'ins' ? 24 : (isPixel ? baseBoxGap_Pixel : 32))) * scaleFactor;
 
     const headerToBoxGap = baseHeaderToBoxGap * scaleFactor;
     
@@ -1414,6 +1439,8 @@ jQuery(async () => {
     let height = headerH + totalStatsH + (isPixel ? 0 : footerH);
     if (shareStyle === 'ancient') {
       height = 816 * scaleFactor;
+    } else if (shareStyle === 'pocket-sticker') {
+      height = 1216;
     }
     const dynamicHeight = height;
 
@@ -1486,6 +1513,12 @@ jQuery(async () => {
       } else {
         ctx.fillStyle = '#f0e6d2'; // Fallback paper color
         ctx.fillRect(0, 0, width, height);
+      }
+    } else if (shareStyle === 'pocket-sticker') {
+      ctx.fillStyle = '#FFFFFF';
+      ctx.fillRect(0, 0, width, height);
+      if (pocketAssets.bg) {
+        ctx.drawImage(pocketAssets.bg, 0, 0, width, height);
       }
     } else {
       ctx.fillStyle = (shareStyle === 'ins') ? '#FFFFFF' : (isPixel ? '#F1BDC3' : tealColor); // Solid color background
@@ -1709,6 +1742,38 @@ jQuery(async () => {
       }
       ctx.textBaseline = 'alphabetic'; // Reset to default
 
+    } else if (isPocketSticker) {
+      // 5. Pocket Sticker Avatars & Name
+      const frameLeftX = 115 * scaleFactor;
+      const frameRightX = 460 * scaleFactor;
+      const frameY = 25 * scaleFactor;
+      const frameW = 322 * scaleFactor;
+      const frameH = 348 * scaleFactor;
+      
+      const offsetX = 16 * scaleFactor;
+      const offsetY = 16 * scaleFactor;
+      const w = frameW - 2 * offsetX;
+      const h = frameH - 2 * offsetY;
+      
+      drawRoundedAvatar(charImg, frameLeftX + offsetX, frameY + offsetY, w, h, 16 * scaleFactor);
+      if (showUser) {
+        drawRoundedAvatar(userImg, frameRightX + offsetX, frameY + offsetY, w, h, 16 * scaleFactor);
+      }
+
+      // Draw leaf decor
+      if (pocketAssets.leaf) {
+        const leafW = 115 * scaleFactor;
+        const leafH = 113 * scaleFactor;
+        const gapCenterX = (frameLeftX + frameW + frameRightX) / 2;
+        ctx.drawImage(pocketAssets.leaf, gapCenterX - leafW / 2, frameY + frameH / 2 - leafH / 2, leafW, leafH);
+      }
+      
+      // Name
+      ctx.textAlign = 'center';
+      ctx.fillStyle = '#6B3E26'; // Same as pixelText
+      ctx.font = `400 ${45 * scaleFactor}px "Cubic 11", sans-serif`;
+      ctx.fillText(charName || "角色名", width / 2, 450 * scaleFactor);
+
     } else {
       // Modern style header logic...
       const avatarW = 100 * scaleFactor;
@@ -1798,7 +1863,9 @@ jQuery(async () => {
     const actualStatsH = stats.length * boxH + (stats.length > 0 ? (stats.length - 1) * boxGap : 0);
     const statsStartY = (shareStyle === 'ins')
       ? (headerH + (insContentH - actualStatsH) / 2) // Vertically centered in fixed height
-      : (isPixel ? (baseHeaderPadding + baseHeaderH_Pixel + baseHeaderToBoxGap) * scaleFactor : (isModern ? (headerH + 40 * scaleFactor) : (headerH + 100 * scaleFactor + 40 * scaleFactor)));
+      : (isPixel ? (baseHeaderPadding + baseHeaderH_Pixel + baseHeaderToBoxGap) * scaleFactor : 
+         (isPocketSticker ? 550 * scaleFactor : 
+         (isModern ? (headerH + 40 * scaleFactor) : (headerH + 100 * scaleFactor + 40 * scaleFactor))));
 
     const boxX = (width - boxW) / 2;
 
@@ -1813,6 +1880,15 @@ jQuery(async () => {
 
         const labelText = `${stat.label}   ${stat.value} ${stat.unit || ''}`;
         ctx.fillText(labelText, 40 * scaleFactor, cy + boxH / 2 + 10 * scaleFactor);
+
+      } else if (isPocketSticker) {
+        // Centered text for pocket sticker
+        ctx.textAlign = 'center';
+        ctx.fillStyle = '#6B3E26'; // Same as pixelText
+        ctx.font = `400 ${36 * scaleFactor}px "Cubic 11", sans-serif`;
+        
+        const text = `${stat.label} : ${stat.value} ${stat.unit || ''}`;
+        ctx.fillText(text, width / 2, cy + boxH / 2 + 10 * scaleFactor);
 
       } else if (isPixel) {
         // --- NEW PINK PIXEL STAT BOX ---
