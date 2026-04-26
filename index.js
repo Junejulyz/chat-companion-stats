@@ -1547,6 +1547,8 @@ jQuery(async () => {
       // Pixel Pink Background - Simple pink fill already done in step 3
     } else if (shareStyle === 'ancient') {
       // Ancient style doesn't need a content area background box
+    } else if (isPocketSticker) {
+      // Pocket sticker doesn't need a content area background box
     } else if (stats.length > 0) {
       ctx.fillStyle = contentAreaBg;
       const contentAreaW = 599 * scaleFactor;
@@ -1750,10 +1752,10 @@ jQuery(async () => {
       const userAvatarX = 492 * scaleFactor;
       const avatarY = 64 * scaleFactor;
       
-      // No rounded corners
-      ctx.drawImage(charImg, charAvatarX, avatarY, avatarW, avatarH);
+      // No rounded corners, use drawRoundedAvatar to crop and fit without distortion
+      drawRoundedAvatar(charImg, charAvatarX, avatarY, avatarW, avatarH, 0);
       if (showUser) {
-        ctx.drawImage(userImg, userAvatarX, avatarY, avatarW, avatarH);
+        drawRoundedAvatar(userImg, userAvatarX, avatarY, avatarW, avatarH, 0);
       }
 
       // Draw leaf decor
@@ -1767,7 +1769,7 @@ jQuery(async () => {
       // Name and Encounter
       ctx.textAlign = 'center';
       ctx.textBaseline = 'top';
-      ctx.fillStyle = '#6B3E26'; // Same as pixelText
+      ctx.fillStyle = 'rgba(0, 0, 0, 0.95)';
       ctx.font = `400 ${45 * scaleFactor}px "Cubic 11", sans-serif`;
       ctx.fillText(charName || "角色名", width / 2, 393 * scaleFactor);
       
@@ -1900,10 +1902,10 @@ jQuery(async () => {
         ctx.rotate(pos.rotation * Math.PI / 180);
 
         ctx.textAlign = 'left';
-        ctx.fillStyle = '#6B3E26'; 
+        ctx.fillStyle = 'rgba(0, 0, 0, 0.95)'; 
         
         const labelSize = 28 * scaleFactor;
-        const valSize = 64 * scaleFactor;
+        const valSize = 48 * scaleFactor;
         const unitSize = 28 * scaleFactor;
 
         // Draw label (top baseline so y is precise to user coords)
