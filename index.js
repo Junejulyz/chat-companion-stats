@@ -1889,10 +1889,10 @@ jQuery(async () => {
 
       } else if (isPocketSticker) {
         const pocketPositions = {
-          '聊天对话': { x: 169.8 * scaleFactor, y: 619.58 * scaleFactor, rotation: -4.48 },
-          '相伴天数': { x: 574.41 * scaleFactor, y: 663.19 * scaleFactor, rotation: 6.3 },
-          '聊天字数': { x: 188.0 * scaleFactor, y: 933.53 * scaleFactor, rotation: -4.48 },
-          '回忆大小': { x: 574.0 * scaleFactor, y: 994.45 * scaleFactor, rotation: 6.3 }
+          '聊天对话': { x: 169.8 * scaleFactor, y: 654.58 * scaleFactor, rotation: -4.48 },
+          '相伴天数': { x: 574.41 * scaleFactor, y: 698.19 * scaleFactor, rotation: 6.3 },
+          '聊天字数': { x: 188.0 * scaleFactor, y: 968.53 * scaleFactor, rotation: -4.48 },
+          '回忆大小': { x: 574.0 * scaleFactor, y: 1029.45 * scaleFactor, rotation: 6.3 }
         };
         
         const pos = pocketPositions[stat.label] || { x: 100 * scaleFactor, y: cy, rotation: 0 };
@@ -1901,28 +1901,46 @@ jQuery(async () => {
         ctx.translate(pos.x, pos.y);
         ctx.rotate(pos.rotation * Math.PI / 180);
 
-        ctx.textAlign = 'left';
         ctx.fillStyle = 'rgba(0, 0, 0, 0.95)'; 
         
         const labelSize = 28 * scaleFactor;
-        const valSize = 48 * scaleFactor;
+        const valSize = 40 * scaleFactor;
         const unitSize = 28 * scaleFactor;
 
+        // Measure widths to center the text blocks relative to each other
+        ctx.font = `400 ${labelSize}px "Cubic 11", sans-serif`;
+        const labelW = ctx.measureText(stat.label).width;
+
+        ctx.font = `400 ${valSize}px "Cubic 11", sans-serif`;
+        const valW = ctx.measureText(stat.value).width;
+
+        ctx.font = `400 ${unitSize}px "Cubic 11", sans-serif`;
+        const unitW = stat.unit ? ctx.measureText(stat.unit).width : 0;
+        
+        const valueAndUnitW = valW + (stat.unit ? 8 * scaleFactor : 0) + unitW;
+        
+        const maxW = Math.max(labelW, valueAndUnitW);
+        const centerX = maxW / 2;
+
         // Draw label (top baseline so y is precise to user coords)
+        ctx.textAlign = 'center';
         ctx.textBaseline = 'top';
         ctx.font = `400 ${labelSize}px "Cubic 11", sans-serif`;
-        ctx.fillText(stat.label, 0, 0);
+        ctx.fillText(stat.label, centerX, 0);
 
-        // Draw value (alphabetic baseline for bottom alignment)
+        // Draw value + unit (alphabetic baseline for bottom alignment)
         const valY = labelSize + 10 * scaleFactor + valSize; // Approximate baseline position
+        const groupStartX = centerX - valueAndUnitW / 2;
+
+        ctx.textAlign = 'left';
         ctx.textBaseline = 'alphabetic';
         ctx.font = `400 ${valSize}px "Cubic 11", sans-serif`;
-        ctx.fillText(stat.value, 0, valY);
+        ctx.fillText(stat.value, groupStartX, valY);
 
-        // Draw unit
-        const valW = ctx.measureText(stat.value).width;
-        ctx.font = `400 ${unitSize}px "Cubic 11", sans-serif`;
-        ctx.fillText(stat.unit || '', valW + 8 * scaleFactor, valY);
+        if (stat.unit) {
+          ctx.font = `400 ${unitSize}px "Cubic 11", sans-serif`;
+          ctx.fillText(stat.unit, groupStartX + valW + 8 * scaleFactor, valY);
+        }
 
         ctx.restore();
 
