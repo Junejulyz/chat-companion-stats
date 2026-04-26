@@ -1232,8 +1232,8 @@ jQuery(async () => {
     const ctx = canvas.getContext('2d');
     const charName = getCurrentCharacterName();
 
-    const scaleFactor = isPocketSticker ? 1 : 2;
-    const width = isPocketSticker ? 896 : 663 * scaleFactor;
+    const scaleFactor = 2; // HD
+    const width = isPocketSticker ? 896 * scaleFactor : 663 * scaleFactor;
 
     // Scrapbook Pixel Colors
     const pixelBg = '#FEF9F0'; // Warm Cream
@@ -1440,7 +1440,7 @@ jQuery(async () => {
     if (shareStyle === 'ancient') {
       height = 816 * scaleFactor;
     } else if (shareStyle === 'pocket-sticker') {
-      height = 1216;
+      height = 1216 * scaleFactor;
     }
     const dynamicHeight = height;
 
@@ -1750,14 +1750,13 @@ jQuery(async () => {
       const frameW = 322 * scaleFactor;
       const frameH = 348 * scaleFactor;
       
-      const offsetX = 16 * scaleFactor;
-      const offsetY = 16 * scaleFactor;
-      const w = frameW - 2 * offsetX;
-      const h = frameH - 2 * offsetY;
+      const avatarSize = 220 * scaleFactor; // Smaller avatar to fit inside the inner frame
+      const offsetX = (frameW - avatarSize) / 2;
+      const offsetY = (frameH - avatarSize) / 2 + 10 * scaleFactor; // Push down slightly
       
-      drawRoundedAvatar(charImg, frameLeftX + offsetX, frameY + offsetY, w, h, 16 * scaleFactor);
+      drawRoundedAvatar(charImg, frameLeftX + offsetX, frameY + offsetY, avatarSize, avatarSize, 12 * scaleFactor);
       if (showUser) {
-        drawRoundedAvatar(userImg, frameRightX + offsetX, frameY + offsetY, w, h, 16 * scaleFactor);
+        drawRoundedAvatar(userImg, frameRightX + offsetX, frameY + offsetY, avatarSize, avatarSize, 12 * scaleFactor);
       }
 
       // Draw leaf decor
@@ -1882,13 +1881,33 @@ jQuery(async () => {
         ctx.fillText(labelText, 40 * scaleFactor, cy + boxH / 2 + 10 * scaleFactor);
 
       } else if (isPocketSticker) {
-        // Centered text for pocket sticker
+        // Specific positions for each sticker
+        const pocketPositions = {
+          '聊天对话': { cx: 250 * scaleFactor, cy: 680 * scaleFactor }, // Blue
+          '相伴天数': { cx: 645 * scaleFactor, cy: 710 * scaleFactor }, // Yellow
+          '聊天字数': { cx: 250 * scaleFactor, cy: 980 * scaleFactor }, // Pink
+          '回忆大小': { cx: 645 * scaleFactor, cy: 1010 * scaleFactor } // Green
+        };
+        
+        let cx = width / 2;
+        let pcy = cy + boxH / 2 + 10 * scaleFactor;
+        if (pocketPositions[stat.label]) {
+          cx = pocketPositions[stat.label].cx;
+          pcy = pocketPositions[stat.label].cy;
+        } else {
+          // Fallback if there are other stats
+          cx = 448 * scaleFactor;
+          pcy = cy + boxH / 2 + 10 * scaleFactor;
+        }
+
         ctx.textAlign = 'center';
         ctx.fillStyle = '#6B3E26'; // Same as pixelText
         ctx.font = `400 ${36 * scaleFactor}px "Cubic 11", sans-serif`;
         
-        const text = `${stat.label} : ${stat.value} ${stat.unit || ''}`;
-        ctx.fillText(text, width / 2, cy + boxH / 2 + 10 * scaleFactor);
+        // Multi-line for pocket sticker: Label on top, value below
+        ctx.fillText(stat.label, cx, pcy - 20 * scaleFactor);
+        const text = `${stat.value} ${stat.unit || ''}`;
+        ctx.fillText(text, cx, pcy + 24 * scaleFactor);
 
       } else if (isPixel) {
         // --- NEW PINK PIXEL STAT BOX ---
