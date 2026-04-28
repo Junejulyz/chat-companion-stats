@@ -23,21 +23,37 @@ jQuery(async () => {
       position: relative;
       min-height: 200px;
     }
-    #ccs-preview-container.loading-preview::after {
-      content: "正在生成卡片...";
+    #ccs-preview-container.loading-preview::before {
+      content: "";
       position: absolute;
       top: 0;
       left: 0;
       width: 100%;
       height: 100%;
-      background: rgba(255, 255, 255, 0.8);
-      display: flex;
-      justify-content: center;
-      align-items: center;
-      font-size: 16px;
-      color: #333;
+      background: rgba(255, 255, 255, 0.5);
+      backdrop-filter: blur(2px);
       border-radius: 5px;
+      z-index: 9;
+    }
+    #ccs-preview-container.loading-preview::after {
+      content: "";
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      width: 48px;
+      height: 48px;
+      margin-top: -24px;
+      margin-left: -24px;
+      border: 3px solid transparent;
+      border-top-color: #ffb6c1; /* Pink */
+      border-bottom-color: #aed9e0; /* Blue */
+      border-radius: 50%;
+      animation: ccs-spin 1.2s cubic-bezier(0.5, 0, 0.5, 1) infinite;
       z-index: 10;
+    }
+    @keyframes ccs-spin {
+      0% { transform: rotate(0deg); }
+      100% { transform: rotate(360deg); }
     }
   </style>`);
 
