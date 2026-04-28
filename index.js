@@ -1894,10 +1894,10 @@ jQuery(async () => {
 
       } else if (isPocketSticker) {
         const pocketPositions = {
-          '聊天对话': { x: 199.8 * scaleFactor, y: 614.58 * scaleFactor, rotation: -4.48 },
-          '相伴天数': { x: 582.41 * scaleFactor, y: 658.19 * scaleFactor, rotation: 6.3 },
-          '聊天字数': { x: 180.0 * scaleFactor, y: 940.53 * scaleFactor, rotation: -4.48 },
-          '回忆大小': { x: 574.0 * scaleFactor, y: 979.45 * scaleFactor, rotation: 6.3 }
+          '聊天对话': { x: 194.8 * scaleFactor, y: 614.58 * scaleFactor, rotation: -4.48 },
+          '相伴天数': { x: 588.41 * scaleFactor, y: 658.19 * scaleFactor, rotation: 6.3 },
+          '聊天字数': { x: 170.0 * scaleFactor, y: 940.53 * scaleFactor, rotation: -4.48 },
+          '回忆大小': { x: 550.0 * scaleFactor, y: 979.45 * scaleFactor, rotation: 6.3 }
         };
         
         const pos = pocketPositions[stat.label] || { x: 100 * scaleFactor, y: cy, rotation: 0 };
