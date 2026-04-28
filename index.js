@@ -2499,21 +2499,65 @@ jQuery(async () => {
   // 初始化时的基本更新
   updateStats(); // Keep initial update on load
 
+  let lastStyleIndex = -1;
+  let explicitSlideDirection = null;
+
   // 风格切换处理 (在预览窗口中)
   $("#ccs-style-select").on('change', async function () {
-    shareStyle = $(this).val();
+    const $select = $(this);
+    shareStyle = $select.val();
     localStorage.setItem('ccs-share-style', shareStyle); // 保存用户选择到 localStorage
     if (DEBUG) console.log('Selected style changed (dropdown):', shareStyle);
 
+    const options = $select.find("option");
+    const currentIndex = options.index(options.filter(":selected"));
+    
+    let direction = explicitSlideDirection;
+    if (!direction) {
+      if (lastStyleIndex !== -1) {
+        direction = currentIndex > lastStyleIndex ? 'next' : 'prev';
+      } else {
+        direction = 'next';
+      }
+    }
+    explicitSlideDirection = null;
+    lastStyleIndex = currentIndex;
+
     // 即时重新生成预览
     const $container = $("#ccs-preview-container");
+    const $img = $container.find('img');
+    
+    // 执行滑出动画
+    if ($img.length) {
+      const outClass = direction === 'next' ? 'slide-hide-left' : 'slide-hide-right';
+      $img.addClass(outClass);
+      
+      // 等待滑出动画完成 (200ms)
+      await new Promise(r => setTimeout(r, 200));
+    }
+
     $container.addClass('loading-preview'); // Optional: visual feedback
 
     try {
       const imageData = await generateShareImage();
-      const $img = $container.find('img');
       if ($img.length) {
+        // 先移除动画 transition 并放到准备进入的位置
+        $img.css('transition', 'none');
+        $img.removeClass('slide-hide-left slide-hide-right');
+        
+        const inClass = direction === 'next' ? 'slide-hide-right' : 'slide-hide-left';
+        $img.addClass(inClass);
         $img.attr('src', imageData);
+        
+        // 强制重绘
+        $img[0].offsetHeight;
+        
+        // 恢复动画并滑入
+        $img.css('transition', '');
+        $img.removeClass(inClass);
+      } else {
+        // 首屏加载
+        $container.find('img').attr('src', imageData);
       }
     } catch (e) {
       console.error('Failed to regenerate preview:', e);
@@ -2556,6 +2600,7 @@ jQuery(async () => {
 
   // Carousel 左右切换逻辑
   function cycleStyle(direction) {
+    explicitSlideDirection = direction;
     const $select = $("#ccs-style-select");
     const options = $select.find("option");
     let currentIndex = options.index(options.filter(":selected"));

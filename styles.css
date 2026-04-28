@@ -666,3 +666,17 @@ body.ccs-no-scroll {
     display: none !important;
   }
 }
+
+#ccs-preview-container img {
+  transition: transform 0.2s ease-in-out, opacity 0.2s ease-in-out;
+}
+
+.slide-hide-left {
+  transform: translateX(-30px) !important;
+  opacity: 0 !important;
+}
+
+.slide-hide-right {
+  transform: translateX(30px) !important;
+  opacity: 0 !important;
+}
