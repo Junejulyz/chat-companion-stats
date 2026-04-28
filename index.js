@@ -1762,8 +1762,9 @@ jQuery(async () => {
 
       // Draw heart decor
       if (pocketAssets.decor) {
+        const decorAspect = pocketAssets.decor.height / pocketAssets.decor.width;
         const decorW = 115 * scaleFactor;
-        const decorH = 113 * scaleFactor;
+        const decorH = decorW * decorAspect;
         const gapCenterX = (charAvatarX + avatarW + userAvatarX) / 2;
         ctx.drawImage(pocketAssets.decor, gapCenterX - decorW / 2, avatarY + avatarH / 2 - decorH / 2, decorW, decorH);
       }
@@ -1773,12 +1774,12 @@ jQuery(async () => {
       ctx.textBaseline = 'top';
       ctx.fillStyle = 'rgba(0, 0, 0, 0.95)';
       ctx.font = `400 ${45 * scaleFactor}px "MaoKenTangYuan (beta)", sans-serif`;
-      ctx.fillText(charName || "角色名", width / 2, 393 * scaleFactor);
+      ctx.fillText(charName || "角色名", width / 2, 383 * scaleFactor);
       
       if (showEncounterDate) {
         ctx.font = `400 ${26 * scaleFactor}px "MaoKenTangYuan (beta)", sans-serif`;
         const encounterText = `初遇于 ${$("#ccs-start").text()}`;
-        ctx.fillText(encounterText, width / 2, 456 * scaleFactor);
+        ctx.fillText(encounterText, width / 2, 446 * scaleFactor);
       }
       ctx.textBaseline = 'alphabetic'; // Reset
 
@@ -1891,10 +1892,10 @@ jQuery(async () => {
 
       } else if (isPocketSticker) {
         const pocketPositions = {
-          '聊天对话': { x: 169.8 * scaleFactor, y: 654.58 * scaleFactor, rotation: -4.48 },
-          '相伴天数': { x: 574.41 * scaleFactor, y: 698.19 * scaleFactor, rotation: 6.3 },
-          '聊天字数': { x: 188.0 * scaleFactor, y: 968.53 * scaleFactor, rotation: -4.48 },
-          '回忆大小': { x: 574.0 * scaleFactor, y: 1029.45 * scaleFactor, rotation: 6.3 }
+          '聊天对话': { x: 209.8 * scaleFactor, y: 614.58 * scaleFactor, rotation: -4.48 },
+          '相伴天数': { x: 582.41 * scaleFactor, y: 658.19 * scaleFactor, rotation: 6.3 },
+          '聊天字数': { x: 180.0 * scaleFactor, y: 940.53 * scaleFactor, rotation: -4.48 },
+          '回忆大小': { x: 574.0 * scaleFactor, y: 979.45 * scaleFactor, rotation: 6.3 }
         };
         
         const pos = pocketPositions[stat.label] || { x: 100 * scaleFactor, y: cy, rotation: 0 };
