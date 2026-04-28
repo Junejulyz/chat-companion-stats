@@ -2541,20 +2541,26 @@ jQuery(async () => {
     try {
       const imageData = await generateShareImage();
       if ($img.length) {
-        // 先移除动画 transition 并放到准备进入的位置
+        // 瞬间重置位置并加载新图片（不执行滑入动画）
         $img.css('transition', 'none');
         $img.removeClass('slide-hide-left slide-hide-right');
         
-        const inClass = direction === 'next' ? 'slide-hide-right' : 'slide-hide-left';
-        $img.addClass(inClass);
+        // 先设为透明，准备淡入
+        $img.css('opacity', '0');
         $img.attr('src', imageData);
         
         // 强制重绘
         $img[0].offsetHeight;
         
-        // 恢复动画并滑入
-        $img.css('transition', '');
-        $img.removeClass(inClass);
+        // 恢复动画并淡入
+        $img.css('transition', 'opacity 0.3s ease-in-out');
+        $img.css('opacity', '1');
+        
+        // 动画完成后清理内联样式
+        setTimeout(() => {
+          $img.css('transition', '');
+          $img.css('opacity', '');
+        }, 300);
       } else {
         // 首屏加载
         $container.find('img').attr('src', imageData);
