@@ -1281,7 +1281,7 @@ jQuery(async () => {
     if (shareStyle === 'pocket-sticker') {
       const v = Date.now();
       pocketAssets.bg = await loadAssetImg(`${extensionWebPath}/assets/sticker-bg.png?v=${v}`);
-      pocketAssets.leaf = await loadAssetImg(`${extensionWebPath}/assets/leaf-decor.svg?v=${v}`);
+      pocketAssets.decor = await loadAssetImg(`${extensionWebPath}/assets/heart-decor.png?v=${v}`);
     }
 
     if (shareStyle === 'ins') {
@@ -1474,6 +1474,7 @@ jQuery(async () => {
           document.fonts.load(`700 32px "LXGW Neo XiHei"`, statChars),
           document.fonts.load(`400 32px "PING FANG SHAO HUA"`, statChars),
           document.fonts.load(`400 32px "Cubic 11"`, charName + statChars + '初遇'),
+          document.fonts.load(`400 32px "MaoKenTangYuan (beta)"`, charName + statChars + '初遇'),
           document.fonts.load(`400 48px "Long Cang"`, '初遇'),
           document.fonts.load(`400 32px "PING FANG GONG ZI TI"`, charName + statChars + '初见')
         ];
@@ -1746,11 +1747,11 @@ jQuery(async () => {
 
     } else if (isPocketSticker) {
       // 5. Pocket Sticker Avatars & Name
-      const avatarW = 253 * scaleFactor;
-      const avatarH = 276 * scaleFactor;
-      const charAvatarX = 152 * scaleFactor;
-      const userAvatarX = 492 * scaleFactor;
-      const avatarY = 64 * scaleFactor;
+      const avatarW = 188 * scaleFactor;
+      const avatarH = 271 * scaleFactor;
+      const charAvatarX = 226 * scaleFactor;
+      const userAvatarX = 482 * scaleFactor;
+      const avatarY = 58 * scaleFactor;
       
       // No rounded corners, use drawRoundedAvatar to crop and fit without distortion
       drawRoundedAvatar(charImg, charAvatarX, avatarY, avatarW, avatarH, 0);
@@ -1758,23 +1759,23 @@ jQuery(async () => {
         drawRoundedAvatar(userImg, userAvatarX, avatarY, avatarW, avatarH, 0);
       }
 
-      // Draw leaf decor
-      if (pocketAssets.leaf) {
-        const leafW = 115 * scaleFactor;
-        const leafH = 113 * scaleFactor;
+      // Draw heart decor
+      if (pocketAssets.decor) {
+        const decorW = 115 * scaleFactor;
+        const decorH = 113 * scaleFactor;
         const gapCenterX = (charAvatarX + avatarW + userAvatarX) / 2;
-        ctx.drawImage(pocketAssets.leaf, gapCenterX - leafW / 2, avatarY + avatarH / 2 - leafH / 2, leafW, leafH);
+        ctx.drawImage(pocketAssets.decor, gapCenterX - decorW / 2, avatarY + avatarH / 2 - decorH / 2, decorW, decorH);
       }
       
       // Name and Encounter
       ctx.textAlign = 'center';
       ctx.textBaseline = 'top';
       ctx.fillStyle = 'rgba(0, 0, 0, 0.95)';
-      ctx.font = `400 ${45 * scaleFactor}px "Cubic 11", sans-serif`;
+      ctx.font = `400 ${45 * scaleFactor}px "MaoKenTangYuan (beta)", sans-serif`;
       ctx.fillText(charName || "角色名", width / 2, 393 * scaleFactor);
       
       if (showEncounterDate) {
-        ctx.font = `400 ${26 * scaleFactor}px "Cubic 11", sans-serif`;
+        ctx.font = `400 ${26 * scaleFactor}px "MaoKenTangYuan (beta)", sans-serif`;
         const encounterText = `初遇于 ${$("#ccs-start").text()}`;
         ctx.fillText(encounterText, width / 2, 456 * scaleFactor);
       }
@@ -1908,13 +1909,13 @@ jQuery(async () => {
         const unitSize = 28 * scaleFactor;
 
         // Measure widths to center the text blocks relative to each other
-        ctx.font = `400 ${labelSize}px "Cubic 11", sans-serif`;
+        ctx.font = `400 ${labelSize}px "MaoKenTangYuan (beta)", sans-serif`;
         const labelW = ctx.measureText(stat.label).width;
 
-        ctx.font = `400 ${valSize}px "Cubic 11", sans-serif`;
+        ctx.font = `400 ${valSize}px "MaoKenTangYuan (beta)", sans-serif`;
         const valW = ctx.measureText(stat.value).width;
 
-        ctx.font = `400 ${unitSize}px "Cubic 11", sans-serif`;
+        ctx.font = `400 ${unitSize}px "MaoKenTangYuan (beta)", sans-serif`;
         const unitW = stat.unit ? ctx.measureText(stat.unit).width : 0;
         
         const valueAndUnitW = valW + (stat.unit ? 8 * scaleFactor : 0) + unitW;
@@ -1925,7 +1926,7 @@ jQuery(async () => {
         // Draw label (top baseline so y is precise to user coords)
         ctx.textAlign = 'center';
         ctx.textBaseline = 'top';
-        ctx.font = `400 ${labelSize}px "Cubic 11", sans-serif`;
+        ctx.font = `400 ${labelSize}px "MaoKenTangYuan (beta)", sans-serif`;
         ctx.fillText(stat.label, centerX, 0);
 
         // Draw value + unit (alphabetic baseline for bottom alignment)
@@ -1934,11 +1935,11 @@ jQuery(async () => {
 
         ctx.textAlign = 'left';
         ctx.textBaseline = 'alphabetic';
-        ctx.font = `400 ${valSize}px "Cubic 11", sans-serif`;
+        ctx.font = `400 ${valSize}px "MaoKenTangYuan (beta)", sans-serif`;
         ctx.fillText(stat.value, groupStartX, valY);
 
         if (stat.unit) {
-          ctx.font = `400 ${unitSize}px "Cubic 11", sans-serif`;
+          ctx.font = `400 ${unitSize}px "MaoKenTangYuan (beta)", sans-serif`;
           ctx.fillText(stat.unit, groupStartX + valW + 8 * scaleFactor, valY);
         }
 

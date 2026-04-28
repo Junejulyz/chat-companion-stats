@@ -1,9 +1,10 @@
 @import url("https://fontsapi.zeoseven.com/101/main/result.css");
 @import url("https://fontsapi.zeoseven.com/494/main/result.css");
+@import url("https://fontsapi.zeoseven.com/383/main/result.css");
 
 /* Hidden element to ensure the font is loaded for Canvas */
 .ccs-font-loader {
-    font-family: "Cubic 11", "PING FANG GONG ZI TI";
+    font-family: "Cubic 11", "PING FANG GONG ZI TI", "MaoKenTangYuan (beta)";
     position: absolute;
     opacity: 0;
     pointer-events: none;
