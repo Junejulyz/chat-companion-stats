@@ -1218,7 +1218,7 @@ jQuery(async () => {
   async function generateShareImage() {
     const isDark = shareStyle === 'modern-dark' || shareStyle === 'dark';
     const isPixel = shareStyle === 'pixel-pink';
-    const isPocketSticker = shareStyle === 'pocket-sticker';
+    const isPocketSticker = shareStyle === 'pocket-sticker' || shareStyle === 'pocket-sticker-blue';
     const isModern = shareStyle === 'modern-light' || shareStyle === 'modern-dark' || shareStyle === 'modern';
     const isAncient = shareStyle === 'ancient';
 
@@ -1278,9 +1278,10 @@ jQuery(async () => {
       ancientAssets.bg = await loadAssetImg(`${extensionWebPath}/assets/ancient-bg.png?v=${v}`);
     }
 
-    if (shareStyle === 'pocket-sticker') {
+    if (isPocketSticker) {
       const v = Date.now();
-      pocketAssets.bg = await loadAssetImg(`${extensionWebPath}/assets/sticker-bg.png?v=${v}`);
+      const bgImage = shareStyle === 'pocket-sticker-blue' ? 'sticker-bg-blue.png' : 'sticker-bg.png';
+      pocketAssets.bg = await loadAssetImg(`${extensionWebPath}/assets/${bgImage}?v=${v}`);
       pocketAssets.decor = await loadAssetImg(`${extensionWebPath}/assets/heart-decor.svg?v=${v}`);
     }
 
@@ -1345,7 +1346,7 @@ jQuery(async () => {
       stats = stats.filter(s => s.id !== 'ccs-share-start');
     }
 
-    if (shareStyle === 'pocket-sticker') {
+    if (isPocketSticker) {
       stats = stats.map(s => {
         let newValue = s.value;
         if (s.id === 'ccs-share-words') {
@@ -1439,7 +1440,7 @@ jQuery(async () => {
     let height = headerH + totalStatsH + (isPixel ? 0 : footerH);
     if (shareStyle === 'ancient') {
       height = 816 * scaleFactor;
-    } else if (shareStyle === 'pocket-sticker') {
+    } else if (isPocketSticker) {
       height = 1216 * scaleFactor;
     }
     const dynamicHeight = height;
@@ -1518,7 +1519,7 @@ jQuery(async () => {
         ctx.fillStyle = '#f0e6d2'; // Fallback paper color
         ctx.fillRect(0, 0, width, height);
       }
-    } else if (shareStyle === 'pocket-sticker') {
+    } else if (isPocketSticker) {
       ctx.fillStyle = '#FFFFFF';
       ctx.fillRect(0, 0, width, height);
       if (pocketAssets.bg) {
