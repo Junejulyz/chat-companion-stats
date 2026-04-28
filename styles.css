@@ -629,7 +629,6 @@ body.ccs-no-scroll {
 .ccs-carousel-btn:hover {
   background: var(--SmartThemeEmColor);
   color: white;
-  transform: scale(1.1);
 }
 
 .ccs-carousel-btn:active {
