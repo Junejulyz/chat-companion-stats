@@ -1476,6 +1476,8 @@ jQuery(async () => {
           document.fonts.load(`400 32px "Cubic 11"`, charName + statChars + '初遇'),
           document.fonts.load(`400 32px "MaoKenTangYuan (beta)"`, charName + statChars + '初遇'),
           document.fonts.load(`700 32px "MaoKenTangYuan (beta)"`, statChars),
+          document.fonts.load(`400 32px "Xiaolai"`, charName + statChars + '初遇'),
+          document.fonts.load(`700 32px "Xiaolai"`, statChars),
           document.fonts.load(`400 48px "Long Cang"`, '初遇'),
           document.fonts.load(`400 32px "PING FANG GONG ZI TI"`, charName + statChars + '初见')
         ];
@@ -1773,13 +1775,13 @@ jQuery(async () => {
       ctx.textAlign = 'center';
       ctx.textBaseline = 'top';
       ctx.fillStyle = 'rgba(0, 0, 0, 0.95)';
-      ctx.font = `400 ${45 * scaleFactor}px "MaoKenTangYuan (beta)", sans-serif`;
-      ctx.fillText(charName || "角色名", width / 2, 383 * scaleFactor);
+      ctx.font = `400 ${45 * scaleFactor}px "Xiaolai", sans-serif`;
+      ctx.fillText(charName || "角色名", width / 2, 377 * scaleFactor);
       
       if (showEncounterDate) {
-        ctx.font = `400 ${26 * scaleFactor}px "MaoKenTangYuan (beta)", sans-serif`;
+        ctx.font = `400 ${26 * scaleFactor}px "Xiaolai", sans-serif`;
         const encounterText = `初遇于 ${$("#ccs-start").text()}`;
-        ctx.fillText(encounterText, width / 2, 446 * scaleFactor);
+        ctx.fillText(encounterText, width / 2, 440 * scaleFactor);
       }
       ctx.textBaseline = 'alphabetic'; // Reset
 
@@ -1892,7 +1894,7 @@ jQuery(async () => {
 
       } else if (isPocketSticker) {
         const pocketPositions = {
-          '聊天对话': { x: 209.8 * scaleFactor, y: 614.58 * scaleFactor, rotation: -4.48 },
+          '聊天对话': { x: 199.8 * scaleFactor, y: 614.58 * scaleFactor, rotation: -4.48 },
           '相伴天数': { x: 582.41 * scaleFactor, y: 658.19 * scaleFactor, rotation: 6.3 },
           '聊天字数': { x: 180.0 * scaleFactor, y: 940.53 * scaleFactor, rotation: -4.48 },
           '回忆大小': { x: 574.0 * scaleFactor, y: 979.45 * scaleFactor, rotation: 6.3 }
@@ -1907,17 +1909,17 @@ jQuery(async () => {
         ctx.fillStyle = 'rgba(0, 0, 0, 0.95)'; 
         
         const labelSize = 28 * scaleFactor;
-        const valSize = 48 * scaleFactor;
+        const valSize = 56 * scaleFactor;
         const unitSize = 24 * scaleFactor;
 
         // Measure widths to center the text blocks relative to each other
-        ctx.font = `400 ${labelSize}px "MaoKenTangYuan (beta)", sans-serif`;
+        ctx.font = `400 ${labelSize}px "Xiaolai", sans-serif`;
         const labelW = ctx.measureText(stat.label).width;
 
-        ctx.font = `700 ${valSize}px "MaoKenTangYuan (beta)", sans-serif`;
+        ctx.font = `700 ${valSize}px "Xiaolai", sans-serif`;
         const valW = ctx.measureText(stat.value).width;
 
-        ctx.font = `400 ${unitSize}px "MaoKenTangYuan (beta)", sans-serif`;
+        ctx.font = `400 ${unitSize}px "Xiaolai", sans-serif`;
         const unitW = stat.unit ? ctx.measureText(stat.unit).width : 0;
         
         const valueAndUnitW = valW + (stat.unit ? 8 * scaleFactor : 0) + unitW;
@@ -1928,20 +1930,20 @@ jQuery(async () => {
         // Draw label (top baseline so y is precise to user coords)
         ctx.textAlign = 'center';
         ctx.textBaseline = 'top';
-        ctx.font = `400 ${labelSize}px "MaoKenTangYuan (beta)", sans-serif`;
-        ctx.fillText(stat.label, centerX, 0);
+        ctx.font = `400 ${labelSize}px "Xiaolai", sans-serif`;
+        ctx.fillText(stat.label, centerX, -10 * scaleFactor);
 
         // Draw value + unit (alphabetic baseline for bottom alignment)
-        const valY = labelSize + 10 * scaleFactor + valSize; // Approximate baseline position
+        const valY = labelSize + 15 * scaleFactor + valSize; // Approximate baseline position
         const groupStartX = centerX - valueAndUnitW / 2;
 
         ctx.textAlign = 'left';
         ctx.textBaseline = 'alphabetic';
-        ctx.font = `700 ${valSize}px "MaoKenTangYuan (beta)", sans-serif`;
+        ctx.font = `700 ${valSize}px "Xiaolai", sans-serif`;
         ctx.fillText(stat.value, groupStartX, valY);
 
         if (stat.unit) {
-          ctx.font = `400 ${unitSize}px "MaoKenTangYuan (beta)", sans-serif`;
+          ctx.font = `400 ${unitSize}px "Xiaolai", sans-serif`;
           ctx.fillText(stat.unit, groupStartX + valW + 8 * scaleFactor, valY);
         }
 
