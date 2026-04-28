@@ -1281,7 +1281,7 @@ jQuery(async () => {
     if (shareStyle === 'pocket-sticker') {
       const v = Date.now();
       pocketAssets.bg = await loadAssetImg(`${extensionWebPath}/assets/sticker-bg.png?v=${v}`);
-      pocketAssets.decor = await loadAssetImg(`${extensionWebPath}/assets/heart-decor.png?v=${v}`);
+      pocketAssets.decor = await loadAssetImg(`${extensionWebPath}/assets/heart-decor.svg?v=${v}`);
     }
 
     if (shareStyle === 'ins') {
@@ -1475,6 +1475,7 @@ jQuery(async () => {
           document.fonts.load(`400 32px "PING FANG SHAO HUA"`, statChars),
           document.fonts.load(`400 32px "Cubic 11"`, charName + statChars + '初遇'),
           document.fonts.load(`400 32px "MaoKenTangYuan (beta)"`, charName + statChars + '初遇'),
+          document.fonts.load(`700 32px "MaoKenTangYuan (beta)"`, statChars),
           document.fonts.load(`400 48px "Long Cang"`, '初遇'),
           document.fonts.load(`400 32px "PING FANG GONG ZI TI"`, charName + statChars + '初见')
         ];
@@ -1905,14 +1906,14 @@ jQuery(async () => {
         ctx.fillStyle = 'rgba(0, 0, 0, 0.95)'; 
         
         const labelSize = 28 * scaleFactor;
-        const valSize = 40 * scaleFactor;
-        const unitSize = 28 * scaleFactor;
+        const valSize = 48 * scaleFactor;
+        const unitSize = 24 * scaleFactor;
 
         // Measure widths to center the text blocks relative to each other
         ctx.font = `400 ${labelSize}px "MaoKenTangYuan (beta)", sans-serif`;
         const labelW = ctx.measureText(stat.label).width;
 
-        ctx.font = `400 ${valSize}px "MaoKenTangYuan (beta)", sans-serif`;
+        ctx.font = `700 ${valSize}px "MaoKenTangYuan (beta)", sans-serif`;
         const valW = ctx.measureText(stat.value).width;
 
         ctx.font = `400 ${unitSize}px "MaoKenTangYuan (beta)", sans-serif`;
@@ -1935,7 +1936,7 @@ jQuery(async () => {
 
         ctx.textAlign = 'left';
         ctx.textBaseline = 'alphabetic';
-        ctx.font = `400 ${valSize}px "MaoKenTangYuan (beta)", sans-serif`;
+        ctx.font = `700 ${valSize}px "MaoKenTangYuan (beta)", sans-serif`;
         ctx.fillText(stat.value, groupStartX, valY);
 
         if (stat.unit) {
