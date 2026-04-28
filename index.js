@@ -45,8 +45,8 @@ jQuery(async () => {
       margin-top: -24px;
       margin-left: -24px;
       border: 3px solid transparent;
-      border-top-color: #ffb6c1; /* Pink */
-      border-bottom-color: #aed9e0; /* Blue */
+      border-top-color: #4fa3d1; /* Darker blue */
+      border-bottom-color: #aed9e0; /* Light Blue */
       border-radius: 50%;
       animation: ccs-spin 1.2s cubic-bezier(0.5, 0, 0.5, 1) infinite;
       z-index: 10;
