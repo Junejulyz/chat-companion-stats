@@ -630,3 +630,39 @@ body.ccs-no-scroll {
 .ccs-carousel-btn:active {
   transform: scale(0.95);
 }
+
+.ccs-preview-wrapper {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+}
+
+.ccs-carousel-dots {
+  display: flex;
+  justify-content: center;
+  gap: 8px;
+  margin-top: 5px;
+  margin-bottom: 5px;
+}
+
+.ccs-carousel-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: rgba(128, 128, 128, 0.4);
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.ccs-carousel-dot.active {
+  background: var(--SmartThemeEmColor);
+  transform: scale(1.3);
+}
+
+@media (max-width: 600px) {
+  .ccs-carousel-btn {
+    display: none !important;
+  }
+}

@@ -2521,7 +2521,38 @@ jQuery(async () => {
     } finally {
       $container.removeClass('loading-preview');
     }
+    updateCarouselDots();
   });
+
+  // 初始化 Carousel Dots
+  function initCarouselDots() {
+    const $select = $("#ccs-style-select");
+    const options = $select.find("option");
+    const $dotsContainer = $("#ccs-carousel-dots");
+    $dotsContainer.empty();
+    
+    options.each(function(index) {
+      const $dot = $('<div class="ccs-carousel-dot"></div>');
+      $dot.on('click', function(e) {
+        e.stopPropagation(); // Prevent modal close
+        $select.prop("selectedIndex", index).trigger("change");
+      });
+      $dotsContainer.append($dot);
+    });
+    updateCarouselDots();
+  }
+
+  function updateCarouselDots() {
+    const $select = $("#ccs-style-select");
+    const options = $select.find("option");
+    const currentIndex = options.index(options.filter(":selected"));
+    
+    $("#ccs-carousel-dots .ccs-carousel-dot").removeClass("active");
+    $("#ccs-carousel-dots .ccs-carousel-dot").eq(currentIndex).addClass("active");
+  }
+  
+  // 仅初始化一次
+  initCarouselDots();
 
   // Carousel 左右切换逻辑
   function cycleStyle(direction) {
