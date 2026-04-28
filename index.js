@@ -2523,6 +2523,54 @@ jQuery(async () => {
     }
   });
 
+  // Carousel 左右切换逻辑
+  function cycleStyle(direction) {
+    const $select = $("#ccs-style-select");
+    const options = $select.find("option");
+    let currentIndex = options.index(options.filter(":selected"));
+    
+    if (direction === 'next') {
+      currentIndex = (currentIndex + 1) % options.length;
+    } else {
+      currentIndex = (currentIndex - 1 + options.length) % options.length;
+    }
+    
+    $select.prop("selectedIndex", currentIndex).trigger("change");
+  }
+
+  $("#ccs-carousel-prev").on("click", function() {
+    cycleStyle('prev');
+  });
+
+  $("#ccs-carousel-next").on("click", function() {
+    cycleStyle('next');
+  });
+
+  // 支持滑动切换 (Swipe)
+  let touchStartX = 0;
+  let touchEndX = 0;
+
+  $("#ccs-preview-container").on("touchstart", function(e) {
+    touchStartX = e.changedTouches[0].screenX;
+  });
+
+  $("#ccs-preview-container").on("touchend", function(e) {
+    touchEndX = e.changedTouches[0].screenX;
+    handleSwipe();
+  });
+
+  function handleSwipe() {
+    const threshold = 50; // 最小滑动距离
+    if (touchEndX < touchStartX - threshold) {
+      // 左滑 -> next
+      cycleStyle('next');
+    }
+    if (touchEndX > touchStartX + threshold) {
+      // 右滑 -> prev
+      cycleStyle('prev');
+    }
+  }
+
   // 绑定点击事件 - 使用事件委托以防动态加载问题
   $(document).on('click', '#ccs-refresh', updateStats);
 

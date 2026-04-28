@@ -598,3 +598,35 @@ body.ccs-no-scroll {
   font-weight: bold;
   color: var(--SmartThemeEmColor);
 }
+.ccs-carousel-container {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 15px;
+  width: 100%;
+}
+
+.ccs-carousel-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  background: rgba(128, 128, 128, 0.2);
+  color: var(--SmartThemeBodyColor);
+  cursor: pointer;
+  transition: all 0.2s ease;
+  flex-shrink: 0;
+  z-index: 10;
+}
+
+.ccs-carousel-btn:hover {
+  background: var(--SmartThemeEmColor);
+  color: white;
+  transform: scale(1.1);
+}
+
+.ccs-carousel-btn:active {
+  transform: scale(0.95);
+}
