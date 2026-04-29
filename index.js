@@ -1838,7 +1838,7 @@ jQuery(async () => {
           ? `${dateMatch[1]}/${dateMatch[2].padStart(2, '0')}/${dateMatch[3].padStart(2, '0')}` 
           : rawStart.replace(/约/g, '').split(' ')[0];
         const encounterText = `First Encounter · ${formattedDate}`;
-        ctx.fillText(encounterText, width / 2, 210 * scaleFactor);
+        ctx.fillText(encounterText, width / 2, 220 * scaleFactor);
       }
       ctx.textBaseline = 'alphabetic';
 
@@ -1852,33 +1852,27 @@ jQuery(async () => {
         ctx.fillRect(x - borderSize, y - borderSize, avatarSize + borderSize * 2, avatarSize + borderSize * 2);
         
         ctx.save();
-        ctx.imageSmoothingEnabled = false; // Pixelated effect
         
         if (img) {
           // Fill background in case image has transparency
           ctx.fillStyle = '#FFFFFF';
           ctx.fillRect(x, y, avatarSize, avatarSize);
           
-          // Pixelate using offscreen canvas
-          const offCanvas = document.createElement('canvas');
-          const pixelSize = 48; // Strong pixelation size
-          offCanvas.width = pixelSize;
-          offCanvas.height = pixelSize;
-          const offCtx = offCanvas.getContext('2d');
+          // Crop and Draw
+          ctx.beginPath();
+          ctx.rect(x, y, avatarSize, avatarSize);
+          ctx.clip();
           
-          const scale = Math.max(pixelSize / img.width, pixelSize / img.height);
+          const scale = Math.max(avatarSize / img.width, avatarSize / img.height);
           const sw = img.width * scale;
           const sh = img.height * scale;
+          ctx.drawImage(img, x + (avatarSize - sw) / 2, y + (avatarSize - sh) / 2, sw, sh);
           
-          offCtx.fillStyle = '#FFFFFF';
-          offCtx.fillRect(0, 0, pixelSize, pixelSize);
-          offCtx.drawImage(img, (pixelSize - sw) / 2, (pixelSize - sh) / 2, sw, sh);
-          
-          ctx.drawImage(offCanvas, x, y, avatarSize, avatarSize);
-          
-          // Add 30% #7E3D8E mask
+          // Add 30% #7E3D8E mask with hard-light effect
+          ctx.globalCompositeOperation = 'hard-light';
           ctx.fillStyle = 'rgba(126, 61, 142, 0.3)';
           ctx.fillRect(x, y, avatarSize, avatarSize);
+
         } else {
           ctx.fillStyle = '#e0e0e0';
           ctx.fillRect(x, y, avatarSize, avatarSize);
