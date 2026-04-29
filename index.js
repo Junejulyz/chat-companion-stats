@@ -1832,19 +1832,21 @@ jQuery(async () => {
       if (showEncounterDate) {
         ctx.textAlign = 'center';
         ctx.font = `400 ${36 * scaleFactor}px "Cubic 11", sans-serif`;
-        const encounterText = `First Encounter · ${$("#ccs-start").text()}`;
+        const rawStart = $("#ccs-start").text();
+        const dateMatch = rawStart.match(/(\d{4})年(\d{1,2})月(\d{1,2})日/);
+        const formattedDate = dateMatch 
+          ? `${dateMatch[1]}/${dateMatch[2].padStart(2, '0')}/${dateMatch[3].padStart(2, '0')}` 
+          : rawStart.replace(/约/g, '').split(' ')[0];
+        const encounterText = `First Encounter · ${formattedDate}`;
         ctx.fillText(encounterText, width / 2, 210 * scaleFactor);
       }
       ctx.textBaseline = 'alphabetic';
 
       // Avatars (Bottom Right Overlap)
-      // Approximate positions to be on bottom right
-      const avatarSize = 180 * scaleFactor;
-      const borderSize = 4 * scaleFactor;
-      const startX = width - avatarSize * 1.5 - 50 * scaleFactor; // Approximate right align
-      const startY = height - avatarSize * 1.5 - 50 * scaleFactor; // Approximate bottom align
-      
       const drawY2kAvatar = (img, x, y) => {
+        const avatarSize = 170 * scaleFactor;
+        const borderSize = 4 * scaleFactor;
+
         // Border
         ctx.fillStyle = '#7E3D8E';
         ctx.fillRect(x - borderSize, y - borderSize, avatarSize + borderSize * 2, avatarSize + borderSize * 2);
@@ -1857,15 +1859,22 @@ jQuery(async () => {
           ctx.fillStyle = '#FFFFFF';
           ctx.fillRect(x, y, avatarSize, avatarSize);
           
-          // Crop and Draw
-          ctx.beginPath();
-          ctx.rect(x, y, avatarSize, avatarSize);
-          ctx.clip();
+          // Pixelate using offscreen canvas
+          const offCanvas = document.createElement('canvas');
+          const pixelSize = 48; // Strong pixelation size
+          offCanvas.width = pixelSize;
+          offCanvas.height = pixelSize;
+          const offCtx = offCanvas.getContext('2d');
           
-          const scale = Math.max(avatarSize / img.width, avatarSize / img.height);
+          const scale = Math.max(pixelSize / img.width, pixelSize / img.height);
           const sw = img.width * scale;
           const sh = img.height * scale;
-          ctx.drawImage(img, x + (avatarSize - sw) / 2, y + (avatarSize - sh) / 2, sw, sh);
+          
+          offCtx.fillStyle = '#FFFFFF';
+          offCtx.fillRect(0, 0, pixelSize, pixelSize);
+          offCtx.drawImage(img, (pixelSize - sw) / 2, (pixelSize - sh) / 2, sw, sh);
+          
+          ctx.drawImage(offCanvas, x, y, avatarSize, avatarSize);
         } else {
           ctx.fillStyle = '#e0e0e0';
           ctx.fillRect(x, y, avatarSize, avatarSize);
@@ -1874,11 +1883,10 @@ jQuery(async () => {
       };
 
       if (showUser) {
-        drawY2kAvatar(userImg, startX, startY); // User underneath
+        drawY2kAvatar(userImg, 632 * scaleFactor, 943 * scaleFactor); // User underneath
       }
       // Character overlaps user
-      const offset = 60 * scaleFactor; 
-      drawY2kAvatar(charImg, startX + offset, startY - offset); 
+      drawY2kAvatar(charImg, 501 * scaleFactor, 831 * scaleFactor); 
 
     } else {
       // Modern style header logic...
@@ -2045,15 +2053,6 @@ jQuery(async () => {
         ctx.restore();
 
       } else if (isY2k) {
-        const y2kPositions = {
-          '聊天对话': { x: 140 * scaleFactor, y: 350 * scaleFactor },
-          '相伴天数': { x: 490 * scaleFactor, y: 350 * scaleFactor },
-          '聊天字数': { x: 140 * scaleFactor, y: 550 * scaleFactor },
-          '回忆大小': { x: 490 * scaleFactor, y: 550 * scaleFactor }
-        };
-        
-        const pos = y2kPositions[stat.label] || { x: 100 * scaleFactor, y: cy };
-        
         const iconMap = {
           '聊天对话': y2kAssets.chaticon,
           '相伴天数': y2kAssets.calendaricon,
@@ -2064,21 +2063,30 @@ jQuery(async () => {
         const icon = iconMap[stat.label];
         const iconSize = 64 * scaleFactor;
         
+        // Horizontal list stacked vertically
+        const baseX = 115 * scaleFactor;
+        const baseY = 310 * scaleFactor;
+        const verticalSpacing = 24 * scaleFactor;
+        const rowY = baseY + i * (iconSize + verticalSpacing);
+        
         if (icon) {
-          ctx.drawImage(icon, pos.x, pos.y, iconSize, iconSize);
+          ctx.drawImage(icon, baseX, rowY, iconSize, iconSize);
         }
         
         ctx.textAlign = 'left';
-        ctx.textBaseline = 'top';
+        ctx.textBaseline = 'middle';
         ctx.fillStyle = '#7E3D8E';
         
         // Draw Label
-        ctx.font = `400 ${28 * scaleFactor}px "Cubic 11", sans-serif`;
-        ctx.fillText(stat.label, pos.x + iconSize + 15 * scaleFactor, pos.y + 2 * scaleFactor);
+        ctx.font = `400 ${36 * scaleFactor}px "Cubic 11", sans-serif`;
+        const labelX = baseX + iconSize + 16 * scaleFactor;
+        const textY = rowY + iconSize / 2;
+        ctx.fillText(stat.label, labelX, textY);
         
         // Draw Value + Unit
-        ctx.font = `400 ${36 * scaleFactor}px "Cubic 11", sans-serif`;
-        ctx.fillText(`${stat.value}${stat.unit || ''}`, pos.x + iconSize + 15 * scaleFactor, pos.y + 35 * scaleFactor);
+        const labelWidth = ctx.measureText(stat.label).width;
+        const valueX = labelX + labelWidth + 24 * scaleFactor;
+        ctx.fillText(`${stat.value}${stat.unit || ''}`, valueX, textY);
 
       } else if (isPixel) {
         // --- NEW PINK PIXEL STAT BOX ---
