@@ -1875,6 +1875,10 @@ jQuery(async () => {
           offCtx.drawImage(img, (pixelSize - sw) / 2, (pixelSize - sh) / 2, sw, sh);
           
           ctx.drawImage(offCanvas, x, y, avatarSize, avatarSize);
+          
+          // Add 30% #7E3D8E mask
+          ctx.fillStyle = 'rgba(126, 61, 142, 0.3)';
+          ctx.fillRect(x, y, avatarSize, avatarSize);
         } else {
           ctx.fillStyle = '#e0e0e0';
           ctx.fillRect(x, y, avatarSize, avatarSize);
@@ -2054,14 +2058,14 @@ jQuery(async () => {
 
       } else if (isY2k) {
         const iconMap = {
-          '聊天对话': y2kAssets.chaticon,
-          '相伴天数': y2kAssets.calendaricon,
-          '聊天字数': y2kAssets.numbericon,
-          '回忆大小': y2kAssets.discicon
+          '聊天对话': y2kAssets.chat,
+          '相伴天数': y2kAssets.calendar,
+          '聊天字数': y2kAssets.number,
+          '回忆大小': y2kAssets.disc
         };
         
         const icon = iconMap[stat.label];
-        const iconSize = 64 * scaleFactor;
+        const iconSize = 72 * scaleFactor;
         
         // Horizontal list stacked vertically
         const baseX = 115 * scaleFactor;
@@ -2078,7 +2082,7 @@ jQuery(async () => {
         ctx.fillStyle = '#7E3D8E';
         
         // Draw Label
-        ctx.font = `400 ${36 * scaleFactor}px "Cubic 11", sans-serif`;
+        ctx.font = `400 ${40 * scaleFactor}px "Cubic 11", sans-serif`;
         const labelX = baseX + iconSize + 16 * scaleFactor;
         const textY = rowY + iconSize / 2;
         ctx.fillText(stat.label, labelX, textY);
