@@ -1235,6 +1235,7 @@ jQuery(async () => {
     const isDark = shareStyle === 'modern-dark' || shareStyle === 'dark';
     const isPixel = shareStyle === 'pixel-pink';
     const isPocketSticker = shareStyle === 'pocket-sticker' || shareStyle === 'pocket-sticker-blue';
+    const isY2k = shareStyle === 'nostalgic-y2k';
     const isModern = shareStyle === 'modern-light' || shareStyle === 'modern-dark' || shareStyle === 'modern';
     const isAncient = shareStyle === 'ancient';
 
@@ -1249,7 +1250,7 @@ jQuery(async () => {
     const charName = getCurrentCharacterName();
 
     const scaleFactor = 2; // HD
-    const width = isPocketSticker ? 896 * scaleFactor : 663 * scaleFactor;
+    const width = (isPocketSticker || isY2k) ? 896 * scaleFactor : 663 * scaleFactor;
 
     // Scrapbook Pixel Colors
     const pixelBg = '#FEF9F0'; // Warm Cream
@@ -1276,6 +1277,7 @@ jQuery(async () => {
     const pixelAssets = {};
     const ancientAssets = {};
     const pocketAssets = {};
+    const y2kAssets = {};
     
     const loadAssetImg = (url) => new Promise((resolve) => {
       const img = new Image();
@@ -1299,6 +1301,20 @@ jQuery(async () => {
       const bgImage = shareStyle === 'pocket-sticker-blue' ? 'sticker-bg-blue.png' : 'sticker-bg.png';
       pocketAssets.bg = await loadAssetImg(`${extensionWebPath}/assets/${bgImage}?v=${v}`);
       pocketAssets.decor = await loadAssetImg(`${extensionWebPath}/assets/heart-decor.svg?v=${v}`);
+    }
+
+    if (isY2k) {
+      const v = Date.now();
+      const y2kAssetList = {
+        bg: `${extensionWebPath}/assets/nostalgicpurple/nostagic_bg.png?v=${v}`,
+        calendar: `${extensionWebPath}/assets/nostalgicpurple/calendaricon.svg?v=${v}`,
+        chat: `${extensionWebPath}/assets/nostalgicpurple/chaticon.svg?v=${v}`,
+        disc: `${extensionWebPath}/assets/nostalgicpurple/discicon.svg?v=${v}`,
+        number: `${extensionWebPath}/assets/nostalgicpurple/number.svg?v=${v}`
+      };
+      await Promise.all(Object.entries(y2kAssetList).map(async ([key, url]) => {
+        y2kAssets[key] = await loadAssetImg(url);
+      }));
     }
 
     if (shareStyle === 'ins') {
@@ -1350,19 +1366,18 @@ jQuery(async () => {
       }
     ];
 
-    // 如果是青纹信笺或像素风，则加上初遇时间显示 (现代简约默认不加)
-    if (isAncient || isPixel) {
+    // 如果是青纹信笺、像素风或怀旧y2k，则加上初遇时间显示 (现代简约默认不加)
+    if (isAncient || isPixel || isY2k) {
       statsItems.unshift({ id: 'ccs-share-start', label: '初遇时间', value: $("#ccs-start").text().replace(/约/g, '').replace(/点/g, ':').replace(/分/g, '') });
     }
 
     let stats = statsItems.filter(s => $(`#${s.id}`).is(":checked"));
     
-    // Filter out duplicate Encounter stat from bottom panels in Pink Pixel mode
-    if (isPixel) {
+    if (isPixel || isY2k) {
       stats = stats.filter(s => s.id !== 'ccs-share-start');
     }
 
-    if (isPocketSticker) {
+    if (isPocketSticker || isY2k) {
       stats = stats.map(s => {
         let newValue = s.value;
         if (s.id === 'ccs-share-words') {
@@ -1456,7 +1471,7 @@ jQuery(async () => {
     let height = headerH + totalStatsH + (isPixel ? 0 : footerH);
     if (shareStyle === 'ancient') {
       height = 816 * scaleFactor;
-    } else if (isPocketSticker) {
+    } else if (isPocketSticker || isY2k) {
       height = 1216 * scaleFactor;
     }
     const dynamicHeight = height;
@@ -1535,10 +1550,12 @@ jQuery(async () => {
         ctx.fillStyle = '#f0e6d2'; // Fallback paper color
         ctx.fillRect(0, 0, width, height);
       }
-    } else if (isPocketSticker) {
+    } else if (isPocketSticker || isY2k) {
       ctx.fillStyle = '#FFFFFF';
       ctx.fillRect(0, 0, width, height);
-      if (pocketAssets.bg) {
+      if (isY2k && y2kAssets.bg) {
+        ctx.drawImage(y2kAssets.bg, 0, 0, width, height);
+      } else if (isPocketSticker && pocketAssets.bg) {
         ctx.drawImage(pocketAssets.bg, 0, 0, width, height);
       }
     } else {
@@ -1568,8 +1585,8 @@ jQuery(async () => {
       // Pixel Pink Background - Simple pink fill already done in step 3
     } else if (shareStyle === 'ancient') {
       // Ancient style doesn't need a content area background box
-    } else if (isPocketSticker) {
-      // Pocket sticker doesn't need a content area background box
+    } else if (isPocketSticker || isY2k) {
+      // Pocket sticker and Y2K don't need a content area background box
     } else if (stats.length > 0) {
       ctx.fillStyle = contentAreaBg;
       const contentAreaW = 599 * scaleFactor;
@@ -1802,6 +1819,67 @@ jQuery(async () => {
       }
       ctx.textBaseline = 'alphabetic'; // Reset
 
+    } else if (isY2k) {
+      // Name (Title Bar)
+      ctx.textAlign = 'left';
+      ctx.textBaseline = 'top';
+      ctx.fillStyle = '#7E3D8E';
+      ctx.font = `400 ${34 * scaleFactor}px "Cubic 11", sans-serif`;
+      const titleText = `${charName || "角色名"}_chatlog.png`;
+      ctx.fillText(titleText, 107 * scaleFactor, 73 * scaleFactor);
+
+      // Encounter Date
+      if (showEncounterDate) {
+        ctx.textAlign = 'center';
+        ctx.font = `400 ${36 * scaleFactor}px "Cubic 11", sans-serif`;
+        const encounterText = `First Encounter · ${$("#ccs-start").text()}`;
+        ctx.fillText(encounterText, width / 2, 210 * scaleFactor);
+      }
+      ctx.textBaseline = 'alphabetic';
+
+      // Avatars (Bottom Right Overlap)
+      // Approximate positions to be on bottom right
+      const avatarSize = 180 * scaleFactor;
+      const borderSize = 4 * scaleFactor;
+      const startX = width - avatarSize * 1.5 - 50 * scaleFactor; // Approximate right align
+      const startY = height - avatarSize * 1.5 - 50 * scaleFactor; // Approximate bottom align
+      
+      const drawY2kAvatar = (img, x, y) => {
+        // Border
+        ctx.fillStyle = '#7E3D8E';
+        ctx.fillRect(x - borderSize, y - borderSize, avatarSize + borderSize * 2, avatarSize + borderSize * 2);
+        
+        ctx.save();
+        ctx.imageSmoothingEnabled = false; // Pixelated effect
+        
+        if (img) {
+          // Fill background in case image has transparency
+          ctx.fillStyle = '#FFFFFF';
+          ctx.fillRect(x, y, avatarSize, avatarSize);
+          
+          // Crop and Draw
+          ctx.beginPath();
+          ctx.rect(x, y, avatarSize, avatarSize);
+          ctx.clip();
+          
+          const scale = Math.max(avatarSize / img.width, avatarSize / img.height);
+          const sw = img.width * scale;
+          const sh = img.height * scale;
+          ctx.drawImage(img, x + (avatarSize - sw) / 2, y + (avatarSize - sh) / 2, sw, sh);
+        } else {
+          ctx.fillStyle = '#e0e0e0';
+          ctx.fillRect(x, y, avatarSize, avatarSize);
+        }
+        ctx.restore();
+      };
+
+      if (showUser) {
+        drawY2kAvatar(userImg, startX, startY); // User underneath
+      }
+      // Character overlaps user
+      const offset = 60 * scaleFactor; 
+      drawY2kAvatar(charImg, startX + offset, startY - offset); 
+
     } else {
       // Modern style header logic...
       const avatarW = 100 * scaleFactor;
@@ -1965,6 +2043,42 @@ jQuery(async () => {
         }
 
         ctx.restore();
+
+      } else if (isY2k) {
+        const y2kPositions = {
+          '聊天对话': { x: 140 * scaleFactor, y: 350 * scaleFactor },
+          '相伴天数': { x: 490 * scaleFactor, y: 350 * scaleFactor },
+          '聊天字数': { x: 140 * scaleFactor, y: 550 * scaleFactor },
+          '回忆大小': { x: 490 * scaleFactor, y: 550 * scaleFactor }
+        };
+        
+        const pos = y2kPositions[stat.label] || { x: 100 * scaleFactor, y: cy };
+        
+        const iconMap = {
+          '聊天对话': y2kAssets.chaticon,
+          '相伴天数': y2kAssets.calendaricon,
+          '聊天字数': y2kAssets.numbericon,
+          '回忆大小': y2kAssets.discicon
+        };
+        
+        const icon = iconMap[stat.label];
+        const iconSize = 64 * scaleFactor;
+        
+        if (icon) {
+          ctx.drawImage(icon, pos.x, pos.y, iconSize, iconSize);
+        }
+        
+        ctx.textAlign = 'left';
+        ctx.textBaseline = 'top';
+        ctx.fillStyle = '#7E3D8E';
+        
+        // Draw Label
+        ctx.font = `400 ${28 * scaleFactor}px "Cubic 11", sans-serif`;
+        ctx.fillText(stat.label, pos.x + iconSize + 15 * scaleFactor, pos.y + 2 * scaleFactor);
+        
+        // Draw Value + Unit
+        ctx.font = `400 ${36 * scaleFactor}px "Cubic 11", sans-serif`;
+        ctx.fillText(`${stat.value}${stat.unit || ''}`, pos.x + iconSize + 15 * scaleFactor, pos.y + 35 * scaleFactor);
 
       } else if (isPixel) {
         // --- NEW PINK PIXEL STAT BOX ---
