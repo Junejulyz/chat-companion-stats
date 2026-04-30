@@ -1234,7 +1234,7 @@ jQuery(async () => {
   async function generateShareImage() {
     const isDark = shareStyle === 'modern-dark' || shareStyle === 'dark';
     const isPixel = shareStyle === 'pixel-pink';
-    const isPocketSticker = shareStyle === 'pocket-sticker' || shareStyle === 'pocket-sticker-blue';
+    const isPocketSticker = shareStyle === 'pocket-sticker';
     const isY2k = shareStyle === 'nostalgic-y2k';
     const isModern = shareStyle === 'modern-light' || shareStyle === 'modern-dark' || shareStyle === 'modern';
     const isAncient = shareStyle === 'ancient';
@@ -1298,7 +1298,8 @@ jQuery(async () => {
 
     if (isPocketSticker) {
       const v = Date.now();
-      const bgImage = shareStyle === 'pocket-sticker-blue' ? 'sticker-bg-blue.png' : 'sticker-bg.png';
+      const activePocketColor = $('.ccs-color-swatch.active').data('color') || 'blue';
+      const bgImage = activePocketColor === 'blue' ? 'sticker-bg-blue.png' : 'sticker-bg.png';
       pocketAssets.bg = await loadAssetImg(`${extensionWebPath}/assets/${bgImage}?v=${v}`);
       pocketAssets.decor = await loadAssetImg(`${extensionWebPath}/assets/heart-decor.svg?v=${v}`);
     }
@@ -1826,19 +1827,19 @@ jQuery(async () => {
       ctx.fillStyle = '#7E3D8E';
       ctx.font = `400 ${34 * scaleFactor}px "Cubic 11", sans-serif`;
       const titleText = `${charName || "角色名"}_chatlog.png`;
-      ctx.fillText(titleText, 107 * scaleFactor, 73 * scaleFactor);
+      ctx.fillText(titleText, 107 * scaleFactor, 71 * scaleFactor);
 
       // Encounter Date
       if (showEncounterDate) {
         ctx.textAlign = 'center';
-        ctx.font = `400 ${36 * scaleFactor}px "Cubic 11", sans-serif`;
+        ctx.font = `400 ${32 * scaleFactor}px "Cubic 11", sans-serif`;
         const rawStart = $("#ccs-start").text();
         const dateMatch = rawStart.match(/(\d{4})年(\d{1,2})月(\d{1,2})日/);
         const formattedDate = dateMatch 
           ? `${dateMatch[1]}/${dateMatch[2].padStart(2, '0')}/${dateMatch[3].padStart(2, '0')}` 
           : rawStart.replace(/约/g, '').split(' ')[0];
-        const encounterText = `First Encounter · ${formattedDate}`;
-        ctx.fillText(encounterText, width / 2, 220 * scaleFactor);
+        const encounterText = `First Encounter ${formattedDate}`;
+        ctx.fillText(encounterText, width / 2, 225 * scaleFactor);
       }
       ctx.textBaseline = 'alphabetic';
 
@@ -1868,9 +1869,9 @@ jQuery(async () => {
           const sh = img.height * scale;
           ctx.drawImage(img, x + (avatarSize - sw) / 2, y + (avatarSize - sh) / 2, sw, sh);
           
-          // Add 30% #7E3D8E mask with hard-light effect
+          // Add 24% #7E3D8E mask with hard-light effect
           ctx.globalCompositeOperation = 'hard-light';
-          ctx.fillStyle = 'rgba(126, 61, 142, 0.3)';
+          ctx.fillStyle = 'rgba(126, 61, 142, 0.24)';
           ctx.fillRect(x, y, avatarSize, avatarSize);
 
         } else {
@@ -1998,7 +1999,7 @@ jQuery(async () => {
           '聊天对话': { x: 194.8 * scaleFactor, y: 614.58 * scaleFactor, rotation: -4.48 },
           '相伴天数': { x: 588.41 * scaleFactor, y: 658.19 * scaleFactor, rotation: 6.3 },
           '聊天字数': { x: 170.0 * scaleFactor, y: 940.53 * scaleFactor, rotation: -4.48 },
-          '回忆大小': { x: 550.0 * scaleFactor, y: 979.45 * scaleFactor, rotation: 6.3 }
+          '回忆大小': { x: 546.0 * scaleFactor, y: 979.45 * scaleFactor, rotation: 6.3 }
         };
         
         const pos = pocketPositions[stat.label] || { x: 100 * scaleFactor, y: cy, rotation: 0 };
@@ -2063,7 +2064,7 @@ jQuery(async () => {
         
         // Horizontal list stacked vertically
         const baseX = 115 * scaleFactor;
-        const baseY = 310 * scaleFactor;
+        const baseY = 305 * scaleFactor;
         const verticalSpacing = 24 * scaleFactor;
         const rowY = baseY + i * (iconSize + verticalSpacing);
         
@@ -2644,6 +2645,12 @@ jQuery(async () => {
     shareStyle = $select.val();
     localStorage.setItem('ccs-share-style', shareStyle); // 保存用户选择到 localStorage
     if (DEBUG) console.log('Selected style changed (dropdown):', shareStyle);
+    
+    if (shareStyle === 'pocket-sticker') {
+      $("#ccs-color-selector").show();
+    } else {
+      $("#ccs-color-selector").hide();
+    }
 
     const options = $select.find("option");
     const currentIndex = options.index(options.filter(":selected"));
@@ -2708,6 +2715,32 @@ jQuery(async () => {
       $container.removeClass('loading-preview');
     }
     updateCarouselDots();
+  });
+
+  // 颜色选择器处理
+  $(".ccs-color-swatch").on('click', async function (e) {
+    e.stopPropagation();
+    if ($(this).hasClass('active')) return;
+    
+    // Update UI active state
+    $(".ccs-color-swatch").removeClass('active');
+    $(this).addClass('active');
+    
+    // Re-generate preview visually
+    const $container = $("#ccs-preview-container");
+    const $img = $container.find('img');
+    
+    $container.addClass('loading-preview');
+    try {
+      const imageData = await generateShareImage();
+      if ($img.length) {
+        $img.attr('src', imageData);
+      }
+    } catch (e) {
+      console.error('Failed to regenerate preview on color change:', e);
+    } finally {
+      $container.removeClass('loading-preview');
+    }
   });
 
   // 初始化 Carousel Dots
