@@ -69,9 +69,13 @@
         <div id="ccs-carousel-prev" class="ccs-carousel-btn"><i class="fa-solid fa-chevron-left"></i></div>
         <div class="ccs-preview-wrapper">
           <div id="ccs-preview-container"></div>
-          <div id="ccs-color-selector" class="ccs-color-selector" style="display: none;">
+          <div id="ccs-color-selector" class="ccs-color-selector" data-style="pocket-sticker" style="display: none;">
             <div class="ccs-color-swatch active" data-color="blue" style="background-color: #A7C8EF;"></div>
             <div class="ccs-color-swatch" data-color="pink" style="background-color: #FFB8C3;"></div>
+          </div>
+          <div id="ccs-y2k-color-selector" class="ccs-color-selector" data-style="nostalgic-y2k" style="display: none;">
+            <div class="ccs-y2k-swatch ccs-color-swatch active" data-color="purple" style="background-color: #E8BDFF;"></div>
+            <div class="ccs-y2k-swatch ccs-color-swatch" data-color="blue" style="background-color: #BDDEFF;"></div>
           </div>
           <div id="ccs-carousel-dots" class="ccs-carousel-dots"></div>
         </div>
@@ -109,7 +113,10 @@
         <div class="ccs-tab" data-tab="size">回忆大小</div>
       </div>
       <div id="ccs-global-spinner" class="ccs-global-spinner" style="display: none;">
-        <i class="fa-solid fa-spinner fa-spin"></i> 正在读取回忆...
+        <div class="ccs-global-spinner-text"><span id="ccs-global-progress-text">正在读取回忆...</span></div>
+        <div class="ccs-global-progress-bar-track">
+          <div id="ccs-global-progress-bar" class="ccs-global-progress-bar-fill"></div>
+        </div>
       </div>
       <div id="ccs-global-list">
         <!-- 列表内容动态生成 -->
@@ -128,7 +135,8 @@
       </div>
       <div class="ccs-advanced-body">
         <div id="ccs-advanced-loading" style="display: none; text-align: center; padding: 20px;">
-          <i class="fa-solid fa-spinner fa-spin"></i> <span id="ccs-advanced-progress-text">正在分析回忆...</span>
+          <div class="ccs-themed-spinner" style="margin: 0 auto 12px;"></div>
+          <span id="ccs-advanced-progress-text">正在分析回忆...</span>
           <div style="width: 100%; height: 4px; background: rgba(128,128,128,0.2); border-radius: 2px; margin-top: 10px; overflow: hidden;">
             <div id="ccs-advanced-progress-bar" style="width: 0%; height: 100%; background: var(--SmartThemeEmColor); transition: width 0.3s linear;"></div>
           </div>

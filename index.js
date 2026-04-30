@@ -45,8 +45,8 @@ jQuery(async () => {
       margin-top: -24px;
       margin-left: -24px;
       border: 3px solid transparent;
-      border-top-color: #4fa3d1; /* Darker blue */
-      border-bottom-color: #aed9e0; /* Light Blue */
+      border-top-color: var(--SmartThemeEmColor);
+      border-bottom-color: var(--SmartThemeBodyColor);
       border-radius: 50%;
       animation: ccs-spin 1.2s cubic-bezier(0.5, 0, 0.5, 1) infinite;
       z-index: 10;
@@ -1306,8 +1306,10 @@ jQuery(async () => {
 
     if (isY2k) {
       const v = Date.now();
+      const activeY2kColor = $('.ccs-y2k-swatch.active').data('color') || 'purple';
+      const y2kBgImage = activeY2kColor === 'blue' ? 'nostagic_bg_blue.png' : 'nostagic_bg.png';
       const y2kAssetList = {
-        bg: `${extensionWebPath}/assets/nostalgicpurple/nostagic_bg.png?v=${v}`,
+        bg: `${extensionWebPath}/assets/nostalgicpurple/${y2kBgImage}?v=${v}`,
         calendar: `${extensionWebPath}/assets/nostalgicpurple/calendaricon.svg?v=${v}`,
         chat: `${extensionWebPath}/assets/nostalgicpurple/chaticon.svg?v=${v}`,
         disc: `${extensionWebPath}/assets/nostalgicpurple/discicon.svg?v=${v}`,
@@ -1821,10 +1823,14 @@ jQuery(async () => {
       ctx.textBaseline = 'alphabetic'; // Reset
 
     } else if (isY2k) {
+      // Determine Y2K color theme based on swatch
+      const y2kActiveColor = $('.ccs-y2k-swatch.active').data('color') || 'purple';
+      const y2kColor = y2kActiveColor === 'blue' ? '#3D608E' : '#7E3D8E';
+
       // Name (Title Bar)
       ctx.textAlign = 'left';
       ctx.textBaseline = 'top';
-      ctx.fillStyle = '#7E3D8E';
+      ctx.fillStyle = y2kColor;
       ctx.font = `400 ${34 * scaleFactor}px "Cubic 11", sans-serif`;
       const titleText = `${charName || "角色名"}_chatlog.png`;
       ctx.fillText(titleText, 107 * scaleFactor, 71 * scaleFactor);
@@ -1848,8 +1854,8 @@ jQuery(async () => {
         const avatarSize = 170 * scaleFactor;
         const borderSize = 4 * scaleFactor;
 
-        // Border
-        ctx.fillStyle = '#7E3D8E';
+        // Border (dynamic based on swatch)
+        ctx.fillStyle = y2kColor;
         ctx.fillRect(x - borderSize, y - borderSize, avatarSize + borderSize * 2, avatarSize + borderSize * 2);
         
         ctx.save();
@@ -1869,9 +1875,10 @@ jQuery(async () => {
           const sh = img.height * scale;
           ctx.drawImage(img, x + (avatarSize - sw) / 2, y + (avatarSize - sh) / 2, sw, sh);
           
-          // Add 24% #7E3D8E mask with hard-light effect
+          // Add 18% overlay mask with hard-light effect (dynamic color based on swatch)
           ctx.globalCompositeOperation = 'hard-light';
-          ctx.fillStyle = 'rgba(126, 61, 142, 0.24)';
+          const overlayRgb = y2kActiveColor === 'blue' ? '61, 96, 142' : '126, 61, 142';
+          ctx.fillStyle = `rgba(${overlayRgb}, 0.18)`;
           ctx.fillRect(x, y, avatarSize, avatarSize);
 
         } else {
@@ -2074,7 +2081,8 @@ jQuery(async () => {
         
         ctx.textAlign = 'left';
         ctx.textBaseline = 'middle';
-        ctx.fillStyle = '#7E3D8E';
+        const y2kStatColor = ($('.ccs-y2k-swatch.active').data('color') || 'purple') === 'blue' ? '#3D608E' : '#7E3D8E';
+        ctx.fillStyle = y2kStatColor;
         
         // Draw Label
         ctx.font = `400 ${40 * scaleFactor}px "Cubic 11", sans-serif`;
@@ -2588,6 +2596,18 @@ jQuery(async () => {
     $modal.addClass('ccs-modal-visible');
     $('body').addClass('ccs-no-scroll'); // 阻止背景滚动
 
+    // Show/hide color selectors based on current style
+    if (shareStyle === 'pocket-sticker') {
+      $("#ccs-color-selector").show();
+      $("#ccs-y2k-color-selector").hide();
+    } else if (shareStyle === 'nostalgic-y2k') {
+      $("#ccs-color-selector").hide();
+      $("#ccs-y2k-color-selector").show();
+    } else {
+      $("#ccs-color-selector").hide();
+      $("#ccs-y2k-color-selector").hide();
+    }
+
     try {
       const imageData = await generateShareImage();
       // Wait a tiny bit extra just in case
@@ -2648,8 +2668,13 @@ jQuery(async () => {
     
     if (shareStyle === 'pocket-sticker') {
       $("#ccs-color-selector").show();
+      $("#ccs-y2k-color-selector").hide();
+    } else if (shareStyle === 'nostalgic-y2k') {
+      $("#ccs-color-selector").hide();
+      $("#ccs-y2k-color-selector").show();
     } else {
       $("#ccs-color-selector").hide();
+      $("#ccs-y2k-color-selector").hide();
     }
 
     const options = $select.find("option");
@@ -2717,13 +2742,13 @@ jQuery(async () => {
     updateCarouselDots();
   });
 
-  // 颜色选择器处理
+  // 颜色选择器处理 (scoped to parent selector)
   $(".ccs-color-swatch").on('click', async function (e) {
     e.stopPropagation();
     if ($(this).hasClass('active')) return;
     
-    // Update UI active state
-    $(".ccs-color-swatch").removeClass('active');
+    // Update UI active state (only within the same parent color-selector)
+    $(this).closest('.ccs-color-selector').find('.ccs-color-swatch').removeClass('active');
     $(this).addClass('active');
     
     // Re-generate preview visually
@@ -2987,7 +3012,9 @@ jQuery(async () => {
         const [charId, char] = charsEntries[i];
         
         if ($spinner.length) {
-            $spinner.html(`<i class="fa-solid fa-spinner fa-spin"></i> 正在读取回忆... (${i + 1}/${totalChars})`);
+            const percent = Math.round(((i + 1) / totalChars) * 100);
+            $('#ccs-global-progress-text').text(`正在读取回忆... (${i + 1}/${totalChars})`);
+            $('#ccs-global-progress-bar').css('width', `${percent}%`);
         }
 
         // Skip default/empty characters
@@ -3220,6 +3247,9 @@ jQuery(async () => {
     $('.ccs-tab').removeClass('active');
     $('.ccs-tab[data-tab="messages"]').addClass('active'); // 默认选中"对话总数"
     $list.empty();
+    // Reset progress bar state
+    $('#ccs-global-progress-text').text('正在读取回忆...');
+    $('#ccs-global-progress-bar').css('width', '0%');
     $spinner.show();
     $modal.addClass('ccs-modal-visible');
     $('body').addClass('ccs-no-scroll'); // 阻止背景滚动

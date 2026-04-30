@@ -342,9 +342,45 @@ body.ccs-no-scroll {
 
 .ccs-global-spinner {
   text-align: center;
-  padding: 40px;
+  padding: 40px 24px;
   opacity: 0.9;
   font-size: 1.1rem;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 16px;
+}
+
+.ccs-global-spinner-text {
+  opacity: 0.85;
+}
+
+.ccs-global-progress-bar-track {
+  width: 100%;
+  max-width: 260px;
+  height: 4px;
+  background: rgba(128, 128, 128, 0.2);
+  border-radius: 2px;
+  overflow: hidden;
+}
+
+.ccs-global-progress-bar-fill {
+  width: 0%;
+  height: 100%;
+  background: var(--SmartThemeEmColor);
+  border-radius: 2px;
+  transition: width 0.3s linear;
+}
+
+/* Themed spinner used across all loading states */
+.ccs-themed-spinner {
+  width: 36px;
+  height: 36px;
+  border: 3px solid transparent;
+  border-top-color: var(--SmartThemeEmColor);
+  border-bottom-color: var(--SmartThemeBodyColor);
+  border-radius: 50%;
+  animation: ccs-spin 1.2s cubic-bezier(0.5, 0, 0.5, 1) infinite;
 }
 
 #ccs-global-list {
