@@ -638,6 +638,158 @@ body.ccs-no-scroll {
   font-weight: bold;
   color: var(--SmartThemeEmColor);
 }
+
+/* ========================================================================= */
+/* Bond Index (羁绊指数) Styles                                              */
+/* ========================================================================= */
+.ccs-bond-index {
+  text-align: center;
+  padding: 20px 16px 18px;
+  margin-bottom: 20px;
+  border-radius: 16px;
+  background: linear-gradient(
+    135deg,
+    rgba(var(--SmartThemeEmColorRGB), 0.06) 0%,
+    rgba(var(--SmartThemeEmColorRGB), 0.02) 100%
+  );
+  border: 1px solid rgba(var(--SmartThemeEmColorRGB), 0.08);
+  transition: transform 0.3s ease, box-shadow 0.3s ease;
+  opacity: 0;
+  animation: ccsBondFadeIn 0.6s ease-out forwards;
+}
+
+.ccs-bond-index:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 20px rgba(0, 0, 0, 0.06);
+}
+
+.ccs-bond-header {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  margin-bottom: 12px;
+}
+
+.ccs-bond-label {
+  font-size: 0.8rem;
+  font-weight: 600;
+  letter-spacing: 0.05em;
+  opacity: 0.55;
+  text-transform: uppercase;
+}
+
+.ccs-bond-score-badge {
+  font-size: 0.7rem;
+  font-weight: 600;
+  opacity: 0.35;
+  padding: 2px 8px;
+  border-radius: 10px;
+  background: rgba(128, 128, 128, 0.1);
+  letter-spacing: 0.02em;
+}
+
+.ccs-bond-stars {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  margin-bottom: 14px;
+  min-height: 28px;
+}
+
+.ccs-bond-star {
+  font-size: 1.3rem;
+  opacity: 0;
+  transform: scale(0.6);
+  animation: ccsBondStarReveal 0.4s ease-out forwards;
+  transition: filter 0.2s ease, transform 0.2s ease;
+  line-height: 1;
+}
+
+.ccs-bond-star:hover {
+  transform: scale(1.15);
+}
+
+.ccs-bond-star.filled {
+  color: #C9A96E;
+  text-shadow: 0 0 6px rgba(201, 169, 110, 0.3);
+}
+
+.ccs-bond-star.filled:hover {
+  text-shadow: 0 0 10px rgba(201, 169, 110, 0.5);
+}
+
+/* Higher star levels get slightly warmer glow */
+.ccs-bond-index[data-star-level="4"] .ccs-bond-star.filled {
+  color: #C9A96E;
+  text-shadow: 0 0 8px rgba(201, 169, 110, 0.35);
+}
+
+.ccs-bond-index[data-star-level="5"] .ccs-bond-star.filled {
+  color: #D4B06A;
+  text-shadow: 0 0 12px rgba(212, 176, 106, 0.45);
+}
+
+.ccs-bond-star.empty {
+  color: var(--SmartThemeBodyColor);
+  opacity: 0;
+  animation: ccsBondStarReveal 0.4s ease-out forwards;
+}
+
+.ccs-bond-star.empty::after {
+  opacity: 0.18;
+}
+
+.ccs-bond-text {
+  font-size: 0.88rem;
+  opacity: 0;
+  line-height: 1.5;
+  color: var(--SmartThemeBodyColor);
+  animation: ccsBondTextFadeUp 0.5s ease-out forwards;
+  animation-delay: 1s;
+}
+
+/* Star reveal animation delays (staggered) */
+.ccs-bond-star:nth-child(1) { animation-delay: 0.15s; }
+.ccs-bond-star:nth-child(2) { animation-delay: 0.3s; }
+.ccs-bond-star:nth-child(3) { animation-delay: 0.45s; }
+.ccs-bond-star:nth-child(4) { animation-delay: 0.6s; }
+.ccs-bond-star:nth-child(5) { animation-delay: 0.75s; }
+
+@keyframes ccsBondFadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes ccsBondStarReveal {
+  from {
+    opacity: 0;
+    transform: scale(0.6);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+@keyframes ccsBondTextFadeUp {
+  from {
+    opacity: 0;
+    transform: translateY(6px);
+  }
+  to {
+    opacity: 0.75;
+    transform: translateY(0);
+  }
+}
+
 .ccs-carousel-container {
   display: flex;
   align-items: center;

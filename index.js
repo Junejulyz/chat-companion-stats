@@ -935,15 +935,241 @@ jQuery(async () => {
     const todayStr = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
     const todayMessages = dayMap[todayStr] || 0;
 
+    // 3. 当前连聊天数 (从今天/昨天往回数连续互动天数)
+    const sortedDatesDesc = [...dates].sort().reverse();
+    const todayDate = new Date(todayStr + 'T00:00:00');
+    const yesterdayDate = new Date(todayDate);
+    yesterdayDate.setDate(yesterdayDate.getDate() - 1);
+    const yesterdayStr = `${yesterdayDate.getFullYear()}-${String(yesterdayDate.getMonth() + 1).padStart(2, '0')}-${String(yesterdayDate.getDate()).padStart(2, '0')}`;
+
+    if (dayMap[todayStr] || dayMap[yesterdayStr]) {
+      // Start counting from today or yesterday
+      const startStr = dayMap[todayStr] ? todayStr : yesterdayStr;
+      let checkDate = new Date(startStr + 'T00:00:00');
+      currentStreak = 0;
+      while (true) {
+        const checkStr = `${checkDate.getFullYear()}-${String(checkDate.getMonth() + 1).padStart(2, '0')}-${String(checkDate.getDate()).padStart(2, '0')}`;
+        if (dayMap[checkStr]) {
+          currentStreak++;
+          checkDate.setDate(checkDate.getDate() - 1);
+        } else {
+          break;
+        }
+      }
+    }
+
     return {
       peakDate,
       peakCount,
       longestStreak,
+      currentStreak,
       todayMessages
     };
   }
 
 
+
+  // =========================================================================
+  // Bond Index (羁绊指数) System
+  // =========================================================================
+
+  const bondTextLibrary = {
+    cooling: [
+      "最近好像安静了一点",
+      "节奏慢了下来",
+      "没有前阵子那么频繁了",
+      "像是暂时停在了某一页",
+      "这段时间少了一些回应"
+    ],
+    shortBurst: [
+      "一开始就聊得很密",
+      "像是忽然打开了话匣子",
+      "短时间里留下了很多记录",
+      "刚遇见不久，却已经聊了不少",
+      "热度来得很快"
+    ],
+    veryHighPeak: [
+      "那天几乎停不下来",
+      "有一天聊得特别尽兴",
+      "某一天留下了很重的一笔",
+      "那一页写得格外长",
+      "有过一次很密集的靠近"
+    ],
+    strongStreak: [
+      "最近几乎每天都有延续",
+      "已经连续好几天接上了",
+      "慢慢变成了一种习惯",
+      "这段时间一直没有断掉",
+      "频率稳定得有点让人在意"
+    ],
+    longGentle: [
+      "一直慢慢留在这里",
+      "时间在一点点累积",
+      "不算热烈，但一直有痕迹",
+      "像是放在角落里的旧书签",
+      "节奏很轻，却没有完全散开"
+    ],
+    deepBond: [
+      "已经留下很多痕迹了",
+      "不只是随便聊聊的程度",
+      "这段记录变得有点重了",
+      "已经积累出很明显的分量",
+      "像是写了很久的一段故事"
+    ],
+    activeToday: [
+      "今天也继续写下去了",
+      "今天的记录又多了一点",
+      "这一页还在继续",
+      "今天又接上了新的片段",
+      "故事还在往前走"
+    ],
+    default: [
+      "一点点记录正在累积",
+      "关系还在慢慢成形",
+      "已经留下了一些痕迹",
+      "像是刚开始写下的一页",
+      "还有很多可以继续的地方"
+    ]
+  };
+
+  function randomFrom(arr) {
+    return arr[Math.floor(Math.random() * arr.length)];
+  }
+
+  function calculateBondScore(data) {
+    const {
+      totalMessages = 0,
+      companionshipDays = 0,
+      currentStreakDays = 0,
+      peakDayMessages = 0,
+      messagesToday = 0,
+      memoryMB = 0
+    } = data;
+
+    const chatScore = Math.min(Math.log10(totalMessages + 1) / Math.log10(3000), 1);
+    const streakScore = Math.min(Math.sqrt(currentStreakDays) / Math.sqrt(30), 1);
+    const daysScore = Math.min(Math.log10(companionshipDays + 1) / Math.log10(365), 1);
+    const memoryScore = Math.min(Math.sqrt(memoryMB) / Math.sqrt(50), 1);
+    const peakScore = Math.min(Math.log10(peakDayMessages + 1) / Math.log10(300), 1);
+    const todayScore = messagesToday > 0 ? 1 : 0;
+
+    const bondScore =
+      chatScore * 35 +
+      streakScore * 25 +
+      daysScore * 15 +
+      peakScore * 15 +
+      memoryScore * 5 +
+      todayScore * 5;
+
+    return Math.round(Math.max(0, Math.min(bondScore, 100)));
+  }
+
+  function getStarLevel(score) {
+    if (score <= 20) return 1;
+    if (score <= 40) return 2;
+    if (score <= 60) return 3;
+    if (score <= 80) return 4;
+    return 5;
+  }
+
+  function getBondText(data, score, starLevel) {
+    const {
+      totalMessages = 0,
+      companionshipDays = 0,
+      currentStreakDays = 0,
+      peakDayMessages = 0,
+      messagesToday = 0
+    } = data;
+
+    if (messagesToday === 0 && currentStreakDays === 0 && totalMessages > 50) {
+      return randomFrom(bondTextLibrary.cooling);
+    }
+    if (companionshipDays <= 3 && peakDayMessages >= 100) {
+      return randomFrom(bondTextLibrary.shortBurst);
+    }
+    if (peakDayMessages >= 200) {
+      return randomFrom(bondTextLibrary.veryHighPeak);
+    }
+    if (currentStreakDays >= 7) {
+      return randomFrom(bondTextLibrary.strongStreak);
+    }
+    if (companionshipDays >= 60 && totalMessages < 100) {
+      return randomFrom(bondTextLibrary.longGentle);
+    }
+    if (starLevel >= 5) {
+      return randomFrom(bondTextLibrary.deepBond);
+    }
+    if (messagesToday > 0) {
+      return randomFrom(bondTextLibrary.activeToday);
+    }
+    return randomFrom(bondTextLibrary.default);
+  }
+
+  function renderBondIndex(advancedStats) {
+    const $bond = $('#ccs-bond-index');
+    if (!advancedStats) {
+      $bond.hide();
+      return;
+    }
+
+    // Gather data from DOM and advancedStats
+    const totalMessages = parseInt($('#ccs-messages').text(), 10) || 0;
+    const companionshipDays = parseInt($('#ccs-days').text(), 10) || 0;
+    const currentStreakDays = advancedStats.currentStreak || 0;
+    const peakDayMessages = advancedStats.peakCount || 0;
+    const messagesToday = advancedStats.todayMessages || 0;
+
+    // Parse memory size from the UI text (e.g. "12.34 MB" or "456.78 KB")
+    const sizeText = $('#ccs-total-size').text();
+    let memoryMB = 0;
+    const mbMatch = sizeText.match(/([\d.]+)\s*MB/i);
+    const kbMatch = sizeText.match(/([\d.]+)\s*KB/i);
+    if (mbMatch) memoryMB = parseFloat(mbMatch[1]);
+    else if (kbMatch) memoryMB = parseFloat(kbMatch[1]) / 1024;
+
+    const bondData = {
+      totalMessages,
+      companionshipDays,
+      currentStreakDays,
+      peakDayMessages,
+      messagesToday,
+      memoryMB
+    };
+
+    const score = calculateBondScore(bondData);
+    const starLevel = getStarLevel(score);
+    const dynamicText = getBondText(bondData, score, starLevel);
+
+    if (DEBUG) {
+      console.log('[BondIndex] Data:', bondData, 'Score:', score, 'Stars:', starLevel, 'Text:', dynamicText);
+    }
+
+    // Set data attribute for CSS glow level
+    $bond.attr('data-star-level', starLevel);
+
+    // Render score badge
+    $('#ccs-bond-score').text(score);
+
+    // Render stars (force re-animation by rebuilding HTML)
+    let starsHtml = '';
+    for (let i = 1; i <= 5; i++) {
+      if (i <= starLevel) {
+        starsHtml += '<span class="ccs-bond-star filled">★</span>';
+      } else {
+        starsHtml += '<span class="ccs-bond-star empty">☆</span>';
+      }
+    }
+    $('#ccs-bond-stars').html(starsHtml);
+
+    // Render dynamic text
+    $('#ccs-bond-text').text(`"${dynamicText}"`);
+
+    // Show the block (display then trigger animation restart)
+    $bond.hide().css('animation', 'none');
+    // Force reflow to restart CSS animation
+    void $bond[0].offsetWidth;
+    $bond.css('animation', '').fadeIn(100);
+  }
 
   // Debounce function
   function debounce(func, wait) {
@@ -2888,6 +3114,9 @@ jQuery(async () => {
         $('#ccs-peak-date').text(currentAdvancedStats.peakDate || '--');
         $('#ccs-peak-count').html(`${currentAdvancedStats.peakCount} <span class="ccs-advanced-unit">条消息</span>`);
 
+        // Render Bond Index
+        renderBondIndex(currentAdvancedStats);
+
         // 如果是部分数据，显示温和提示
         if (lastDeepScanPartial) {
           $error.html('部分聊天记录读取超时，当前为不完整统计。点击刷新可重试。').css('color', 'var(--SmartThemeEmColor)').show();
@@ -2895,6 +3124,7 @@ jQuery(async () => {
       } else {
         // 即使高级统计为空，尝试显示基础统计信息
         const basicMessages = parseInt($('#ccs-messages').text(), 10) || 0;
+        $('#ccs-bond-index').hide(); // Hide bond index on error
         if (basicMessages > 1) {
           $loading.hide();
           // 有基础数据但深度扫描全部失败
@@ -2907,6 +3137,7 @@ jQuery(async () => {
     } catch (e) {
       if (DEBUG) console.error("[StatsDebug] Deep scan failed:", e);
       $loading.hide();
+      $('#ccs-bond-index').hide();
       $error.html('分析过程出现异常，请稍后再试。').show();
     }
   });
