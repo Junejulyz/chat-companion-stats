@@ -70,13 +70,13 @@ jQuery(async () => {
   const settingsHtml = await $.get(`${extensionWebPath}/settings.html?v=${Date.now()}`);
   $("#extensions_settings").append(settingsHtml);
   if (DEBUG) console.log("[CCStats] UI Template loaded.");
-  
+
   // Move modals to body to prevent clipping by parent containers and fix fixed positioning
   $("#ccs-preview-modal, #ccs-global-modal, #ccs-advanced-modal").appendTo("body").removeClass('ccs-modal-visible').hide();
 
   // 阻止事件冒泡，防止点击模态框时触发 ST 原生的“点击外部关闭扩展面板”逻辑
   // 增加 mousedown, mouseup, touchstart, touchend 确保全平台所有可能的触发事件都被拦截
-  $("#ccs-preview-modal, #ccs-global-modal, #ccs-advanced-modal").on('pointerdown pointerup mousedown mouseup touchstart touchend click', function(e) {
+  $("#ccs-preview-modal, #ccs-global-modal, #ccs-advanced-modal").on('pointerdown pointerup mousedown mouseup touchstart touchend click', function (e) {
     e.stopPropagation();
   });
 
@@ -238,15 +238,15 @@ jQuery(async () => {
     // 2. 尝试从头像 URL 提取
     const messages = document.querySelectorAll('#chat .mes');
     for (const msg of messages) {
-       if (msg.getAttribute('is_user') !== 'true') {
-         const avatarImg = msg.querySelector('.avatar img');
-         if (avatarImg && avatarImg.src) {
-           const src = avatarImg.src;
-           // 匹配格式: /characters/user_handle/name.png
-           const match = src.match(/\/characters\/([^\/]+)\//);
-           if (match && match[1] !== 'characters') return match[1];
-         }
-       }
+      if (msg.getAttribute('is_user') !== 'true') {
+        const avatarImg = msg.querySelector('.avatar img');
+        if (avatarImg && avatarImg.src) {
+          const src = avatarImg.src;
+          // 匹配格式: /characters/user_handle/name.png
+          const match = src.match(/\/characters\/([^\/]+)\//);
+          if (match && match[1] !== 'characters') return match[1];
+        }
+      }
     }
     return null;
   }
@@ -478,7 +478,7 @@ jQuery(async () => {
   // 获取单个聊天文件的统计数据 (使用 SillyTavern 官方 API 接口)
   async function getChatFileStats(fileName, charId, charName) {
     if (DEBUG) console.log(`[StatsDebug] Requesting chat content via API: ${fileName} for char: ${charId}, name: ${charName}`);
-    
+
     let chatData = null;
     try {
       // API expects the filename without the .jsonl extension
@@ -501,7 +501,7 @@ jQuery(async () => {
       }, 1, 30000);
 
       if (DEBUG) console.log(`[StatsDebug] API Response Status: ${response.status}`);
-      
+
       if (response.ok) {
         chatData = await response.json();
       }
@@ -530,7 +530,7 @@ jQuery(async () => {
       if (DEBUG) {
         console.warn(`[StatsDebug] Failed to retrieve or parse chat data for: ${fileName}`);
         let dataPreview = "null";
-        try { if (chatData) dataPreview = JSON.stringify(chatData).substring(0, 300); } catch(e){}
+        try { if (chatData) dataPreview = JSON.stringify(chatData).substring(0, 300); } catch (e) { }
         console.log(`[StatsDebug] Received Data type: ${typeof chatData}, Preview:`, dataPreview);
       }
       return { words: 0, count: 0, userCount: 0, earliestTime: null, dayMap: {} };
@@ -666,11 +666,11 @@ jQuery(async () => {
 
     if (DEBUG) {
       console.log(`[StatsDebug] getFullStats called (DeepScan=${forceDeepScan})`);
-      console.log(`[StatsDebug] Context Debug:`, { 
-        characterId, 
+      console.log(`[StatsDebug] Context Debug:`, {
+        characterId,
         selected: context.selected_character,
         charsCount: context.characters?.length,
-        hasWindowChars: !!window.characters 
+        hasWindowChars: !!window.characters
       });
     }
 
@@ -683,25 +683,25 @@ jQuery(async () => {
 
       // 2. 如果当前 ID 是数字，尝试修复为正确的 avatar 文件名
       if (!isNaN(characterId) || characterId === '0') {
-         // 优先方案：通过 context 索引直接获取 avatar（最可靠，不受文件改名影响）
-         const chars = context.characters || window.characters || [];
-         // characterId 本身就是数字索引，当 selected_character 不可用时直接用它
-         const idx = (context.selected_character !== undefined) ? context.selected_character 
-                   : (window.selected_character !== undefined) ? window.selected_character 
-                   : parseInt(characterId);
-         if (chars && chars[idx] && chars[idx].avatar) {
-            characterId = chars[idx].avatar;
-            if (DEBUG) console.log(`[StatsDebug] ID upscaled via context avatar: ${characterId}`);
-         } else if (chatFilesCount > 0 && chats[0].file_name) {
-            // 后备方案：从文件名提取（仅当文件名包含标准 " - " 分隔符时才可靠）
-            const parts = chats[0].file_name.split(' - ');
-            if (parts.length >= 2) {
-               characterId = `${parts[0]}.png`;
-               if (DEBUG) console.log(`[StatsDebug] ID upscaled from filename: ${characterId}`);
-            } else {
-               if (DEBUG) console.warn(`[StatsDebug] Cannot upscale ID: file "${chats[0].file_name}" has no standard delimiter`);
-            }
-         }
+        // 优先方案：通过 context 索引直接获取 avatar（最可靠，不受文件改名影响）
+        const chars = context.characters || window.characters || [];
+        // characterId 本身就是数字索引，当 selected_character 不可用时直接用它
+        const idx = (context.selected_character !== undefined) ? context.selected_character
+          : (window.selected_character !== undefined) ? window.selected_character
+            : parseInt(characterId);
+        if (chars && chars[idx] && chars[idx].avatar) {
+          characterId = chars[idx].avatar;
+          if (DEBUG) console.log(`[StatsDebug] ID upscaled via context avatar: ${characterId}`);
+        } else if (chatFilesCount > 0 && chats[0].file_name) {
+          // 后备方案：从文件名提取（仅当文件名包含标准 " - " 分隔符时才可靠）
+          const parts = chats[0].file_name.split(' - ');
+          if (parts.length >= 2) {
+            characterId = `${parts[0]}.png`;
+            if (DEBUG) console.log(`[StatsDebug] ID upscaled from filename: ${characterId}`);
+          } else {
+            if (DEBUG) console.warn(`[StatsDebug] Cannot upscale ID: file "${chats[0].file_name}" has no standard delimiter`);
+          }
+        }
       }
 
       let totalMessagesFromMetadata = 0;
@@ -718,14 +718,14 @@ jQuery(async () => {
       chats.forEach(chat => {
         const itemsCount = parseInt(chat.chat_items) || 0;
         totalMessagesFromMetadata += itemsCount;
-        
+
         let sizeBytes = 0;
         const sizeMatchKB = chat.file_size?.match(/([\d.]+)\s*KB/i);
         const sizeMatchMB = chat.file_size?.match(/([\d.]+)\s*MB/i);
         if (sizeMatchMB) sizeBytes = parseFloat(sizeMatchMB[1]) * 1024 * 1024;
         else if (sizeMatchKB) sizeBytes = parseFloat(sizeMatchKB[1]) * 1024;
         else sizeBytes = parseFloat(chat.file_size) || 0;
-        
+
         totalSizeBytesRaw += sizeBytes;
 
         // 如果任何一个文件里的消息超过1条，或者没有明确记录条数但文件很大(>5KB)，认定发生了实质互动
@@ -740,9 +740,9 @@ jQuery(async () => {
           if (timeInfo && timeInfo.dateObject) {
             totalDurationSeconds += timeInfo.totalSeconds;
             parseableFilesInfo.push({ name: chat.file_name, date: timeInfo.dateObject });
-            
+
             if (!earliestTime || timeInfo.dateObject < earliestTime) {
-               earliestTime = timeInfo.dateObject;
+              earliestTime = timeInfo.dateObject;
             }
           } else {
             // 如果无法从名字解析出时间，作为存疑文件保留
@@ -760,51 +760,51 @@ jQuery(async () => {
       // 获取当前的精准字数占比（如果有经过深度校准，则不再使用32.5的通用估值）
       let currentRatio = 32.5;
       if (accurateWordRatioCache[characterId]) {
-          currentRatio = accurateWordRatioCache[characterId];
+        currentRatio = accurateWordRatioCache[characterId];
       }
       let estimatedWords = Math.round((totalSizeBytesRaw / 1024) * currentRatio);
 
       // 如果不是深度扫描，直接返回基础数据，但运用更为宽广的“精准打击”或读取锁定缓存
       if (!forceDeepScan) {
         if (accurateEncounterTimeCache[characterId]) {
-           // 方案B：直接调用曾经找到的那个锁定好的绝对真理，防止被回退
-           earliestTime = accurateEncounterTimeCache[characterId];
+          // 方案B：直接调用曾经找到的那个锁定好的绝对真理，防止被回退
+          earliestTime = accurateEncounterTimeCache[characterId];
         } else {
-           // 方案A：扩大打击范围，获取名义上最老的3个文件（完整统计）
-           parseableFilesInfo.sort((a,b) => a.date - b.date);
-           let filesToCheck = parseableFilesInfo.slice(0, 3).map(f => f.name);
+          // 方案A：扩大打击范围，获取名义上最老的3个文件（完整统计）
+          parseableFilesInfo.sort((a, b) => a.date - b.date);
+          let filesToCheck = parseableFilesInfo.slice(0, 3).map(f => f.name);
 
-           const charNameForApi = getCurrentCharacterName();
-           if (filesToCheck.length > 0) {
-              for (const file of filesToCheck) {
-                 const fileStats = await getChatFileStats(file, characterId, charNameForApi);
-                 if (fileStats && fileStats.earliestTime) {
-                    if (!earliestTime || fileStats.earliestTime < earliestTime) {
-                       earliestTime = fileStats.earliestTime;
-                    }
-                 }
+          const charNameForApi = getCurrentCharacterName();
+          if (filesToCheck.length > 0) {
+            for (const file of filesToCheck) {
+              const fileStats = await getChatFileStats(file, characterId, charNameForApi);
+              if (fileStats && fileStats.earliestTime) {
+                if (!earliestTime || fileStats.earliestTime < earliestTime) {
+                  earliestTime = fileStats.earliestTime;
+                }
               }
-           }
+            }
+          }
 
-           // 针对被用户改名的文件（无法从文件名解析日期的），使用轻量API逐一检查第一条消息的日期
-           // 这里检查所有改名文件，因为真正的最早聊天可能就藏在其中
-           if (unparseableFiles.length > 0) {
-              if (DEBUG) console.log(`[StatsDebug] Found ${unparseableFiles.length} renamed/unparseable file(s), checking first message date for each...`);
-              for (const file of unparseableFiles) {
-                 const msgDate = await getEarliestMessageDate(file, characterId, charNameForApi);
-                 if (msgDate) {
-                    if (!earliestTime || msgDate < earliestTime) {
-                       earliestTime = msgDate;
-                       if (DEBUG) console.log(`[StatsDebug] Found earlier date from renamed file "${file}": ${msgDate.toISOString()}`);
-                    }
-                 }
+          // 针对被用户改名的文件（无法从文件名解析日期的），使用轻量API逐一检查第一条消息的日期
+          // 这里检查所有改名文件，因为真正的最早聊天可能就藏在其中
+          if (unparseableFiles.length > 0) {
+            if (DEBUG) console.log(`[StatsDebug] Found ${unparseableFiles.length} renamed/unparseable file(s), checking first message date for each...`);
+            for (const file of unparseableFiles) {
+              const msgDate = await getEarliestMessageDate(file, characterId, charNameForApi);
+              if (msgDate) {
+                if (!earliestTime || msgDate < earliestTime) {
+                  earliestTime = msgDate;
+                  if (DEBUG) console.log(`[StatsDebug] Found earlier date from renamed file "${file}": ${msgDate.toISOString()}`);
+                }
               }
-           }
-           
-           // 把首发找到的准确时间写入内存保险箱
-           if (earliestTime) {
-              accurateEncounterTimeCache[characterId] = earliestTime;
-           }
+            }
+          }
+
+          // 把首发找到的准确时间写入内存保险箱
+          if (earliestTime) {
+            accurateEncounterTimeCache[characterId] = earliestTime;
+          }
         }
 
         return {
@@ -820,7 +820,7 @@ jQuery(async () => {
 
       // 2. 深度扫描 (基于 API 读取文件)
       if (DEBUG) console.log(`[StatsDebug] Performing Deep Scan for ${chatFilesCount} files...`);
-      
+
       const charNameForApi = getCurrentCharacterName();
 
       let totalWordsCalculated = 0;
@@ -864,15 +864,15 @@ jQuery(async () => {
       if (DEBUG) console.log(`[StatsDebug] Deep scan done: ${processedFiles - failedFiles} succeeded, ${failedFiles} failed out of ${processedFiles}`);
 
       const advanced = calculateAdvancedStats(globalDayMap);
-      
+
       // 深度扫描找出了贯穿所有聊天系统的绝对真理，霸道覆盖并永久锁定缓存！
       if (absoluteEarliestTime) {
-          accurateEncounterTimeCache[characterId] = absoluteEarliestTime;
+        accurateEncounterTimeCache[characterId] = absoluteEarliestTime;
       }
-      
+
       // 如果是一次完整的深度分析，记录这名角色专属的字数密度（字数 / 每KB体积）
       if (forceDeepScan && totalSizeBytesRaw > 0 && totalWordsCalculated > 0) {
-          accurateWordRatioCache[characterId] = totalWordsCalculated / (totalSizeBytesRaw / 1024);
+        accurateWordRatioCache[characterId] = totalWordsCalculated / (totalSizeBytesRaw / 1024);
       }
 
       return {
@@ -911,13 +911,13 @@ jQuery(async () => {
     // 2. 连聊计算
     let longestStreak = 0;
     let currentStreak = 0;
-    
+
     // 转换为时间戳进行连续性检查 (以天为单位)
     const dateObjects = dates.map(d => new Date(d + 'T00:00:00'));
-    
+
     let tempStreak = 1;
     let lastDateObj = dateObjects[0];
-    
+
     for (let i = 1; i < dateObjects.length; i++) {
       const diff = (dateObjects[i] - lastDateObj) / (1000 * 60 * 60 * 24);
       if (diff === 1) {
@@ -979,10 +979,14 @@ jQuery(async () => {
       "节奏慢了下来",
       "没有前阵子那么频繁了",
       "像是暂时停在了某一页",
+      "好像暂时走散在不同的段落里",
+      "这段时间有点安静",
       "这段时间少了一些回应"
     ],
     shortBurst: [
       "一开始就聊得很密",
+      "刚开始就聊得停不下来",
+      "刚靠近就有点停不住",
       "像是忽然打开了话匣子",
       "短时间里留下了很多记录",
       "刚遇见不久，却已经聊了不少",
@@ -991,33 +995,48 @@ jQuery(async () => {
     veryHighPeak: [
       "那天几乎停不下来",
       "有一天聊得特别尽兴",
+      "那一阵子像是完全沉进去",
       "某一天留下了很重的一笔",
+      "曾经有过一段特别靠近的时候",
       "那一页写得格外长",
       "有过一次很密集的靠近"
     ],
     strongStreak: [
       "最近几乎每天都有延续",
+      "一直在往下延续，没有停",
+      "像是每天都会翻到同一页",
+      "几乎每天都没有断开",
       "已经连续好几天接上了",
       "慢慢变成了一种习惯",
       "这段时间一直没有断掉",
+      "慢慢变成了习惯的一部分",
       "频率稳定得有点让人在意"
     ],
     longGentle: [
       "一直慢慢留在这里",
       "时间在一点点累积",
+      "时间在悄悄往前走",
       "不算热烈，但一直有痕迹",
+      "像一条很长但安静的线",
       "像是放在角落里的旧书签",
       "节奏很轻，却没有完全散开"
+      "像是被放在心里的某个位置"
     ],
     deepBond: [
       "已经留下很多痕迹了",
+      "不再只是随便的一段记录",
+      "已经留下很深的痕迹了",
       "不只是随便聊聊的程度",
+      "像是被认真写下的一部分",
       "这段记录变得有点重了",
+      "这段关系已经有重量了",
+      "像是慢慢绑定在一起了",
       "已经积累出很明显的分量",
+      "这段联系，好像不会轻易消失了",
       "像是写了很久的一段故事"
     ],
     activeToday: [
-      "今天也继续写下去了",
+      "今天也继续聊下去了",
       "今天的记录又多了一点",
       "这一页还在继续",
       "今天又接上了新的片段",
@@ -1025,9 +1044,12 @@ jQuery(async () => {
     ],
     default: [
       "一点点记录正在累积",
+      "今天又接上了",
+      "还在往下走",
       "关系还在慢慢成形",
       "已经留下了一些痕迹",
       "像是刚开始写下的一页",
+      "还在慢慢变得清晰",
       "还有很多可以继续的地方"
     ]
   };
@@ -1397,36 +1419,36 @@ jQuery(async () => {
     if (num === 0) return '零';
     const numChars = ['零', '一', '二', '三', '四', '五', '六', '七', '八', '九'];
     let result = '';
-    
+
     if (num < 100) {
-        if (num < 10) return numChars[num];
-        const tens = Math.floor(num / 10);
-        const ones = num % 10;
-        if (tens === 1) result = '十';
-        else result = numChars[tens] + '十';
-        if (ones > 0) result += numChars[ones];
-        return result;
+      if (num < 10) return numChars[num];
+      const tens = Math.floor(num / 10);
+      const ones = num % 10;
+      if (tens === 1) result = '十';
+      else result = numChars[tens] + '十';
+      if (ones > 0) result += numChars[ones];
+      return result;
     }
     if (num >= 10000) {
-        let wan = Math.floor(num / 10000);
-        let qian = Math.floor((num % 10000) / 1000);
-        let res = toChineseNumber(wan) + '万';
-        if (qian > 0) res += numChars[qian] + '千';
-        return res;
+      let wan = Math.floor(num / 10000);
+      let qian = Math.floor((num % 10000) / 1000);
+      let res = toChineseNumber(wan) + '万';
+      if (qian > 0) res += numChars[qian] + '千';
+      return res;
     }
     if (num >= 1000) {
-        let qian = Math.floor(num / 1000);
-        let bai = Math.floor((num % 1000) / 100);
-        let res = numChars[qian] + '千';
-        if (bai > 0) res += numChars[bai] + '百';
-        return res;
+      let qian = Math.floor(num / 1000);
+      let bai = Math.floor((num % 1000) / 100);
+      let res = numChars[qian] + '千';
+      if (bai > 0) res += numChars[bai] + '百';
+      return res;
     }
     if (num >= 100) {
-        let bai = Math.floor(num / 100);
-        let shi = Math.floor((num % 100) / 10);
-        let res = numChars[bai] + '百';
-        if (shi > 0) res += numChars[shi] + '十';
-        return res;
+      let bai = Math.floor(num / 100);
+      let shi = Math.floor((num % 100) / 10);
+      let res = numChars[bai] + '百';
+      if (shi > 0) res += numChars[shi] + '十';
+      return res;
     }
     return result;
   }
@@ -1438,20 +1460,20 @@ jQuery(async () => {
     const val = parseFloat(match[1]);
     const unit = match[2].toUpperCase();
     if (unit === 'MB') {
-        if (val < 1) return '不到一兆';
-        return toChineseNumber(Math.floor(val)) + '兆余';
+      if (val < 1) return '不到一兆';
+      return toChineseNumber(Math.floor(val)) + '兆余';
     } else if (unit === 'GB') {
-        return toChineseNumber(Math.floor(val * 1024)) + '兆余';
+      return toChineseNumber(Math.floor(val * 1024)) + '兆余';
     } else if (unit === 'KB') {
-        if (val >= 1000) return toChineseNumber(Math.floor(val/1000)) + '兆余';
-        return toChineseNumber(Math.floor(val)) + '千字节余';
+      if (val >= 1000) return toChineseNumber(Math.floor(val / 1000)) + '兆余';
+      return toChineseNumber(Math.floor(val)) + '千字节余';
     }
     return toChineseNumber(Math.floor(val)) + '字节';
   }
 
   function drawVerticalText(ctx, text, x, y, lineHeight) {
     for (let i = 0; i < text.length; i++) {
-        ctx.fillText(text[i], x, y + i * lineHeight);
+      ctx.fillText(text[i], x, y + i * lineHeight);
     }
   }
 
@@ -1465,7 +1487,7 @@ jQuery(async () => {
 
     // 强制等待所有字体加载完毕，防止 Canvas 渲染时回退到默认字体
     await document.fonts.ready;
-    
+
     const sampleEl = document.querySelector('.ccs-global-title') || document.body;
     const baseFontFamily = getComputedStyle(sampleEl).fontFamily || '"LXGW Neo XiHei", "PingFang SC", sans-serif';
 
@@ -1502,7 +1524,7 @@ jQuery(async () => {
     const ancientAssets = {};
     const pocketAssets = {};
     const y2kAssets = {};
-    
+
     const loadAssetImg = (url) => new Promise((resolve) => {
       const img = new Image();
       img.crossOrigin = 'anonymous';
@@ -1599,7 +1621,7 @@ jQuery(async () => {
     }
 
     let stats = statsItems.filter(s => $(`#${s.id}`).is(":checked"));
-    
+
     if (isPixel || isY2k) {
       stats = stats.filter(s => s.id !== 'ccs-share-start');
     }
@@ -1630,14 +1652,14 @@ jQuery(async () => {
           const rawText = $("#ccs-start").text().replace(/点/g, ':').replace(/分/g, '').replace(/-/g, '/');
           const dt = new Date(rawText);
           if (!isNaN(dt.getTime())) {
-            newValue = `${toChineseNumber(dt.getFullYear())}年${toChineseNumber(dt.getMonth()+1)}月${toChineseNumber(dt.getDate())}日`;
+            newValue = `${toChineseNumber(dt.getFullYear())}年${toChineseNumber(dt.getMonth() + 1)}月${toChineseNumber(dt.getDate())}日`;
           } else {
             // Some fallback if it cannot be parsed as a valid date
             const match = rawText.match(/(\d{4}).*?(\d{1,2}).*?(\d{1,2})/);
             if (match) {
-               newValue = `${toChineseNumber(parseInt(match[1]))}年${toChineseNumber(parseInt(match[2]))}月${toChineseNumber(parseInt(match[3]))}日`;
+              newValue = `${toChineseNumber(parseInt(match[1]))}年${toChineseNumber(parseInt(match[2]))}月${toChineseNumber(parseInt(match[3]))}日`;
             } else {
-               newValue = rawText === '尚未互动' ? '尚未互动' : '未知';
+              newValue = rawText === '尚未互动' ? '尚未互动' : '未知';
             }
           }
           s.unit = '';
@@ -1674,20 +1696,20 @@ jQuery(async () => {
     const headerW = 631 * scaleFactor;
     const headerH = (shareStyle === 'ins' ? 144 : (isPixel ? (baseHeaderH_Pixel + baseHeaderPadding) : 214)) * scaleFactor;
     const footerH = (shareStyle === 'ins' ? 92 : 48) * scaleFactor;
-    
+
     const boxW = isPocketSticker ? 600 * scaleFactor : (isPixel ? 615 * scaleFactor : 519 * scaleFactor);
     const boxH = (isPocketSticker ? 50 : (isPixel ? baseBoxH_Pixel : 80)) * scaleFactor;
     const boxGap = (isPocketSticker ? 30 : (shareStyle === 'ins' ? 24 : (isPixel ? baseBoxGap_Pixel : 32))) * scaleFactor;
 
     const headerToBoxGap = baseHeaderToBoxGap * scaleFactor;
-    
+
     // Content area positioning
     let totalStatsH;
     if (shareStyle === 'ins') {
       totalStatsH = 500 * scaleFactor; // Fixed height for ins content
     } else if (isPixel) {
       // Dynamic height for Pixel style: 24px gap + stats
-      const statsContentH = stats.length > 0 
+      const statsContentH = stats.length > 0
         ? (stats.length * boxH + (stats.length - 1) * boxGap + headerToBoxGap)
         : 0;
       totalStatsH = statsContentH + (40 * scaleFactor); // Bottom padding increased to 40px
@@ -1714,10 +1736,10 @@ jQuery(async () => {
     // Apply 16px border radius to the entire card
     ctx.save();
     if (shareStyle === 'ancient') {
-       // ancient style doesn't need border radius
-       ctx.rect(0, 0, width, dynamicHeight);
+      // ancient style doesn't need border radius
+      ctx.rect(0, 0, width, dynamicHeight);
     } else {
-       roundRect(0, 0, width, dynamicHeight, 16 * scaleFactor, false, false);
+      roundRect(0, 0, width, dynamicHeight, 16 * scaleFactor, false, false);
     }
     ctx.clip();
 
@@ -1834,7 +1856,7 @@ jQuery(async () => {
       // 角色名往下 6px (44+6=50), 保持 x 不变 (579)
       const charNameX = 579 * scaleFactor;
       const charNameY = 50 * scaleFactor;
-      
+
       // 绘制角色名 (调整为 100px)
       ctx.font = `400 ${100 * scaleFactor}px "PING FANG GONG ZI TI", "Long Cang", sans-serif`;
       drawVerticalText(ctx, charName || "角色名", charNameX, charNameY, 110 * scaleFactor);
@@ -1842,315 +1864,90 @@ jQuery(async () => {
       // 调整格子中心点: 
       // 初见(idx 0)左移1px (466.5->465.5)
       const gridCenters = [465.5, 387.5, 306.5, 226.0, 144.0, 70.5].map(x => x * scaleFactor);
-      const statYStart = 136 * scaleFactor; 
+      const statYStart = 136 * scaleFactor;
 
       // 绘制各项数据 (字号调整为 43px)
       const statFontSize = 43 * scaleFactor;
       const statLineHeight = 45 * scaleFactor;
-      const labelValueGap = 64 * scaleFactor; 
+      const labelValueGap = 64 * scaleFactor;
 
-      ctx.font = `400 ${statFontSize}px "PING FANG GONG ZI TI", "LXGW Neo XiHei", sans-serif`; 
+      ctx.font = `400 ${statFontSize}px "PING FANG GONG ZI TI", "LXGW Neo XiHei", sans-serif`;
       stats.forEach((stat, i) => {
-         if (i >= gridCenters.length) return;
-         const cx = gridCenters[i];
-         
-         // 分开绘制 Label 和 Value 以控制间距
-         drawVerticalText(ctx, stat.label, cx, statYStart, statLineHeight);
-         
-         const labelYEnd = statYStart + stat.label.length * statLineHeight;
-         const valueYStart = labelYEnd + labelValueGap;
-         
-         drawVerticalText(ctx, stat.value + stat.unit, cx, valueYStart, statLineHeight);
+        if (i >= gridCenters.length) return;
+        const cx = gridCenters[i];
+
+        // 分开绘制 Label 和 Value 以控制间距
+        drawVerticalText(ctx, stat.label, cx, statYStart, statLineHeight);
+
+        const labelYEnd = statYStart + stat.label.length * statLineHeight;
+        const valueYStart = labelYEnd + labelValueGap;
+
+        drawVerticalText(ctx, stat.value + stat.unit, cx, valueYStart, statLineHeight);
       });
       ctx.restore();
     } else {
-    // 现代版、Ins版、像素版绘制头像和统计项
-    const avatarUrl = getCharacterAvatar();
-    const userAvatarUrl = getUserAvatar();
+      // 现代版、Ins版、像素版绘制头像和统计项
+      const avatarUrl = getCharacterAvatar();
+      const userAvatarUrl = getUserAvatar();
 
-    const loadImg = (url) => new Promise((resolve) => {
-      if (!url) return resolve(null);
-      const img = new Image();
-      img.crossOrigin = 'anonymous';
-      const timeout = setTimeout(() => {
-        console.warn(`Avatar load timeout: ${url}`);
-        resolve(null);
-      }, 5000);
-      img.onload = () => { clearTimeout(timeout); resolve(img); };
-      img.onerror = () => { clearTimeout(timeout); resolve(null); };
-      img.src = url;
-    });
+      const loadImg = (url) => new Promise((resolve) => {
+        if (!url) return resolve(null);
+        const img = new Image();
+        img.crossOrigin = 'anonymous';
+        const timeout = setTimeout(() => {
+          console.warn(`Avatar load timeout: ${url}`);
+          resolve(null);
+        }, 5000);
+        img.onload = () => { clearTimeout(timeout); resolve(img); };
+        img.onerror = () => { clearTimeout(timeout); resolve(null); };
+        img.src = url;
+      });
 
-    const [charImg, userImg] = await Promise.all([loadImg(avatarUrl), loadImg(userAvatarUrl)]);
+      const [charImg, userImg] = await Promise.all([loadImg(avatarUrl), loadImg(userAvatarUrl)]);
 
-    function drawRoundedAvatar(img, x, y, w, h, r) {
-      ctx.save();
-      roundRect(x, y, w, h, r, false, false);
-      ctx.clip();
-      if (img) {
-        const scale = Math.max(w / img.width, h / img.height);
-        const sw = img.width * scale;
-        const sh = img.height * scale;
-        ctx.drawImage(img, x + (w - sw) / 2, y + (h - sh) / 2, sw, sh);
-      } else {
-        ctx.fillStyle = '#e0e0e0';
-        ctx.fillRect(x, y, w, h);
-      }
-      ctx.restore();
-    }
-
-    const showUser = $("#ccs-share-user-avatar").is(":checked") && userImg;
-    const showEncounterDate = $("#ccs-share-start").is(":checked");
-    const centerY = headerH / 2;
-
-    if (shareStyle === 'ins') {
-      const avatarW = 72 * scaleFactor;
-      const avatarH = 72 * scaleFactor;
-      const avatarY = (headerH - avatarH) / 2;
-      const startX = 24 * scaleFactor;
-
-      function drawInsAvatar(img, x, y) {
-        if (!img) return;
+      function drawRoundedAvatar(img, x, y, w, h, r) {
         ctx.save();
-        // White Background & Light Gray Border behind Avatar
-        ctx.beginPath();
-        ctx.arc(x + avatarW / 2, y + avatarH / 2, avatarW / 2 + 4 * scaleFactor, 0, Math.PI * 2);
-        ctx.fillStyle = '#FFFFFF';
-        ctx.fill();
-        ctx.lineWidth = 1 * scaleFactor;
-        ctx.strokeStyle = '#EFEFEF'; // Very light gray border
-        ctx.stroke();
-
-        // Image
-        ctx.beginPath();
-        ctx.arc(x + avatarW / 2, y + avatarH / 2, avatarW / 2, 0, Math.PI * 2);
+        roundRect(x, y, w, h, r, false, false);
         ctx.clip();
-        // Use charImg/userImg directly, no need to reload
-        const iw = img.width;
-        const ih = img.height;
-        const r = Math.max(avatarW / iw, avatarH / ih);
-        const nw = iw * r;
-        const nh = ih * r;
-        const sx = (iw - avatarW / r) / 2;
-        const sy = (ih - avatarH / r) / 2;
-        ctx.drawImage(img, sx, sy, avatarW / r, avatarH / r, x, y, avatarW, avatarH);
-        ctx.restore();
-      }
-
-      if (showUser) {
-        drawInsAvatar(userImg, startX + 44 * scaleFactor, avatarY); // User RIGHT (bottom), separated by 44 instead of 36
-        drawInsAvatar(charImg, startX, avatarY); // Character LEFT (top)
-      } else {
-        drawInsAvatar(charImg, startX, avatarY);
-      }
-
-      // Title & Encounter
-      const textX = startX + (showUser ? (avatarW + 44 * scaleFactor + 16 * scaleFactor) : (avatarW + 16 * scaleFactor));
-      ctx.textAlign = 'left';
-
-      ctx.fillStyle = '#131313';
-      ctx.font = `400 ${24 * scaleFactor}px "LXGW Neo XiHei", sans-serif`;
-
-      if (showEncounterDate) {
-        ctx.fillText(charName, textX, avatarY + 28 * scaleFactor);
-        ctx.fillStyle = '#5E5E5E';
-        ctx.font = `400 ${22 * scaleFactor}px "LXGW Neo XiHei", sans-serif`;
-        ctx.fillText(`初遇 ${$("#ccs-start").text()}`, textX, avatarY + 60 * scaleFactor);
-      } else {
-        // Center the name vertically if encounter date is not shown
-        ctx.fillText(charName, textX, centerY + 8 * scaleFactor);
-      }
-
-      // Three Dots Icon
-      ctx.save();
-      ctx.translate(width - 48 * scaleFactor, centerY);
-      ctx.fillStyle = '#4F4F4F'; // Figma color
-      const p = (shareStyle === 'ins' && insIcons.more) ? new Path2D(insIcons.more) : null;
-      if (p) {
-        ctx.scale(1 * scaleFactor, 1 * scaleFactor); // Figma: 36px total, path fits in 36x36
-        ctx.translate(-18, -18); // Center 36x36 path
-        ctx.fill(p);
-      }
-      ctx.restore();
-
-    } else if (isPixel) {
-      // --- NEW PINK PIXEL HEADER ---
-      const headerImg = pixelAssets.header;
-      if (headerImg) {
-        // Precise positioning: 16px from top, 16px from left
-        ctx.drawImage(headerImg, 16 * scaleFactor, 16 * scaleFactor, 631 * scaleFactor, 324 * scaleFactor);
-      }
-
-      // Avatar Slots Positioning (User absolute coordinates)
-      const avatarSize = 102 * scaleFactor;
-      const charAvatarX = 145 * scaleFactor; // Updated from 45 to 145
-      const userAvatarX = 415 * scaleFactor; 
-      const avatarY = 70 * scaleFactor; 
-      
-      // Draw Avatars - Corner radius reduced to 5 for sharper look
-      drawRoundedAvatar(charImg, charAvatarX, avatarY, avatarSize, avatarSize, 5 * scaleFactor);
-      if (showUser) {
-        drawRoundedAvatar(userImg, userAvatarX, avatarY, avatarSize, avatarSize, 5 * scaleFactor);
-      }
-
-      // Name and Encounter
-      ctx.textAlign = 'center';
-      ctx.textBaseline = 'top'; // Set to top for precise Y positioning
-      ctx.fillStyle = '#773831'; 
-      ctx.font = `400 ${34 * scaleFactor}px "Cubic 11", sans-serif`;
-      const nameText = charName || "角色名";
-      ctx.fillText(nameText, width / 2, 206 * scaleFactor);
-      
-      if (showEncounterDate) {
-        ctx.font = `400 ${26 * scaleFactor}px "Cubic 11", sans-serif`;
-        const encounterText = `初遇于 ${$("#ccs-start").text()}`;
-        // Nudged down slightly to 258px
-        ctx.fillText(encounterText, width / 2, 258 * scaleFactor);
-      }
-      ctx.textBaseline = 'alphabetic'; // Reset to default
-
-    } else if (isPocketSticker) {
-      // 5. Pocket Sticker Avatars & Name
-      const avatarW = 188 * scaleFactor;
-      const avatarH = 271 * scaleFactor;
-      const charAvatarX = 226 * scaleFactor;
-      const userAvatarX = 482 * scaleFactor;
-      const avatarY = 58 * scaleFactor;
-      
-      // No rounded corners, use drawRoundedAvatar to crop and fit without distortion
-      drawRoundedAvatar(charImg, charAvatarX, avatarY, avatarW, avatarH, 0);
-      if (showUser) {
-        drawRoundedAvatar(userImg, userAvatarX, avatarY, avatarW, avatarH, 0);
-      }
-
-      // Draw heart decor
-      if (pocketAssets.decor) {
-        const decorAspect = pocketAssets.decor.height / pocketAssets.decor.width;
-        const decorW = 115 * scaleFactor;
-        const decorH = decorW * decorAspect;
-        const gapCenterX = (charAvatarX + avatarW + userAvatarX) / 2;
-        ctx.drawImage(pocketAssets.decor, gapCenterX - decorW / 2, avatarY + avatarH / 2 - decorH / 2, decorW, decorH);
-      }
-      
-      // Name and Encounter
-      ctx.textAlign = 'center';
-      ctx.textBaseline = 'top';
-      ctx.fillStyle = 'rgba(0, 0, 0, 0.95)';
-      ctx.font = `400 ${45 * scaleFactor}px "Xiaolai", sans-serif`;
-      ctx.fillText(charName || "角色名", width / 2, 377 * scaleFactor);
-      
-      if (showEncounterDate) {
-        ctx.font = `400 ${26 * scaleFactor}px "Xiaolai", sans-serif`;
-        const encounterText = `初遇于 ${$("#ccs-start").text()}`;
-        ctx.fillText(encounterText, width / 2, 440 * scaleFactor);
-      }
-      ctx.textBaseline = 'alphabetic'; // Reset
-
-    } else if (isY2k) {
-      // Determine Y2K color theme based on swatch
-      const y2kActiveColor = $('.ccs-y2k-swatch.active').data('color') || 'purple';
-      const y2kColor = y2kActiveColor === 'blue' ? '#3D608E' : '#7E3D8E';
-
-      // Name (Title Bar)
-      ctx.textAlign = 'left';
-      ctx.textBaseline = 'top';
-      ctx.fillStyle = y2kColor;
-      ctx.font = `400 ${34 * scaleFactor}px "Cubic 11", sans-serif`;
-      const titleText = `${charName || "角色名"}_chatlog.png`;
-      ctx.fillText(titleText, 107 * scaleFactor, 71 * scaleFactor);
-
-      // Encounter Date
-      if (showEncounterDate) {
-        ctx.textAlign = 'center';
-        ctx.font = `400 ${32 * scaleFactor}px "Cubic 11", sans-serif`;
-        const rawStart = $("#ccs-start").text();
-        const dateMatch = rawStart.match(/(\d{4})年(\d{1,2})月(\d{1,2})日/);
-        const formattedDate = dateMatch 
-          ? `${dateMatch[1]}/${dateMatch[2].padStart(2, '0')}/${dateMatch[3].padStart(2, '0')}` 
-          : rawStart.replace(/约/g, '').split(' ')[0];
-        const encounterText = `First Encounter ${formattedDate}`;
-        ctx.fillText(encounterText, width / 2, 225 * scaleFactor);
-      }
-      ctx.textBaseline = 'alphabetic';
-
-      // Avatars (Bottom Right Overlap)
-      const drawY2kAvatar = (img, x, y) => {
-        const avatarSize = 170 * scaleFactor;
-        const borderSize = 4 * scaleFactor;
-
-        // Border (dynamic based on swatch)
-        ctx.fillStyle = y2kColor;
-        ctx.fillRect(x - borderSize, y - borderSize, avatarSize + borderSize * 2, avatarSize + borderSize * 2);
-        
-        ctx.save();
-        
         if (img) {
-          // Fill background in case image has transparency
-          ctx.fillStyle = '#FFFFFF';
-          ctx.fillRect(x, y, avatarSize, avatarSize);
-          
-          // Crop and Draw
-          ctx.beginPath();
-          ctx.rect(x, y, avatarSize, avatarSize);
-          ctx.clip();
-          
-          const scale = Math.max(avatarSize / img.width, avatarSize / img.height);
+          const scale = Math.max(w / img.width, h / img.height);
           const sw = img.width * scale;
           const sh = img.height * scale;
-          ctx.drawImage(img, x + (avatarSize - sw) / 2, y + (avatarSize - sh) / 2, sw, sh);
-          
-          // Add 18% overlay mask with hard-light effect (dynamic color based on swatch)
-          ctx.globalCompositeOperation = 'hard-light';
-          const overlayRgb = y2kActiveColor === 'blue' ? '61, 96, 142' : '126, 61, 142';
-          ctx.fillStyle = `rgba(${overlayRgb}, 0.18)`;
-          ctx.fillRect(x, y, avatarSize, avatarSize);
-
+          ctx.drawImage(img, x + (w - sw) / 2, y + (h - sh) / 2, sw, sh);
         } else {
           ctx.fillStyle = '#e0e0e0';
-          ctx.fillRect(x, y, avatarSize, avatarSize);
+          ctx.fillRect(x, y, w, h);
         }
         ctx.restore();
-      };
-
-      if (showUser) {
-        drawY2kAvatar(userImg, 632 * scaleFactor, 943 * scaleFactor); // User underneath
       }
-      // Character overlaps user
-      drawY2kAvatar(charImg, 501 * scaleFactor, 831 * scaleFactor); 
 
-    } else {
-      // Modern style header logic...
-      const avatarW = 100 * scaleFactor;
-      const avatarH = 100 * scaleFactor;
-      const avatarGap = -27 * scaleFactor; // Decreased from -35 to -27 to separate by ~8px more
-      const avatarY = (headerH - avatarH) / 2;
+      const showUser = $("#ccs-share-user-avatar").is(":checked") && userImg;
+      const showEncounterDate = $("#ccs-share-start").is(":checked");
+      const centerY = headerH / 2;
 
-      function drawModernAvatar(img, x, y) {
-        // Outer frame
-        ctx.fillStyle = isDark ? '#37393B' : 'rgba(220, 221, 220, 1)';
-        ctx.beginPath();
-        ctx.arc(x + avatarW / 2, y + avatarH / 2, (avatarW / 2) + 6 * scaleFactor, 0, Math.PI * 2);
-        ctx.fill();
+      if (shareStyle === 'ins') {
+        const avatarW = 72 * scaleFactor;
+        const avatarH = 72 * scaleFactor;
+        const avatarY = (headerH - avatarH) / 2;
+        const startX = 24 * scaleFactor;
 
-        // Inner Shadow (cast by the avatar circle itself now)
-        ctx.save();
-        ctx.shadowColor = isDark ? 'rgba(19, 19, 19, 0.8)' : 'rgba(175, 183, 188, 0.8)';
-        ctx.shadowBlur = 18 * scaleFactor;
-        ctx.shadowOffsetY = 12 * scaleFactor;
+        function drawInsAvatar(img, x, y) {
+          if (!img) return;
+          ctx.save();
+          // White Background & Light Gray Border behind Avatar
+          ctx.beginPath();
+          ctx.arc(x + avatarW / 2, y + avatarH / 2, avatarW / 2 + 4 * scaleFactor, 0, Math.PI * 2);
+          ctx.fillStyle = '#FFFFFF';
+          ctx.fill();
+          ctx.lineWidth = 1 * scaleFactor;
+          ctx.strokeStyle = '#EFEFEF'; // Very light gray border
+          ctx.stroke();
 
-        // Draw a dummy circle exact size of the avatar to cast the drop shadow
-        ctx.fillStyle = isDark ? '#131313' : '#FFFFFF';
-        ctx.beginPath();
-        ctx.arc(x + avatarW / 2, y + avatarH / 2, avatarW / 2, 0, Math.PI * 2);
-        ctx.fill();
-        ctx.restore();
-
-        // Image with Center Crop (Object-fit: cover)
-        ctx.save();
-        ctx.beginPath();
-        ctx.arc(x + avatarW / 2, y + avatarH / 2, avatarW / 2, 0, Math.PI * 2);
-        ctx.clip();
-        if (img) {
+          // Image
+          ctx.beginPath();
+          ctx.arc(x + avatarW / 2, y + avatarH / 2, avatarW / 2, 0, Math.PI * 2);
+          ctx.clip();
+          // Use charImg/userImg directly, no need to reload
           const iw = img.width;
           const ih = img.height;
           const r = Math.max(avatarW / iw, avatarH / ih);
@@ -2159,295 +1956,520 @@ jQuery(async () => {
           const sx = (iw - avatarW / r) / 2;
           const sy = (ih - avatarH / r) / 2;
           ctx.drawImage(img, sx, sy, avatarW / r, avatarH / r, x, y, avatarW, avatarH);
-        } else {
-          ctx.fillStyle = '#ddd';
-          ctx.fill();
-        }
-        ctx.restore();
-      };
-
-      if (!showEncounterDate) { // Original logic for modern style when encounter date is not shown
-        const combinedW = showUser ? (avatarW * 2 + avatarGap) : avatarW;
-        const centerX = (width - combinedW) / 2;
-        if (showUser) {
-          drawModernAvatar(userImg, centerX + avatarW + avatarGap, avatarY); // User RIGHT (bottom)
-        }
-        drawModernAvatar(charImg, centerX, avatarY); // Character LEFT (top)
-      } else { // Original logic for modern style when encounter date is shown
-        const startX = 48 * scaleFactor;
-        if (showUser) {
-          drawModernAvatar(userImg, startX + avatarW + avatarGap, avatarY); // User RIGHT (bottom)
-        }
-        drawModernAvatar(charImg, startX, avatarY); // Character LEFT (top)
-      }
-
-      if (showEncounterDate) {
-        const infoX = 246 * scaleFactor; // Moved to the right by 8px from 238
-        const infoY = centerY;
-        ctx.textAlign = 'left';
-
-        // Name
-        ctx.fillStyle = charNameColor;
-        ctx.font = `400 ${31 * scaleFactor}px ${baseFontFamily}`; // Reverted to 400
-        ctx.fillText(charName, infoX, infoY - 12 * scaleFactor); // Moved up slightly
-
-        // Encounter Info
-        const encounterText = `初遇 ${$("#ccs-start").text()}`;
-        ctx.save();
-        ctx.globalAlpha = 0.7; // 70% opacity per request
-        ctx.fillStyle = statLabelColor;
-        ctx.font = `400 ${25 * scaleFactor}px ${baseFontFamily}`; // Reverted to 400
-        ctx.fillText(encounterText, infoX, infoY + 36 * scaleFactor); // Moved down slightly (+32 -> +36)
-        ctx.restore();
-      }
-    }
-
-    // 6. 绘制统计项
-    const insContentH = 500 * scaleFactor;
-    const actualStatsH = stats.length * boxH + (stats.length > 0 ? (stats.length - 1) * boxGap : 0);
-    const statsStartY = (shareStyle === 'ins')
-      ? (headerH + (insContentH - actualStatsH) / 2) // Vertically centered in fixed height
-      : (isPixel ? (baseHeaderPadding + baseHeaderH_Pixel + baseHeaderToBoxGap) * scaleFactor : 
-         (isPocketSticker ? 550 * scaleFactor : 
-         (isModern ? (headerH + 40 * scaleFactor) : (headerH + 100 * scaleFactor + 40 * scaleFactor))));
-
-    const boxX = (width - boxW) / 2;
-
-    stats.forEach((stat, i) => {
-      const cy = statsStartY + i * (boxH + boxGap);
-
-      if (shareStyle === 'ins') {
-        // Ins style: Left aligned with 40px spacing
-        ctx.textAlign = 'left';
-        ctx.fillStyle = '#131313';
-        ctx.font = `400 ${45 * scaleFactor}px "PING FANG SHAO HUA", sans-serif`;
-
-        const labelText = `${stat.label}   ${stat.value} ${stat.unit || ''}`;
-        ctx.fillText(labelText, 40 * scaleFactor, cy + boxH / 2 + 10 * scaleFactor);
-
-      } else if (isPocketSticker) {
-        const pocketPositions = {
-          '聊天对话': { x: 194.8 * scaleFactor, y: 614.58 * scaleFactor, rotation: -4.48 },
-          '相伴天数': { x: 588.41 * scaleFactor, y: 658.19 * scaleFactor, rotation: 6.3 },
-          '聊天字数': { x: 170.0 * scaleFactor, y: 940.53 * scaleFactor, rotation: -4.48 },
-          '回忆大小': { x: 546.0 * scaleFactor, y: 979.45 * scaleFactor, rotation: 6.3 }
-        };
-        
-        const pos = pocketPositions[stat.label] || { x: 100 * scaleFactor, y: cy, rotation: 0 };
-
-        ctx.save();
-        ctx.translate(pos.x, pos.y);
-        ctx.rotate(pos.rotation * Math.PI / 180);
-
-        ctx.fillStyle = 'rgba(0, 0, 0, 0.95)'; 
-        
-        const labelSize = 28 * scaleFactor;
-        const valSize = 56 * scaleFactor;
-        const unitSize = 24 * scaleFactor;
-
-        // Measure widths to center the text blocks relative to each other
-        ctx.font = `400 ${labelSize}px "Xiaolai", sans-serif`;
-        const labelW = ctx.measureText(stat.label).width;
-
-        ctx.font = `700 ${valSize}px "Xiaolai", sans-serif`;
-        const valW = ctx.measureText(stat.value).width;
-
-        ctx.font = `400 ${unitSize}px "Xiaolai", sans-serif`;
-        const unitW = stat.unit ? ctx.measureText(stat.unit).width : 0;
-        
-        const valueAndUnitW = valW + (stat.unit ? 8 * scaleFactor : 0) + unitW;
-        
-        const maxW = Math.max(labelW, valueAndUnitW);
-        const centerX = maxW / 2;
-
-        // Draw label (top baseline so y is precise to user coords)
-        ctx.textAlign = 'center';
-        ctx.textBaseline = 'top';
-        ctx.font = `400 ${labelSize}px "Xiaolai", sans-serif`;
-        ctx.fillText(stat.label, centerX, -10 * scaleFactor);
-
-        // Draw value + unit (alphabetic baseline for bottom alignment)
-        const valY = labelSize + 15 * scaleFactor + valSize; // Approximate baseline position
-        const groupStartX = centerX - valueAndUnitW / 2;
-
-        ctx.textAlign = 'left';
-        ctx.textBaseline = 'alphabetic';
-        ctx.font = `700 ${valSize}px "Xiaolai", sans-serif`;
-        ctx.fillText(stat.value, groupStartX, valY);
-
-        if (stat.unit) {
-          ctx.font = `400 ${unitSize}px "Xiaolai", sans-serif`;
-          ctx.fillText(stat.unit, groupStartX + valW + 8 * scaleFactor, valY);
-        }
-
-        ctx.restore();
-
-      } else if (isY2k) {
-        const iconMap = {
-          '聊天对话': y2kAssets.chat,
-          '相伴天数': y2kAssets.calendar,
-          '聊天字数': y2kAssets.number,
-          '回忆大小': y2kAssets.disc
-        };
-        
-        const icon = iconMap[stat.label];
-        const iconSize = 72 * scaleFactor;
-        
-        // Horizontal list stacked vertically
-        const baseX = 115 * scaleFactor;
-        const baseY = 305 * scaleFactor;
-        const verticalSpacing = 24 * scaleFactor;
-        const rowY = baseY + i * (iconSize + verticalSpacing);
-        
-        if (icon) {
-          ctx.drawImage(icon, baseX, rowY, iconSize, iconSize);
-        }
-        
-        ctx.textAlign = 'left';
-        ctx.textBaseline = 'middle';
-        const y2kStatColor = ($('.ccs-y2k-swatch.active').data('color') || 'purple') === 'blue' ? '#3D608E' : '#7E3D8E';
-        ctx.fillStyle = y2kStatColor;
-        
-        // Draw Label
-        ctx.font = `400 ${40 * scaleFactor}px "Cubic 11", sans-serif`;
-        const labelX = baseX + iconSize + 16 * scaleFactor;
-        const textY = rowY + iconSize / 2;
-        ctx.fillText(stat.label, labelX, textY);
-        
-        // Draw Value + Unit
-        const labelWidth = ctx.measureText(stat.label).width;
-        const valueX = labelX + labelWidth + 24 * scaleFactor;
-        ctx.fillText(`${stat.value}${stat.unit || ''}`, valueX, textY);
-
-      } else if (isPixel) {
-        // --- NEW PINK PIXEL STAT BOX ---
-        const assetMap = {
-          '聊天对话': 'chats',
-          '相伴天数': 'days',
-          '聊天字数': 'characters',
-          '回忆大小': 'size'
-        };
-        const assetKey = assetMap[stat.label];
-        const statImg = pixelAssets[assetKey];
-        
-        if (statImg) {
-          ctx.drawImage(statImg, boxX, cy, boxW, boxH);
-        }
-
-        // 1. Label Positioning (Moved left 10px, up 5px)
-        ctx.textAlign = 'left';
-        ctx.fillStyle = '#333333';
-        ctx.font = `400 ${30 * scaleFactor}px "Cubic 11", sans-serif`;
-        ctx.fillText(stat.label, boxX + 50 * scaleFactor, cy + boxH / 2 + 5 * scaleFactor);
-        
-        // 2. Value Positioning (Inside the dark box on the right, moved up 5px)
-        ctx.textAlign = 'right';
-        ctx.fillStyle = '#EFFFFF'; // Light blue-ish pixel text
-        const valueX = boxX + boxW - 35 * scaleFactor;
-        const valueY = cy + boxH / 2 + 5 * scaleFactor;
-        
-        if (stat.unit) {
-          // Draw Unit first at 24px
-          ctx.font = `400 ${24 * scaleFactor}px "Cubic 11", sans-serif`;
-          ctx.fillText(stat.unit, valueX, valueY);
-          
-          // Measure and draw Value at 28px
-          const unitW = ctx.measureText(stat.unit).width;
-          ctx.font = `400 ${28 * scaleFactor}px "Cubic 11", sans-serif`;
-          ctx.fillText(stat.value, valueX - unitW - 8 * scaleFactor, valueY);
-        } else {
-          ctx.font = `400 ${28 * scaleFactor}px "Cubic 11", sans-serif`;
-          ctx.fillText(stat.value, valueX, valueY);
-        }
-
-      } else {
-        // Shadow for Modern Style
-        ctx.save();
-        ctx.shadowColor = shadowColor;
-        ctx.shadowBlur = 24 * scaleFactor;
-        ctx.shadowOffsetY = 12 * scaleFactor;
-        ctx.fillStyle = statBoxColor;
-        roundRect(boxX, cy, boxW, boxH, 24 * scaleFactor);
-        ctx.restore();
-
-        // Label
-        ctx.textAlign = 'left';
-        ctx.fillStyle = statLabelColor;
-        ctx.font = `400 ${28 * scaleFactor}px ${baseFontFamily}`; // Reverted to 400
-        ctx.fillText(stat.label, boxX + 32 * scaleFactor, cy + boxH / 2 + 8 * scaleFactor);
-
-        // Value & Unit
-        ctx.textAlign = 'right';
-        const valueX = boxX + boxW - 32 * scaleFactor;
-
-        if (stat.unit) {
-          ctx.save();
-          ctx.globalAlpha = 0.7; // 70% opacity for units
-          ctx.fillStyle = statLabelColor;
-          ctx.font = `400 ${24 * scaleFactor}px ${baseFontFamily}`; // Reverted to 400
-          ctx.fillText(stat.unit, valueX, cy + boxH / 2 + 8 * scaleFactor);
           ctx.restore();
-
-          const unitWidth = ctx.measureText(stat.unit).width;
-          ctx.fillStyle = statValueColor;
-          ctx.font = `700 ${28 * scaleFactor}px ${baseFontFamily}`; // Weight Bold
-          ctx.fillText(stat.value, valueX - unitWidth - 8 * scaleFactor, cy + boxH / 2 + 8 * scaleFactor);
-        } else {
-          ctx.fillStyle = statValueColor;
-          ctx.font = `700 ${28 * scaleFactor}px ${baseFontFamily}`;
-          ctx.fillText(stat.value, valueX, cy + boxH / 2 + 8 * scaleFactor);
         }
-      }
-    });
 
-    // 7. Decorative Pixel Art (Pixel style only)
-    if (isPixel) {
-      // Floppy Disk / Decor from asset - Move to absolute bottom-left (0, height)
-      const decorImg = pixelAssets.decor;
-      if (decorImg) {
-        const dw = 120 * scaleFactor;
-        const dh = (decorImg.height / decorImg.width) * dw;
-        ctx.drawImage(decorImg, 0, height - dh, dw, dh);
-      }
-    }
-
-    // 7. 绘制底部互动栏 (Ins Style Only)
-    if (shareStyle === 'ins') {
-      const footerY = height - footerH;
-      ctx.fillStyle = '#FFFFFF';
-      ctx.fillRect(0, footerY, width, footerH);
-
-      const iconY = footerY + 30 * scaleFactor;
-      const startX = 32 * scaleFactor;
-      const iconGap = 20 * scaleFactor; // Adjusted gap for SVG
-      const iconSize = 36 * scaleFactor; // Figma size
-
-      function drawPngIcon(path, x, y) {
-        if (!path) return;
-        ctx.save();
-        ctx.translate(x, y);
-        const p = new Path2D(path);
-        ctx.scale(iconSize / 36, iconSize / 36); // Original paths are 36x36
-
-        // For simple outlines, we stroke them
-        if (path === insIcons.heart || path === insIcons.comment || path === insIcons.bookmark || path === insIcons.share) {
-          ctx.strokeStyle = '#333333';
-          ctx.lineWidth = 3;
-          ctx.lineJoin = 'round';
-          ctx.lineCap = 'round';
-          ctx.stroke(p);
+        if (showUser) {
+          drawInsAvatar(userImg, startX + 44 * scaleFactor, avatarY); // User RIGHT (bottom), separated by 44 instead of 36
+          drawInsAvatar(charImg, startX, avatarY); // Character LEFT (top)
         } else {
-          ctx.fillStyle = '#333333';
+          drawInsAvatar(charImg, startX, avatarY);
+        }
+
+        // Title & Encounter
+        const textX = startX + (showUser ? (avatarW + 44 * scaleFactor + 16 * scaleFactor) : (avatarW + 16 * scaleFactor));
+        ctx.textAlign = 'left';
+
+        ctx.fillStyle = '#131313';
+        ctx.font = `400 ${24 * scaleFactor}px "LXGW Neo XiHei", sans-serif`;
+
+        if (showEncounterDate) {
+          ctx.fillText(charName, textX, avatarY + 28 * scaleFactor);
+          ctx.fillStyle = '#5E5E5E';
+          ctx.font = `400 ${22 * scaleFactor}px "LXGW Neo XiHei", sans-serif`;
+          ctx.fillText(`初遇 ${$("#ccs-start").text()}`, textX, avatarY + 60 * scaleFactor);
+        } else {
+          // Center the name vertically if encounter date is not shown
+          ctx.fillText(charName, textX, centerY + 8 * scaleFactor);
+        }
+
+        // Three Dots Icon
+        ctx.save();
+        ctx.translate(width - 48 * scaleFactor, centerY);
+        ctx.fillStyle = '#4F4F4F'; // Figma color
+        const p = (shareStyle === 'ins' && insIcons.more) ? new Path2D(insIcons.more) : null;
+        if (p) {
+          ctx.scale(1 * scaleFactor, 1 * scaleFactor); // Figma: 36px total, path fits in 36x36
+          ctx.translate(-18, -18); // Center 36x36 path
           ctx.fill(p);
         }
         ctx.restore();
+
+      } else if (isPixel) {
+        // --- NEW PINK PIXEL HEADER ---
+        const headerImg = pixelAssets.header;
+        if (headerImg) {
+          // Precise positioning: 16px from top, 16px from left
+          ctx.drawImage(headerImg, 16 * scaleFactor, 16 * scaleFactor, 631 * scaleFactor, 324 * scaleFactor);
+        }
+
+        // Avatar Slots Positioning (User absolute coordinates)
+        const avatarSize = 102 * scaleFactor;
+        const charAvatarX = 145 * scaleFactor; // Updated from 45 to 145
+        const userAvatarX = 415 * scaleFactor;
+        const avatarY = 70 * scaleFactor;
+
+        // Draw Avatars - Corner radius reduced to 5 for sharper look
+        drawRoundedAvatar(charImg, charAvatarX, avatarY, avatarSize, avatarSize, 5 * scaleFactor);
+        if (showUser) {
+          drawRoundedAvatar(userImg, userAvatarX, avatarY, avatarSize, avatarSize, 5 * scaleFactor);
+        }
+
+        // Name and Encounter
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'top'; // Set to top for precise Y positioning
+        ctx.fillStyle = '#773831';
+        ctx.font = `400 ${34 * scaleFactor}px "Cubic 11", sans-serif`;
+        const nameText = charName || "角色名";
+        ctx.fillText(nameText, width / 2, 206 * scaleFactor);
+
+        if (showEncounterDate) {
+          ctx.font = `400 ${26 * scaleFactor}px "Cubic 11", sans-serif`;
+          const encounterText = `初遇于 ${$("#ccs-start").text()}`;
+          // Nudged down slightly to 258px
+          ctx.fillText(encounterText, width / 2, 258 * scaleFactor);
+        }
+        ctx.textBaseline = 'alphabetic'; // Reset to default
+
+      } else if (isPocketSticker) {
+        // 5. Pocket Sticker Avatars & Name
+        const avatarW = 188 * scaleFactor;
+        const avatarH = 271 * scaleFactor;
+        const charAvatarX = 226 * scaleFactor;
+        const userAvatarX = 482 * scaleFactor;
+        const avatarY = 58 * scaleFactor;
+
+        // No rounded corners, use drawRoundedAvatar to crop and fit without distortion
+        drawRoundedAvatar(charImg, charAvatarX, avatarY, avatarW, avatarH, 0);
+        if (showUser) {
+          drawRoundedAvatar(userImg, userAvatarX, avatarY, avatarW, avatarH, 0);
+        }
+
+        // Draw heart decor
+        if (pocketAssets.decor) {
+          const decorAspect = pocketAssets.decor.height / pocketAssets.decor.width;
+          const decorW = 115 * scaleFactor;
+          const decorH = decorW * decorAspect;
+          const gapCenterX = (charAvatarX + avatarW + userAvatarX) / 2;
+          ctx.drawImage(pocketAssets.decor, gapCenterX - decorW / 2, avatarY + avatarH / 2 - decorH / 2, decorW, decorH);
+        }
+
+        // Name and Encounter
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'top';
+        ctx.fillStyle = 'rgba(0, 0, 0, 0.95)';
+        ctx.font = `400 ${45 * scaleFactor}px "Xiaolai", sans-serif`;
+        ctx.fillText(charName || "角色名", width / 2, 377 * scaleFactor);
+
+        if (showEncounterDate) {
+          ctx.font = `400 ${26 * scaleFactor}px "Xiaolai", sans-serif`;
+          const encounterText = `初遇于 ${$("#ccs-start").text()}`;
+          ctx.fillText(encounterText, width / 2, 440 * scaleFactor);
+        }
+        ctx.textBaseline = 'alphabetic'; // Reset
+
+      } else if (isY2k) {
+        // Determine Y2K color theme based on swatch
+        const y2kActiveColor = $('.ccs-y2k-swatch.active').data('color') || 'purple';
+        const y2kColor = y2kActiveColor === 'blue' ? '#3D608E' : '#7E3D8E';
+
+        // Name (Title Bar)
+        ctx.textAlign = 'left';
+        ctx.textBaseline = 'top';
+        ctx.fillStyle = y2kColor;
+        ctx.font = `400 ${34 * scaleFactor}px "Cubic 11", sans-serif`;
+        const titleText = `${charName || "角色名"}_chatlog.png`;
+        ctx.fillText(titleText, 107 * scaleFactor, 71 * scaleFactor);
+
+        // Encounter Date
+        if (showEncounterDate) {
+          ctx.textAlign = 'center';
+          ctx.font = `400 ${32 * scaleFactor}px "Cubic 11", sans-serif`;
+          const rawStart = $("#ccs-start").text();
+          const dateMatch = rawStart.match(/(\d{4})年(\d{1,2})月(\d{1,2})日/);
+          const formattedDate = dateMatch
+            ? `${dateMatch[1]}/${dateMatch[2].padStart(2, '0')}/${dateMatch[3].padStart(2, '0')}`
+            : rawStart.replace(/约/g, '').split(' ')[0];
+          const encounterText = `First Encounter ${formattedDate}`;
+          ctx.fillText(encounterText, width / 2, 225 * scaleFactor);
+        }
+        ctx.textBaseline = 'alphabetic';
+
+        // Avatars (Bottom Right Overlap)
+        const drawY2kAvatar = (img, x, y) => {
+          const avatarSize = 170 * scaleFactor;
+          const borderSize = 4 * scaleFactor;
+
+          // Border (dynamic based on swatch)
+          ctx.fillStyle = y2kColor;
+          ctx.fillRect(x - borderSize, y - borderSize, avatarSize + borderSize * 2, avatarSize + borderSize * 2);
+
+          ctx.save();
+
+          if (img) {
+            // Fill background in case image has transparency
+            ctx.fillStyle = '#FFFFFF';
+            ctx.fillRect(x, y, avatarSize, avatarSize);
+
+            // Crop and Draw
+            ctx.beginPath();
+            ctx.rect(x, y, avatarSize, avatarSize);
+            ctx.clip();
+
+            const scale = Math.max(avatarSize / img.width, avatarSize / img.height);
+            const sw = img.width * scale;
+            const sh = img.height * scale;
+            ctx.drawImage(img, x + (avatarSize - sw) / 2, y + (avatarSize - sh) / 2, sw, sh);
+
+            // Add 18% overlay mask with hard-light effect (dynamic color based on swatch)
+            ctx.globalCompositeOperation = 'hard-light';
+            const overlayRgb = y2kActiveColor === 'blue' ? '61, 96, 142' : '126, 61, 142';
+            ctx.fillStyle = `rgba(${overlayRgb}, 0.18)`;
+            ctx.fillRect(x, y, avatarSize, avatarSize);
+
+          } else {
+            ctx.fillStyle = '#e0e0e0';
+            ctx.fillRect(x, y, avatarSize, avatarSize);
+          }
+          ctx.restore();
+        };
+
+        if (showUser) {
+          drawY2kAvatar(userImg, 632 * scaleFactor, 943 * scaleFactor); // User underneath
+        }
+        // Character overlaps user
+        drawY2kAvatar(charImg, 501 * scaleFactor, 831 * scaleFactor);
+
+      } else {
+        // Modern style header logic...
+        const avatarW = 100 * scaleFactor;
+        const avatarH = 100 * scaleFactor;
+        const avatarGap = -27 * scaleFactor; // Decreased from -35 to -27 to separate by ~8px more
+        const avatarY = (headerH - avatarH) / 2;
+
+        function drawModernAvatar(img, x, y) {
+          // Outer frame
+          ctx.fillStyle = isDark ? '#37393B' : 'rgba(220, 221, 220, 1)';
+          ctx.beginPath();
+          ctx.arc(x + avatarW / 2, y + avatarH / 2, (avatarW / 2) + 6 * scaleFactor, 0, Math.PI * 2);
+          ctx.fill();
+
+          // Inner Shadow (cast by the avatar circle itself now)
+          ctx.save();
+          ctx.shadowColor = isDark ? 'rgba(19, 19, 19, 0.8)' : 'rgba(175, 183, 188, 0.8)';
+          ctx.shadowBlur = 18 * scaleFactor;
+          ctx.shadowOffsetY = 12 * scaleFactor;
+
+          // Draw a dummy circle exact size of the avatar to cast the drop shadow
+          ctx.fillStyle = isDark ? '#131313' : '#FFFFFF';
+          ctx.beginPath();
+          ctx.arc(x + avatarW / 2, y + avatarH / 2, avatarW / 2, 0, Math.PI * 2);
+          ctx.fill();
+          ctx.restore();
+
+          // Image with Center Crop (Object-fit: cover)
+          ctx.save();
+          ctx.beginPath();
+          ctx.arc(x + avatarW / 2, y + avatarH / 2, avatarW / 2, 0, Math.PI * 2);
+          ctx.clip();
+          if (img) {
+            const iw = img.width;
+            const ih = img.height;
+            const r = Math.max(avatarW / iw, avatarH / ih);
+            const nw = iw * r;
+            const nh = ih * r;
+            const sx = (iw - avatarW / r) / 2;
+            const sy = (ih - avatarH / r) / 2;
+            ctx.drawImage(img, sx, sy, avatarW / r, avatarH / r, x, y, avatarW, avatarH);
+          } else {
+            ctx.fillStyle = '#ddd';
+            ctx.fill();
+          }
+          ctx.restore();
+        };
+
+        if (!showEncounterDate) { // Original logic for modern style when encounter date is not shown
+          const combinedW = showUser ? (avatarW * 2 + avatarGap) : avatarW;
+          const centerX = (width - combinedW) / 2;
+          if (showUser) {
+            drawModernAvatar(userImg, centerX + avatarW + avatarGap, avatarY); // User RIGHT (bottom)
+          }
+          drawModernAvatar(charImg, centerX, avatarY); // Character LEFT (top)
+        } else { // Original logic for modern style when encounter date is shown
+          const startX = 48 * scaleFactor;
+          if (showUser) {
+            drawModernAvatar(userImg, startX + avatarW + avatarGap, avatarY); // User RIGHT (bottom)
+          }
+          drawModernAvatar(charImg, startX, avatarY); // Character LEFT (top)
+        }
+
+        if (showEncounterDate) {
+          const infoX = 246 * scaleFactor; // Moved to the right by 8px from 238
+          const infoY = centerY;
+          ctx.textAlign = 'left';
+
+          // Name
+          ctx.fillStyle = charNameColor;
+          ctx.font = `400 ${31 * scaleFactor}px ${baseFontFamily}`; // Reverted to 400
+          ctx.fillText(charName, infoX, infoY - 12 * scaleFactor); // Moved up slightly
+
+          // Encounter Info
+          const encounterText = `初遇 ${$("#ccs-start").text()}`;
+          ctx.save();
+          ctx.globalAlpha = 0.7; // 70% opacity per request
+          ctx.fillStyle = statLabelColor;
+          ctx.font = `400 ${25 * scaleFactor}px ${baseFontFamily}`; // Reverted to 400
+          ctx.fillText(encounterText, infoX, infoY + 36 * scaleFactor); // Moved down slightly (+32 -> +36)
+          ctx.restore();
+        }
       }
 
-      drawPngIcon(insIcons.heart, startX, iconY);
-      drawPngIcon(insIcons.comment, startX + iconSize + iconGap, iconY);
-      drawPngIcon(insIcons.share, startX + (iconSize + iconGap) * 2, iconY);
-      drawPngIcon(insIcons.bookmark, width - startX - iconSize, iconY);
-    }
+      // 6. 绘制统计项
+      const insContentH = 500 * scaleFactor;
+      const actualStatsH = stats.length * boxH + (stats.length > 0 ? (stats.length - 1) * boxGap : 0);
+      const statsStartY = (shareStyle === 'ins')
+        ? (headerH + (insContentH - actualStatsH) / 2) // Vertically centered in fixed height
+        : (isPixel ? (baseHeaderPadding + baseHeaderH_Pixel + baseHeaderToBoxGap) * scaleFactor :
+          (isPocketSticker ? 550 * scaleFactor :
+            (isModern ? (headerH + 40 * scaleFactor) : (headerH + 100 * scaleFactor + 40 * scaleFactor))));
+
+      const boxX = (width - boxW) / 2;
+
+      stats.forEach((stat, i) => {
+        const cy = statsStartY + i * (boxH + boxGap);
+
+        if (shareStyle === 'ins') {
+          // Ins style: Left aligned with 40px spacing
+          ctx.textAlign = 'left';
+          ctx.fillStyle = '#131313';
+          ctx.font = `400 ${45 * scaleFactor}px "PING FANG SHAO HUA", sans-serif`;
+
+          const labelText = `${stat.label}   ${stat.value} ${stat.unit || ''}`;
+          ctx.fillText(labelText, 40 * scaleFactor, cy + boxH / 2 + 10 * scaleFactor);
+
+        } else if (isPocketSticker) {
+          const pocketPositions = {
+            '聊天对话': { x: 194.8 * scaleFactor, y: 614.58 * scaleFactor, rotation: -4.48 },
+            '相伴天数': { x: 588.41 * scaleFactor, y: 658.19 * scaleFactor, rotation: 6.3 },
+            '聊天字数': { x: 170.0 * scaleFactor, y: 940.53 * scaleFactor, rotation: -4.48 },
+            '回忆大小': { x: 546.0 * scaleFactor, y: 979.45 * scaleFactor, rotation: 6.3 }
+          };
+
+          const pos = pocketPositions[stat.label] || { x: 100 * scaleFactor, y: cy, rotation: 0 };
+
+          ctx.save();
+          ctx.translate(pos.x, pos.y);
+          ctx.rotate(pos.rotation * Math.PI / 180);
+
+          ctx.fillStyle = 'rgba(0, 0, 0, 0.95)';
+
+          const labelSize = 28 * scaleFactor;
+          const valSize = 56 * scaleFactor;
+          const unitSize = 24 * scaleFactor;
+
+          // Measure widths to center the text blocks relative to each other
+          ctx.font = `400 ${labelSize}px "Xiaolai", sans-serif`;
+          const labelW = ctx.measureText(stat.label).width;
+
+          ctx.font = `700 ${valSize}px "Xiaolai", sans-serif`;
+          const valW = ctx.measureText(stat.value).width;
+
+          ctx.font = `400 ${unitSize}px "Xiaolai", sans-serif`;
+          const unitW = stat.unit ? ctx.measureText(stat.unit).width : 0;
+
+          const valueAndUnitW = valW + (stat.unit ? 8 * scaleFactor : 0) + unitW;
+
+          const maxW = Math.max(labelW, valueAndUnitW);
+          const centerX = maxW / 2;
+
+          // Draw label (top baseline so y is precise to user coords)
+          ctx.textAlign = 'center';
+          ctx.textBaseline = 'top';
+          ctx.font = `400 ${labelSize}px "Xiaolai", sans-serif`;
+          ctx.fillText(stat.label, centerX, -10 * scaleFactor);
+
+          // Draw value + unit (alphabetic baseline for bottom alignment)
+          const valY = labelSize + 15 * scaleFactor + valSize; // Approximate baseline position
+          const groupStartX = centerX - valueAndUnitW / 2;
+
+          ctx.textAlign = 'left';
+          ctx.textBaseline = 'alphabetic';
+          ctx.font = `700 ${valSize}px "Xiaolai", sans-serif`;
+          ctx.fillText(stat.value, groupStartX, valY);
+
+          if (stat.unit) {
+            ctx.font = `400 ${unitSize}px "Xiaolai", sans-serif`;
+            ctx.fillText(stat.unit, groupStartX + valW + 8 * scaleFactor, valY);
+          }
+
+          ctx.restore();
+
+        } else if (isY2k) {
+          const iconMap = {
+            '聊天对话': y2kAssets.chat,
+            '相伴天数': y2kAssets.calendar,
+            '聊天字数': y2kAssets.number,
+            '回忆大小': y2kAssets.disc
+          };
+
+          const icon = iconMap[stat.label];
+          const iconSize = 72 * scaleFactor;
+
+          // Horizontal list stacked vertically
+          const baseX = 115 * scaleFactor;
+          const baseY = 305 * scaleFactor;
+          const verticalSpacing = 24 * scaleFactor;
+          const rowY = baseY + i * (iconSize + verticalSpacing);
+
+          if (icon) {
+            ctx.drawImage(icon, baseX, rowY, iconSize, iconSize);
+          }
+
+          ctx.textAlign = 'left';
+          ctx.textBaseline = 'middle';
+          const y2kStatColor = ($('.ccs-y2k-swatch.active').data('color') || 'purple') === 'blue' ? '#3D608E' : '#7E3D8E';
+          ctx.fillStyle = y2kStatColor;
+
+          // Draw Label
+          ctx.font = `400 ${40 * scaleFactor}px "Cubic 11", sans-serif`;
+          const labelX = baseX + iconSize + 16 * scaleFactor;
+          const textY = rowY + iconSize / 2;
+          ctx.fillText(stat.label, labelX, textY);
+
+          // Draw Value + Unit
+          const labelWidth = ctx.measureText(stat.label).width;
+          const valueX = labelX + labelWidth + 24 * scaleFactor;
+          ctx.fillText(`${stat.value}${stat.unit || ''}`, valueX, textY);
+
+        } else if (isPixel) {
+          // --- NEW PINK PIXEL STAT BOX ---
+          const assetMap = {
+            '聊天对话': 'chats',
+            '相伴天数': 'days',
+            '聊天字数': 'characters',
+            '回忆大小': 'size'
+          };
+          const assetKey = assetMap[stat.label];
+          const statImg = pixelAssets[assetKey];
+
+          if (statImg) {
+            ctx.drawImage(statImg, boxX, cy, boxW, boxH);
+          }
+
+          // 1. Label Positioning (Moved left 10px, up 5px)
+          ctx.textAlign = 'left';
+          ctx.fillStyle = '#333333';
+          ctx.font = `400 ${30 * scaleFactor}px "Cubic 11", sans-serif`;
+          ctx.fillText(stat.label, boxX + 50 * scaleFactor, cy + boxH / 2 + 5 * scaleFactor);
+
+          // 2. Value Positioning (Inside the dark box on the right, moved up 5px)
+          ctx.textAlign = 'right';
+          ctx.fillStyle = '#EFFFFF'; // Light blue-ish pixel text
+          const valueX = boxX + boxW - 35 * scaleFactor;
+          const valueY = cy + boxH / 2 + 5 * scaleFactor;
+
+          if (stat.unit) {
+            // Draw Unit first at 24px
+            ctx.font = `400 ${24 * scaleFactor}px "Cubic 11", sans-serif`;
+            ctx.fillText(stat.unit, valueX, valueY);
+
+            // Measure and draw Value at 28px
+            const unitW = ctx.measureText(stat.unit).width;
+            ctx.font = `400 ${28 * scaleFactor}px "Cubic 11", sans-serif`;
+            ctx.fillText(stat.value, valueX - unitW - 8 * scaleFactor, valueY);
+          } else {
+            ctx.font = `400 ${28 * scaleFactor}px "Cubic 11", sans-serif`;
+            ctx.fillText(stat.value, valueX, valueY);
+          }
+
+        } else {
+          // Shadow for Modern Style
+          ctx.save();
+          ctx.shadowColor = shadowColor;
+          ctx.shadowBlur = 24 * scaleFactor;
+          ctx.shadowOffsetY = 12 * scaleFactor;
+          ctx.fillStyle = statBoxColor;
+          roundRect(boxX, cy, boxW, boxH, 24 * scaleFactor);
+          ctx.restore();
+
+          // Label
+          ctx.textAlign = 'left';
+          ctx.fillStyle = statLabelColor;
+          ctx.font = `400 ${28 * scaleFactor}px ${baseFontFamily}`; // Reverted to 400
+          ctx.fillText(stat.label, boxX + 32 * scaleFactor, cy + boxH / 2 + 8 * scaleFactor);
+
+          // Value & Unit
+          ctx.textAlign = 'right';
+          const valueX = boxX + boxW - 32 * scaleFactor;
+
+          if (stat.unit) {
+            ctx.save();
+            ctx.globalAlpha = 0.7; // 70% opacity for units
+            ctx.fillStyle = statLabelColor;
+            ctx.font = `400 ${24 * scaleFactor}px ${baseFontFamily}`; // Reverted to 400
+            ctx.fillText(stat.unit, valueX, cy + boxH / 2 + 8 * scaleFactor);
+            ctx.restore();
+
+            const unitWidth = ctx.measureText(stat.unit).width;
+            ctx.fillStyle = statValueColor;
+            ctx.font = `700 ${28 * scaleFactor}px ${baseFontFamily}`; // Weight Bold
+            ctx.fillText(stat.value, valueX - unitWidth - 8 * scaleFactor, cy + boxH / 2 + 8 * scaleFactor);
+          } else {
+            ctx.fillStyle = statValueColor;
+            ctx.font = `700 ${28 * scaleFactor}px ${baseFontFamily}`;
+            ctx.fillText(stat.value, valueX, cy + boxH / 2 + 8 * scaleFactor);
+          }
+        }
+      });
+
+      // 7. Decorative Pixel Art (Pixel style only)
+      if (isPixel) {
+        // Floppy Disk / Decor from asset - Move to absolute bottom-left (0, height)
+        const decorImg = pixelAssets.decor;
+        if (decorImg) {
+          const dw = 120 * scaleFactor;
+          const dh = (decorImg.height / decorImg.width) * dw;
+          ctx.drawImage(decorImg, 0, height - dh, dw, dh);
+        }
+      }
+
+      // 7. 绘制底部互动栏 (Ins Style Only)
+      if (shareStyle === 'ins') {
+        const footerY = height - footerH;
+        ctx.fillStyle = '#FFFFFF';
+        ctx.fillRect(0, footerY, width, footerH);
+
+        const iconY = footerY + 30 * scaleFactor;
+        const startX = 32 * scaleFactor;
+        const iconGap = 20 * scaleFactor; // Adjusted gap for SVG
+        const iconSize = 36 * scaleFactor; // Figma size
+
+        function drawPngIcon(path, x, y) {
+          if (!path) return;
+          ctx.save();
+          ctx.translate(x, y);
+          const p = new Path2D(path);
+          ctx.scale(iconSize / 36, iconSize / 36); // Original paths are 36x36
+
+          // For simple outlines, we stroke them
+          if (path === insIcons.heart || path === insIcons.comment || path === insIcons.bookmark || path === insIcons.share) {
+            ctx.strokeStyle = '#333333';
+            ctx.lineWidth = 3;
+            ctx.lineJoin = 'round';
+            ctx.lineCap = 'round';
+            ctx.stroke(p);
+          } else {
+            ctx.fillStyle = '#333333';
+            ctx.fill(p);
+          }
+          ctx.restore();
+        }
+
+        drawPngIcon(insIcons.heart, startX, iconY);
+        drawPngIcon(insIcons.comment, startX + iconSize + iconGap, iconY);
+        drawPngIcon(insIcons.share, startX + (iconSize + iconGap) * 2, iconY);
+        drawPngIcon(insIcons.bookmark, width - startX - iconSize, iconY);
+      }
     } // Close else block for modern/ins/pixel layout
 
     ctx.restore(); // Restore from card-level 16px clipping
@@ -2456,17 +2478,17 @@ jQuery(async () => {
 
   async function generateGlobalShareImage(dataList, tab) {
     if (!dataList || dataList.length === 0) return null;
-    
+
     // 强制等待所有字体加载完毕
     await document.fonts.ready;
-    
+
     // 终极策略：直接从已排版好的标题元素抓取真实计算字体
     const sampleEl = document.querySelector('.ccs-global-title') || document.body;
     const baseFontFamily = getComputedStyle(sampleEl).fontFamily || '"LXGW Neo XiHei", "PingFang SC", sans-serif';
-    
+
     // 取前 5
     const topList = dataList.slice(0, 5);
-    
+
     // Canvas 配置 (增大内部元素的视觉比例)
     const scaleFactor = 2; // Retina 
     const baseWidth = 500;
@@ -2474,50 +2496,50 @@ jQuery(async () => {
     const itemHeight = 82; // padding 14*2 + avatar 54
     const spacing = 12; // margin-bottom
     const padding = 24; // modal padding
-    
+
     const baseHeight = headerHeight + topList.length * (itemHeight + spacing) + padding;
-    
+
     const width = baseWidth * scaleFactor;
     const height = baseHeight * scaleFactor;
-    
+
     const canvas = document.createElement('canvas');
     canvas.width = width;
     canvas.height = height;
     const ctx = canvas.getContext('2d');
-    
+
     // 获取当前模态框样式
     const modalEl = document.querySelector('.ccs-global-modal-content');
     const computedStyles = modalEl ? getComputedStyle(modalEl) : null;
     const modalBg = computedStyles ? computedStyles.backgroundColor : 'rgba(0,0,0,0.8)';
     const textColor = computedStyles ? computedStyles.color : '#FFFFFF';
-    
+
     // 背景兜底 (抓取 body 颜色防止全透明长图发黑)
     const bodyBg = getComputedStyle(document.body).backgroundColor || '#2A2D34';
     ctx.fillStyle = bodyBg;
     ctx.fillRect(0, 0, width, height);
-    
+
     // 叠加模态框实际背景
     ctx.fillStyle = modalBg;
     ctx.fillRect(0, 0, width, height);
-    
+
     // Header
     let tabName = '对话总数';
     if (tab === 'days') tabName = '相伴天数';
     if (tab === 'size') tabName = '回忆大小';
-    
+
     const iconEl = document.querySelector('.ccs-global-title-icon');
     const iconColor = iconEl ? getComputedStyle(iconEl).color : textColor;
-    
+
     ctx.fillStyle = iconColor;
     ctx.font = `900 ${24 * scaleFactor}px "Font Awesome 6 Free", "Font Awesome 5 Free", "FontAwesome"`;
     ctx.textAlign = 'left';
     ctx.textBaseline = 'middle';
     ctx.fillText('\uf521', padding * scaleFactor, padding * scaleFactor + 25 * scaleFactor);
-    
+
     ctx.fillStyle = textColor;
     ctx.font = `bold ${26 * scaleFactor}px ${baseFontFamily}`;
     ctx.fillText(`${tabName}`, padding * scaleFactor + 34 * scaleFactor, padding * scaleFactor + 25 * scaleFactor);
-    
+
     // Function to draw rounded rect
     function drawRoundedRect(x, y, w, h, r, fillStyle) {
       ctx.beginPath();
@@ -2536,10 +2558,10 @@ jQuery(async () => {
         ctx.fill();
       }
     }
-    
+
     // Items
     let currentY = headerHeight * scaleFactor;
-    
+
     // Load avatars
     const avatars = await Promise.all(topList.map(async (stat) => {
       return new Promise((resolve) => {
@@ -2555,34 +2577,34 @@ jQuery(async () => {
         img.src = stat.avatar;
       });
     }));
-    
+
     topList.forEach((stat, index) => {
       const itemX = padding * scaleFactor;
       const itemY = currentY;
       const itemW = width - padding * 2 * scaleFactor;
       const itemH = itemHeight * scaleFactor;
-      
+
       // Card bg (Base + subtle gradient for Top 3)
       let itemBg = 'rgba(128, 128, 128, 0.08)';
       const rankItemExample = document.querySelector('.ccs-rank-item');
       if (rankItemExample) {
         itemBg = getComputedStyle(rankItemExample).backgroundColor;
       }
-      
+
       // Draw Base Background
       drawRoundedRect(itemX, itemY, itemW, itemH, 16 * scaleFactor, itemBg);
-      
+
       // Draw Subtle Gradient Highlight for Top 3 (matching CSS)
       if (index < 3) {
         let gradColor = 'rgba(245, 166, 35, 0.08)'; // Default Top 1
         if (index === 1) gradColor = 'rgba(155, 155, 155, 0.08)';
         if (index === 2) gradColor = 'rgba(192, 124, 65, 0.08)';
-        
+
         ctx.save();
         const sideGrad = ctx.createLinearGradient(itemX, itemY, itemX + itemW, itemY);
         sideGrad.addColorStop(0, gradColor);
         sideGrad.addColorStop(1, 'rgba(0, 0, 0, 0)');
-        
+
         // Clip to the rounded rect used for the card
         ctx.beginPath();
         const r = 16 * scaleFactor;
@@ -2597,21 +2619,21 @@ jQuery(async () => {
         ctx.arcTo(itemX, itemY, itemX + r, itemY, r);
         ctx.closePath();
         ctx.clip();
-        
+
         ctx.fillStyle = sideGrad;
         ctx.fillRect(itemX, itemY, itemW, itemH);
         ctx.restore();
       }
-      
+
       // Rank Badge (Circle for top 3, text for rest)
       const badgeSize = 34 * scaleFactor;
       const badgeX = itemX + 14 * scaleFactor; // inner padding 14px
       const badgeY = itemY + (itemH - badgeSize) / 2;
-      
-      let badgeFontSize = 20; 
+
+      let badgeFontSize = 20;
       let badgeOffsetX = 0;
       let badgeOffsetY = 1; // minor optical visual tweak
-      
+
       if (index < 3) {
         let badgeColor = 'rgba(128, 128, 128, 0.2)';
         if (index === 0) {
@@ -2633,12 +2655,12 @@ jQuery(async () => {
           badgeColor = grad;
           badgeFontSize = 20;
         }
-        
+
         ctx.beginPath();
-        ctx.arc(badgeX + badgeSize/2, badgeY + badgeSize/2, badgeSize/2, 0, Math.PI * 2);
+        ctx.arc(badgeX + badgeSize / 2, badgeY + badgeSize / 2, badgeSize / 2, 0, Math.PI * 2);
         ctx.fillStyle = badgeColor;
         ctx.fill();
-        
+
         ctx.fillStyle = '#FFFFFF';
         ctx.globalAlpha = 1.0;
       } else {
@@ -2646,31 +2668,31 @@ jQuery(async () => {
         ctx.globalAlpha = 0.5;
         badgeOffsetX = -2 * scaleFactor;
       }
-      
+
       ctx.font = `bold ${badgeFontSize * scaleFactor}px ${baseFontFamily}`;
       ctx.textAlign = 'center';
       // using alphabetic baseline can be more precise for numbers vertically if math is right
       ctx.textBaseline = 'middle';
-      ctx.fillText((index + 1).toString(), badgeX + badgeSize/2 + badgeOffsetX, badgeY + badgeSize/2 + badgeOffsetY * scaleFactor);
+      ctx.fillText((index + 1).toString(), badgeX + badgeSize / 2 + badgeOffsetX, badgeY + badgeSize / 2 + badgeOffsetY * scaleFactor);
       ctx.globalAlpha = 1.0;
-      
+
       // Avatar (object-fit cover equivalent)
       const avatarSize = 54 * scaleFactor; // boosted avatar size
       const avatarX = badgeX + badgeSize + 16 * scaleFactor; // margin-right 16px
       const avatarY = itemY + (itemH - avatarSize) / 2;
-      
+
       const img = avatars[index];
       if (img) {
         ctx.save();
         ctx.beginPath();
-        ctx.arc(avatarX + avatarSize/2, avatarY + avatarSize/2, avatarSize/2, 0, Math.PI * 2);
+        ctx.arc(avatarX + avatarSize / 2, avatarY + avatarSize / 2, avatarSize / 2, 0, Math.PI * 2);
         ctx.clip();
-        
+
         let drawW = avatarSize;
         let drawH = avatarSize;
         let offsetX = 0;
         let offsetY = 0;
-        
+
         if (img.width > 0 && img.height > 0) {
           const imgAspect = img.width / img.height;
           if (imgAspect > 1) { // wider
@@ -2681,16 +2703,16 @@ jQuery(async () => {
             offsetY = -(drawH - avatarSize) / 2;
           }
         }
-        
+
         ctx.drawImage(img, avatarX + offsetX, avatarY + offsetY, drawW, drawH);
         ctx.restore();
       }
-      
+
       // Text logic
       let valueHtml = '';
       let descHtml = '';
       let unitHtml = '';
-      
+
       if (tab === 'messages') {
         valueHtml = stat.messages.toString();
         unitHtml = '条';
@@ -2712,7 +2734,7 @@ jQuery(async () => {
         unitHtml = sizeParts[1] || 'B';
         descHtml = `${stat.messages} 条对话`;
       }
-      
+
       // Name
       const textX = avatarX + avatarSize + 16 * scaleFactor;
       ctx.fillStyle = textColor;
@@ -2720,31 +2742,31 @@ jQuery(async () => {
       ctx.font = `bold ${21 * scaleFactor}px ${baseFontFamily}`;
       ctx.textAlign = 'left';
       ctx.textBaseline = 'alphabetic';
-      ctx.fillText(stat.name, textX, itemY + itemH/2 - 6 * scaleFactor);
-      
+      ctx.fillText(stat.name, textX, itemY + itemH / 2 - 6 * scaleFactor);
+
       // Desc (Increased)
       ctx.globalAlpha = 0.6;
       ctx.fillStyle = textColor;
       ctx.font = `400 ${16.5 * scaleFactor}px ${baseFontFamily}`;
-      ctx.fillText(descHtml, textX, itemY + itemH/2 + 16 * scaleFactor);
-      
+      ctx.fillText(descHtml, textX, itemY + itemH / 2 + 16 * scaleFactor);
+
       // Value & Unit (Balanced proportions)
       const rightPadding = itemW - parseInt(16 * scaleFactor);
       // Unit (Increased slightly from before)
       ctx.font = `400 ${16 * scaleFactor}px ${baseFontFamily}`;
       ctx.textAlign = 'right';
       ctx.textBaseline = 'alphabetic';
-      ctx.fillText(unitHtml, itemX + rightPadding, itemY + itemH/2 + 6 * scaleFactor);
+      ctx.fillText(unitHtml, itemX + rightPadding, itemY + itemH / 2 + 6 * scaleFactor);
       ctx.globalAlpha = 1.0;
-      
+
       const unitWidth = ctx.measureText(unitHtml).width;
       // Value (Decreased slightly to balance with unit)
       ctx.font = `bold ${21 * scaleFactor}px ${baseFontFamily}`;
-      ctx.fillText(valueHtml, itemX + rightPadding - unitWidth - 4 * scaleFactor, itemY + itemH/2 + 6 * scaleFactor);
-      
+      ctx.fillText(valueHtml, itemX + rightPadding - unitWidth - 4 * scaleFactor, itemY + itemH / 2 + 6 * scaleFactor);
+
       currentY += (itemHeight + spacing) * scaleFactor;
     });
-    
+
     return { dataUrl: canvas.toDataURL('image/png'), filename: `羁绊排行_${tabName}.png` };
   }
 
@@ -2768,10 +2790,10 @@ jQuery(async () => {
     // 显示模态框
     $modal.addClass('ccs-modal-visible');
     $('body').addClass('ccs-no-scroll'); // 阻止背景滚动
-    
+
     // Store filename
     $("#ccs-download").data('filename', customFilename || '');
-    
+
     // Hide UI elements not relevant for global share
     if (customFilename && customFilename.includes('排行')) {
       $("#ccs-style-select").hide();
@@ -2889,7 +2911,7 @@ jQuery(async () => {
     shareStyle = $select.val();
     localStorage.setItem('ccs-share-style', shareStyle); // 保存用户选择到 localStorage
     if (DEBUG) console.log('Selected style changed (dropdown):', shareStyle);
-    
+
     if (shareStyle === 'pocket-sticker') {
       $("#ccs-color-selector").show();
       $("#ccs-y2k-color-selector").hide();
@@ -2903,7 +2925,7 @@ jQuery(async () => {
 
     const options = $select.find("option");
     const currentIndex = options.index(options.filter(":selected"));
-    
+
     let direction = explicitSlideDirection;
     if (!direction) {
       if (lastStyleIndex !== -1) {
@@ -2918,12 +2940,12 @@ jQuery(async () => {
     // 即时重新生成预览
     const $container = $("#ccs-preview-container");
     const $img = $container.find('img');
-    
+
     // 执行滑出动画
     if ($img.length) {
       const outClass = direction === 'next' ? 'slide-hide-left' : 'slide-hide-right';
       $img.addClass(outClass);
-      
+
       // 等待滑出动画完成 (200ms)
       await new Promise(r => setTimeout(r, 200));
     }
@@ -2936,18 +2958,18 @@ jQuery(async () => {
         // 瞬间重置位置并加载新图片（不执行滑入动画）
         $img.css('transition', 'none');
         $img.removeClass('slide-hide-left slide-hide-right');
-        
+
         // 先设为透明，准备淡入
         $img.css('opacity', '0');
         $img.attr('src', imageData);
-        
+
         // 强制重绘
         $img[0].offsetHeight;
-        
+
         // 恢复动画并淡入
         $img.css('transition', 'opacity 0.3s ease-in-out');
         $img.css('opacity', '1');
-        
+
         // 动画完成后清理内联样式
         setTimeout(() => {
           $img.css('transition', '');
@@ -2970,15 +2992,15 @@ jQuery(async () => {
   $(".ccs-color-swatch").on('click', async function (e) {
     e.stopPropagation();
     if ($(this).hasClass('active')) return;
-    
+
     // Update UI active state (only within the same parent color-selector)
     $(this).closest('.ccs-color-selector').find('.ccs-color-swatch').removeClass('active');
     $(this).addClass('active');
-    
+
     // Re-generate preview visually
     const $container = $("#ccs-preview-container");
     const $img = $container.find('img');
-    
+
     $container.addClass('loading-preview');
     try {
       const imageData = await generateShareImage();
@@ -2998,10 +3020,10 @@ jQuery(async () => {
     const options = $select.find("option");
     const $dotsContainer = $("#ccs-carousel-dots");
     $dotsContainer.empty();
-    
-    options.each(function(index) {
+
+    options.each(function (index) {
       const $dot = $('<div class="ccs-carousel-dot"></div>');
-      $dot.on('click', function(e) {
+      $dot.on('click', function (e) {
         e.stopPropagation(); // Prevent modal close
         $select.prop("selectedIndex", index).trigger("change");
       });
@@ -3014,11 +3036,11 @@ jQuery(async () => {
     const $select = $("#ccs-style-select");
     const options = $select.find("option");
     const currentIndex = options.index(options.filter(":selected"));
-    
+
     $("#ccs-carousel-dots .ccs-carousel-dot").removeClass("active");
     $("#ccs-carousel-dots .ccs-carousel-dot").eq(currentIndex).addClass("active");
   }
-  
+
   // 仅初始化一次
   initCarouselDots();
 
@@ -3028,21 +3050,21 @@ jQuery(async () => {
     const $select = $("#ccs-style-select");
     const options = $select.find("option");
     let currentIndex = options.index(options.filter(":selected"));
-    
+
     if (direction === 'next') {
       currentIndex = (currentIndex + 1) % options.length;
     } else {
       currentIndex = (currentIndex - 1 + options.length) % options.length;
     }
-    
+
     $select.prop("selectedIndex", currentIndex).trigger("change");
   }
 
-  $("#ccs-carousel-prev").on("click", function() {
+  $("#ccs-carousel-prev").on("click", function () {
     cycleStyle('prev');
   });
 
-  $("#ccs-carousel-next").on("click", function() {
+  $("#ccs-carousel-next").on("click", function () {
     cycleStyle('next');
   });
 
@@ -3050,11 +3072,11 @@ jQuery(async () => {
   let touchStartX = 0;
   let touchEndX = 0;
 
-  $("#ccs-preview-container").on("touchstart", function(e) {
+  $("#ccs-preview-container").on("touchstart", function (e) {
     touchStartX = e.changedTouches[0].screenX;
   });
 
-  $("#ccs-preview-container").on("touchend", function(e) {
+  $("#ccs-preview-container").on("touchend", function (e) {
     touchEndX = e.changedTouches[0].screenX;
     handleSwipe();
   });
@@ -3075,25 +3097,25 @@ jQuery(async () => {
   $(document).on('click', '#ccs-refresh', updateStats);
 
   // “查看更多”高级统计逻辑
-  $(document).on('click', '#ccs-view-more', async function() {
+  $(document).on('click', '#ccs-view-more', async function () {
     const $modal = $('#ccs-advanced-modal');
     const $loading = $('#ccs-advanced-loading');
     const $content = $('#ccs-advanced-content');
     const $error = $('#ccs-advanced-error');
-    
+
     // 动态更新模态框标题
     $('#ccs-advanced-character-name').text(`${getCurrentCharacterName()}`);
-    
+
     // 1. 打开模态框并显示加载状态
     $('#ccs-advanced-progress-text').text('正在分析回忆...');
     $('#ccs-advanced-progress-bar').css('width', '0%');
-    
+
     $loading.show();
     $content.hide();
     $error.hide();
     $modal.addClass('ccs-modal-visible').show();
     $('body').addClass('ccs-no-scroll');
-    
+
     try {
       if (DEBUG) console.log("[StatsDebug] View More clicked, triggering deep scan...");
       // 执行深度分析
@@ -3101,11 +3123,11 @@ jQuery(async () => {
         $('#ccs-advanced-progress-text').text(`正在分析回忆... ${percent}%`);
         $('#ccs-advanced-progress-bar').css('width', `${percent}%`);
       });
-      
+
       if (currentAdvancedStats) {
         $loading.hide();
         $content.fadeIn();
-        
+
         // 填充数据
         $('#ccs-today-messages').html(`${currentAdvancedStats.todayMessages} <span class="ccs-advanced-unit">条</span>`);
         $('#ccs-longest-streak').html(`${currentAdvancedStats.longestStreak} <span class="ccs-advanced-unit">天</span>`);
@@ -3140,14 +3162,14 @@ jQuery(async () => {
     }
   });
 
-  $("#ccs-advanced-close").on('click', function() {
+  $("#ccs-advanced-close").on('click', function () {
     $('#ccs-advanced-modal').removeClass('ccs-modal-visible').hide();
     $('body').removeClass('ccs-no-scroll');
     currentAdvancedStats = null; // Memory release
   });
 
   // 点击背景关闭高级统计
-  $("#ccs-advanced-modal").on('click', function(e) {
+  $("#ccs-advanced-modal").on('click', function (e) {
     if (e.target === this) {
       $(this).removeClass('ccs-modal-visible').hide();
       $('body').removeClass('ccs-no-scroll');
@@ -3202,7 +3224,7 @@ jQuery(async () => {
     console.log("--- DEBUG GLOBAL STATS ---");
     const context = getContext();
     console.log("Context from getContext():", context);
-    
+
     // We need to hunt down the characters array in SillyTavern global scope.
     let charsSource = context.characters || window.characters || window.characters_data;
     console.log("Initial charsSource:", charsSource);
@@ -3215,7 +3237,7 @@ jQuery(async () => {
       console.log(charKeys);
       return [];
     }
-    
+
     // DEBUG: Understand how getPastCharacterChats works internally in ST
     console.log("getPastCharacterChats signature:", getPastCharacterChats.toString());
 
@@ -3238,159 +3260,159 @@ jQuery(async () => {
     const totalChars = charsEntries.length;
 
     for (let i = 0; i < totalChars; i++) {
-        const [charId, char] = charsEntries[i];
-        
-        if ($spinner.length) {
-            const percent = Math.round(((i + 1) / totalChars) * 100);
-            $('#ccs-global-progress-text').text(`正在读取回忆... (${i + 1}/${totalChars})`);
-            $('#ccs-global-progress-bar').css('width', `${percent}%`);
+      const [charId, char] = charsEntries[i];
+
+      if ($spinner.length) {
+        const percent = Math.round(((i + 1) / totalChars) * 100);
+        $('#ccs-global-progress-text').text(`正在读取回忆... (${i + 1}/${totalChars})`);
+        $('#ccs-global-progress-bar').css('width', `${percent}%`);
+      }
+
+      // Skip default/empty characters
+      if (!char || !char.avatar) {
+        console.log(`[GlobalStats] Skipping index ${charId} - missing avatar.`);
+        continue;
+      }
+
+      try {
+        if (DEBUG) console.log(`[GlobalStats] [${i + 1}/${totalChars}] Fetching chats for ${char.name} (ID: ${charId})`);
+        // 致命 Bug 修复：SillyTavern 原生 API 接受的是 characterId (即在 characters 数组里的 Index/Key)
+        let chats = await getPastCharacterChats(charId);
+
+        // --- 【增强】如果 index 找不到，尝试直接用 avatar 名字 ---
+        if (!chats || chats.length === 0) {
+          if (DEBUG) console.log(`[GlobalStats] => Index ${charId} returned no chats, trying avatar: ${char.avatar}`);
+          chats = await getPastCharacterChats(char.avatar);
         }
 
-        // Skip default/empty characters
-        if (!char || !char.avatar) {
-            console.log(`[GlobalStats] Skipping index ${charId} - missing avatar.`);
-            continue;
+        if (!chats || chats.length === 0) {
+          if (DEBUG) console.log(`[GlobalStats] => No chats found for: ${char.name}`);
+          continue;
+        }
+        console.log(`[GlobalStats] => Found ${chats.length} chat items for: ${char.name}`, chats);
+
+        let totalMessages = 0;
+        let totalSizeBytesRaw = 0;
+        let earliestTime = null;
+        let hasInteraction = false;
+        let parseableFilesInfo = [];
+        let unparseableFiles = [];
+
+        chats.forEach(chat => {
+          // Count messages
+          const itemsCount = parseInt(chat.chat_items) || 0;
+          totalMessages += itemsCount;
+
+          // Calculate size
+          let sizeBytes = 0;
+          const sizeMatchKB = chat.file_size?.match(/([\d.]+)\s*KB/i);
+          const sizeMatchMB = chat.file_size?.match(/([\d.]+)\s*MB/i);
+          const sizeAsNumber = parseFloat(chat.file_size);
+
+          if (sizeMatchMB) {
+            sizeBytes = parseFloat(sizeMatchMB[1]) * 1024 * 1024;
+          } else if (sizeMatchKB) {
+            sizeBytes = parseFloat(sizeMatchKB[1]) * 1024;
+          } else if (!isNaN(sizeAsNumber)) {
+            sizeBytes = sizeAsNumber;
+          }
+
+          totalSizeBytesRaw += sizeBytes;
+
+          // 严格的互动认定
+          if (itemsCount > 1 || (itemsCount === 0 && sizeBytes > 5 * 1024)) {
+            hasInteraction = true;
+          }
+
+          // Find earliest date
+          if (chat.file_name) {
+            const timeInfo = parseTimeFromFilename(chat.file_name);
+            if (timeInfo && timeInfo.dateObject) {
+              parseableFilesInfo.push({ name: chat.file_name, date: timeInfo.dateObject });
+              if (!earliestTime || timeInfo.dateObject < earliestTime) {
+                earliestTime = timeInfo.dateObject;
+              }
+            } else {
+              unparseableFiles.push(chat.file_name);
+            }
+          }
+        });
+
+        // Only include characters with actual interaction
+        if (!hasInteraction) {
+          console.log(`[GlobalStats] => No real interactions for ${char.name}, skipping.`);
+          continue;
         }
 
-        try {
-          if (DEBUG) console.log(`[GlobalStats] [${i+1}/${totalChars}] Fetching chats for ${char.name} (ID: ${charId})`);
-          // 致命 Bug 修复：SillyTavern 原生 API 接受的是 characterId (即在 characters 数组里的 Index/Key)
-          let chats = await getPastCharacterChats(charId);
-          
-          // --- 【增强】如果 index 找不到，尝试直接用 avatar 名字 ---
-          if (!chats || chats.length === 0) {
-              if (DEBUG) console.log(`[GlobalStats] => Index ${charId} returned no chats, trying avatar: ${char.avatar}`);
-              chats = await getPastCharacterChats(char.avatar);
-          }
+        // 全局排行：运用精准打击与缓存共享策略统一时间
+        // 关键修复：API 调用必须使用 char.avatar（如 "character.png"）而非 charId（数组索引 "0","1"...）
+        // 否则 /api/chats/get 无法定位正确的聊天文件目录，导致改名文件的初遇时间丢失
+        const avatarForApi = char.avatar;
+        if (accurateEncounterTimeCache[avatarForApi]) {
+          earliestTime = accurateEncounterTimeCache[avatarForApi];
+        } else {
+          parseableFilesInfo.sort((a, b) => a.date - b.date);
+          // 全局扫描：对最老的2个可解析文件进行完整统计
+          let filesToCheck = parseableFilesInfo.slice(0, 2).map(f => f.name);
 
-          if (!chats || chats.length === 0) {
-              if (DEBUG) console.log(`[GlobalStats] => No chats found for: ${char.name}`);
-              continue;
-          }
-          console.log(`[GlobalStats] => Found ${chats.length} chat items for: ${char.name}`, chats);
-
-          let totalMessages = 0;
-          let totalSizeBytesRaw = 0;
-          let earliestTime = null;
-          let hasInteraction = false;
-          let parseableFilesInfo = [];
-          let unparseableFiles = [];
-
-          chats.forEach(chat => {
-            // Count messages
-            const itemsCount = parseInt(chat.chat_items) || 0;
-            totalMessages += itemsCount;
-
-            // Calculate size
-            let sizeBytes = 0;
-            const sizeMatchKB = chat.file_size?.match(/([\d.]+)\s*KB/i);
-            const sizeMatchMB = chat.file_size?.match(/([\d.]+)\s*MB/i);
-            const sizeAsNumber = parseFloat(chat.file_size);
-
-            if (sizeMatchMB) {
-              sizeBytes = parseFloat(sizeMatchMB[1]) * 1024 * 1024;
-            } else if (sizeMatchKB) {
-              sizeBytes = parseFloat(sizeMatchKB[1]) * 1024;
-            } else if (!isNaN(sizeAsNumber)) {
-              sizeBytes = sizeAsNumber;
-            }
-            
-            totalSizeBytesRaw += sizeBytes;
-
-            // 严格的互动认定
-            if (itemsCount > 1 || (itemsCount === 0 && sizeBytes > 5 * 1024)) {
-                hasInteraction = true;
-            }
-
-            // Find earliest date
-            if (chat.file_name) {
-              const timeInfo = parseTimeFromFilename(chat.file_name);
-              if (timeInfo && timeInfo.dateObject) {
-                parseableFilesInfo.push({ name: chat.file_name, date: timeInfo.dateObject });
-                if (!earliestTime || timeInfo.dateObject < earliestTime) {
-                  earliestTime = timeInfo.dateObject;
+          if (filesToCheck.length > 0) {
+            for (const file of filesToCheck) {
+              const fileStats = await getChatFileStats(file, avatarForApi, char.name);
+              if (fileStats && fileStats.earliestTime) {
+                if (!earliestTime || fileStats.earliestTime < earliestTime) {
+                  earliestTime = fileStats.earliestTime;
                 }
-              } else {
-                unparseableFiles.push(chat.file_name);
               }
             }
-          });
-
-          // Only include characters with actual interaction
-          if (!hasInteraction) {
-             console.log(`[GlobalStats] => No real interactions for ${char.name}, skipping.`);
-             continue;
           }
 
-          // 全局排行：运用精准打击与缓存共享策略统一时间
-          // 关键修复：API 调用必须使用 char.avatar（如 "character.png"）而非 charId（数组索引 "0","1"...）
-          // 否则 /api/chats/get 无法定位正确的聊天文件目录，导致改名文件的初遇时间丢失
-          const avatarForApi = char.avatar;
-          if (accurateEncounterTimeCache[avatarForApi]) {
-             earliestTime = accurateEncounterTimeCache[avatarForApi];
-          } else {
-             parseableFilesInfo.sort((a,b) => a.date - b.date);
-             // 全局扫描：对最老的2个可解析文件进行完整统计
-             let filesToCheck = parseableFilesInfo.slice(0, 2).map(f => f.name); 
-
-             if (filesToCheck.length > 0) {
-               for (const file of filesToCheck) {
-                  const fileStats = await getChatFileStats(file, avatarForApi, char.name);
-                  if (fileStats && fileStats.earliestTime) {
-                     if (!earliestTime || fileStats.earliestTime < earliestTime) {
-                        earliestTime = fileStats.earliestTime;
-                     }
-                  }
-               }
-             }
-
-             // 对所有被改名的文件，使用轻量API检查第一条消息日期
-             if (unparseableFiles.length > 0) {
-               for (const file of unparseableFiles) {
-                  const msgDate = await getEarliestMessageDate(file, avatarForApi, char.name);
-                  if (msgDate) {
-                     if (!earliestTime || msgDate < earliestTime) {
-                        earliestTime = msgDate;
-                     }
-                  }
-               }
-             }
-
-             if (earliestTime) accurateEncounterTimeCache[avatarForApi] = earliestTime;
-          }
-
-          let days = 0;
-          if (earliestTime) {
-            const firstTimeDate = earliestTime instanceof Date ? earliestTime : new Date(earliestTime);
-            if (!isNaN(firstTimeDate.getTime())) {
-              const utcFirstTime = Date.UTC(firstTimeDate.getFullYear(), firstTimeDate.getMonth(), firstTimeDate.getDate());
-              const diffTime = Math.abs(utcNow - utcFirstTime);
-              days = Math.ceil(diffTime / (1000 * 60 * 60 * 24)) + 1;
+          // 对所有被改名的文件，使用轻量API检查第一条消息日期
+          if (unparseableFiles.length > 0) {
+            for (const file of unparseableFiles) {
+              const msgDate = await getEarliestMessageDate(file, avatarForApi, char.name);
+              if (msgDate) {
+                if (!earliestTime || msgDate < earliestTime) {
+                  earliestTime = msgDate;
+                }
+              }
             }
           }
 
-          let formattedSize = '0 B';
-          if (totalSizeBytesRaw > 0) {
-            const kb = totalSizeBytesRaw / 1024;
-            const mb = kb / 1024;
-            if (mb >= 1) formattedSize = `${mb.toFixed(2)} MB`;
-            else if (kb >= 1) formattedSize = `${kb.toFixed(2)} KB`;
-            else formattedSize = `${Math.round(totalSizeBytesRaw)} B`;
-          }
-
-          statsList.push({
-            name: char.name || '未知角色',
-            avatar: `/characters/${char.avatar}`,
-            messages: totalMessages,
-            days: days,
-            sizeRaw: totalSizeBytesRaw,
-            formattedSize: formattedSize,
-            firstTimeRaw: earliestTime
-          });
-
-        } catch (err) {
-          if (DEBUG) console.error(`Error fetching stats for char ${char.name}:`, err);
+          if (earliestTime) accurateEncounterTimeCache[avatarForApi] = earliestTime;
         }
+
+        let days = 0;
+        if (earliestTime) {
+          const firstTimeDate = earliestTime instanceof Date ? earliestTime : new Date(earliestTime);
+          if (!isNaN(firstTimeDate.getTime())) {
+            const utcFirstTime = Date.UTC(firstTimeDate.getFullYear(), firstTimeDate.getMonth(), firstTimeDate.getDate());
+            const diffTime = Math.abs(utcNow - utcFirstTime);
+            days = Math.ceil(diffTime / (1000 * 60 * 60 * 24)) + 1;
+          }
+        }
+
+        let formattedSize = '0 B';
+        if (totalSizeBytesRaw > 0) {
+          const kb = totalSizeBytesRaw / 1024;
+          const mb = kb / 1024;
+          if (mb >= 1) formattedSize = `${mb.toFixed(2)} MB`;
+          else if (kb >= 1) formattedSize = `${kb.toFixed(2)} KB`;
+          else formattedSize = `${Math.round(totalSizeBytesRaw)} B`;
+        }
+
+        statsList.push({
+          name: char.name || '未知角色',
+          avatar: `/characters/${char.avatar}`,
+          messages: totalMessages,
+          days: days,
+          sizeRaw: totalSizeBytesRaw,
+          formattedSize: formattedSize,
+          firstTimeRaw: earliestTime
+        });
+
+      } catch (err) {
+        if (DEBUG) console.error(`Error fetching stats for char ${char.name}:`, err);
+      }
     }
 
     return statsList;
@@ -3407,7 +3429,7 @@ jQuery(async () => {
       $shareBtn.addClass('disabled').attr('title', '数据不足，无法生成排行榜');
       return;
     }
-    
+
     if (dataList.length <= 1) {
       $shareBtn.addClass('disabled').attr('title', '数据不足，无法生成排行榜');
     } else {
@@ -3426,7 +3448,7 @@ jQuery(async () => {
       const topClass = index < 3 ? `top-${index + 1}` : '';
       let valueHtml = '';
       let descHtml = '';
-      
+
       if (tab === 'messages') {
         valueHtml = `${stat.messages} <span style="font-size: 0.8em; opacity: 0.7;">条</span>`;
         descHtml = `陪伴 ${stat.days} 天`;
@@ -3471,7 +3493,7 @@ jQuery(async () => {
     const $modal = $('#ccs-global-modal');
     const $spinner = $('#ccs-global-spinner');
     const $list = $('#ccs-global-list');
-    
+
     // 初始化 UI
     $('.ccs-tab').removeClass('active');
     $('.ccs-tab[data-tab="messages"]').addClass('active'); // 默认选中"对话总数"
@@ -3485,7 +3507,7 @@ jQuery(async () => {
 
     // 获取数据（无全局缓存记录）
     const statsData = await fetchAllCharactersStats();
-    
+
     // 极短时间把数据挂载在 DOM 自身属性上供切 Tab 时使用
     // 这样当 DOM 被释放时，数据也能被 GC 自动清扫
     $modal.data('tempStatsData', statsData);
@@ -3497,13 +3519,13 @@ jQuery(async () => {
   // 绑定 Tab 切换事件
   $("#ccs-global-modal").on('click', '.ccs-tab', function () {
     if ($(this).hasClass('active')) return;
-    
+
     $('.ccs-tab').removeClass('active');
     $(this).addClass('active');
-    
+
     const targetTab = $(this).data('tab');
     const statsData = $('#ccs-global-modal').data('tempStatsData');
-    
+
     if (statsData) {
       renderGlobalStats(statsData, targetTab);
     }
@@ -3513,20 +3535,20 @@ jQuery(async () => {
   $("#ccs-global-modal").on('click', '#ccs-global-share-btn', async function () {
     const $button = $(this);
     if ($button.hasClass('loading') || $button.hasClass('disabled')) return;
-    
+
     const targetTab = $('.ccs-tab.active').data('tab');
     const statsData = $('#ccs-global-modal').data('tempStatsData');
     if (!statsData || statsData.length === 0) return;
-    
+
     $button.addClass('loading').css('opacity', '0.5');
-    
+
     // 打开预览模块，并清空容器
     const $modal = $("#ccs-preview-modal");
     const $container = $("#ccs-preview-container");
     $container.empty().addClass('loading-preview');
     $modal.addClass('ccs-modal-visible');
     $('body').addClass('ccs-no-scroll');
-    
+
     try {
       const result = await generateGlobalShareImage(statsData, targetTab);
       if (result) {
@@ -3552,7 +3574,7 @@ jQuery(async () => {
   }
 
   $("#ccs-global-close").on('click', closeAndClearGlobalModal);
-  
+
   // 点击遮罩层空白处关闭
   $("#ccs-global-modal").on('click', function (e) {
     if (e.target === this) {
@@ -3563,7 +3585,7 @@ jQuery(async () => {
   // =========================================================================
 
   if (DEBUG) console.log("✅ 聊天陪伴统计插件已加载 (自动刷新已启用)");
-  
+
   // 初始刷新
   setTimeout(updateStats, 1000);
 });
