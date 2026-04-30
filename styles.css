@@ -613,44 +613,30 @@ body.ccs-no-scroll {
 }
 
 .ccs-advanced-card {
-  background: linear-gradient(135deg, rgba(var(--SmartThemeEmColorRGB), 0.06), rgba(var(--SmartThemeEmColorRGB), 0.02));
-  border: 1px solid rgba(var(--SmartThemeEmColorRGB), 0.08);
-  padding: 20px 20px 18px;
+  background: linear-gradient(135deg, rgba(var(--SmartThemeEmColorRGB), 0.1), rgba(var(--SmartThemeEmColorRGB), 0.05));
+  border: 1px solid rgba(var(--SmartThemeEmColorRGB), 0.1);
+  padding: 20px;
   border-radius: 16px;
-  display: flex;
-  align-items: center;
-  gap: 18px;
+  text-align: center;
 }
 
 .ccs-advanced-card-label {
-  font-size: 0.78rem;
-  font-weight: 600;
-  opacity: 0.5;
-  letter-spacing: 0.03em;
-  margin-bottom: 0;
-  flex-shrink: 0;
-  writing-mode: vertical-rl;
-  text-orientation: mixed;
-}
-
-.ccs-advanced-card-body {
-  display: flex;
-  flex-direction: column;
-  gap: 2px;
-  min-width: 0;
+  font-size: 0.9rem;
+  font-weight: bold;
+  margin-bottom: 12px;
+  opacity: 0.95;
 }
 
 .ccs-advanced-card-date {
-  font-size: 0.92rem;
-  opacity: 0.7;
-  line-height: 1.4;
+  font-size: 1rem;
+  margin-bottom: 4px;
+  opacity: 1;
 }
 
 .ccs-advanced-card-count {
-  font-size: 1.3rem;
+  font-size: 1.25rem;
   font-weight: bold;
   color: var(--SmartThemeEmColor);
-  line-height: 1.3;
 }
 
 /* ========================================================================= */
