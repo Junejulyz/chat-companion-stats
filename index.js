@@ -1147,16 +1147,14 @@ jQuery(async () => {
     // Set data attribute for CSS glow level
     $bond.attr('data-star-level', starLevel);
 
-    // Render score badge
-    $('#ccs-bond-score').text(score);
-
     // Render stars (force re-animation by rebuilding HTML)
+    // Empty stars use ★ with a muted color class, not outline ☆
     let starsHtml = '';
     for (let i = 1; i <= 5; i++) {
       if (i <= starLevel) {
         starsHtml += '<span class="ccs-bond-star filled">★</span>';
       } else {
-        starsHtml += '<span class="ccs-bond-star empty">☆</span>';
+        starsHtml += '<span class="ccs-bond-star empty">★</span>';
       }
     }
     $('#ccs-bond-stars').html(starsHtml);
