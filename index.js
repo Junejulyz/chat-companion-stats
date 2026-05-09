@@ -1484,6 +1484,7 @@ jQuery(async () => {
     const isY2k = shareStyle === 'nostalgic-y2k';
     const isModern = shareStyle === 'modern-light' || shareStyle === 'modern-dark' || shareStyle === 'modern';
     const isAncient = shareStyle === 'ancient';
+    const isClassicNight = shareStyle === 'classic-night';
 
     // 强制等待所有字体加载完毕，防止 Canvas 渲染时回退到默认字体
     await document.fonts.ready;
@@ -1615,14 +1616,14 @@ jQuery(async () => {
       }
     ];
 
-    // 如果是青纹信笺、像素风或怀旧y2k，则加上初遇时间显示 (现代简约默认不加)
-    if (isAncient || isPixel || isY2k) {
+    // 如果是青纹信笺、像素风或怀旧y2k或经典夜间，则加上初遇时间显示 (现代简约默认不加)
+    if (isAncient || isPixel || isY2k || isClassicNight) {
       statsItems.unshift({ id: 'ccs-share-start', label: '初遇时间', value: $("#ccs-start").text().replace(/约/g, '').replace(/点/g, ':').replace(/分/g, '') });
     }
 
     let stats = statsItems.filter(s => $(`#${s.id}`).is(":checked"));
 
-    if (isPixel || isY2k) {
+    if (isPixel || isY2k || isClassicNight) {
       stats = stats.filter(s => s.id !== 'ccs-share-start');
     }
 
@@ -1685,6 +1686,28 @@ jQuery(async () => {
       });
     }
 
+    // 经典夜间：使用独特的中文句式格式
+    if (isClassicNight) {
+      const startDateText = $("#ccs-start").text();
+      const showStartInCard = $("#ccs-share-start").is(":checked");
+      const classicLines = [];
+      if (showStartInCard && startDateText && startDateText !== '尚未互动') {
+        classicLines.push(`与 ${charName} 初遇于`);
+        classicLines.push(startDateText);
+      } else {
+        classicLines.push(`与 ${charName}`);
+      }
+      stats.forEach(s => {
+        if (s.id === 'ccs-share-start') return;
+        if (s.id === 'ccs-share-messages') classicLines.push(`共对话 ${s.value} ${s.unit}`);
+        else if (s.id === 'ccs-share-words') classicLines.push(`共聊天约 ${s.value} ${s.unit}`);
+        else if (s.id === 'ccs-share-days') classicLines.push(`相伴 ${s.value} ${s.unit}`);
+        else if (s.id === 'ccs-share-size') classicLines.push(`回忆大小 ${s.value} ${s.unit}`);
+      });
+      // 把 classicLines 存到一个变量上，后面绘制使用
+      stats._classicLines = classicLines;
+    }
+
     // Base Values (Unscaled)
     const baseWidth = 663;
     const baseHeaderH_Pixel = 324;
@@ -1722,6 +1745,14 @@ jQuery(async () => {
       height = 816 * scaleFactor;
     } else if (isPocketSticker || isY2k) {
       height = 1216 * scaleFactor;
+    } else if (isClassicNight) {
+      // 经典夜间：头部600px(头像+标题+分割线) + 每行统计90px + 水印40px + 底部60px
+      const classicLines = stats._classicLines || [];
+      const classicTopSection = 300 * scaleFactor;
+      const classicLineHeight = 45 * scaleFactor;
+      const classicWatermarkH = 20 * scaleFactor;
+      const classicBottomPad = 30 * scaleFactor;
+      height = classicTopSection + classicLines.length * classicLineHeight + classicWatermarkH + classicBottomPad;
     }
     const dynamicHeight = height;
 
@@ -1735,8 +1766,8 @@ jQuery(async () => {
 
     // Apply 16px border radius to the entire card
     ctx.save();
-    if (shareStyle === 'ancient') {
-      // ancient style doesn't need border radius
+    if (shareStyle === 'ancient' || isClassicNight) {
+      // ancient/classic-night style doesn't need border radius
       ctx.rect(0, 0, width, dynamicHeight);
     } else {
       roundRect(0, 0, width, dynamicHeight, 16 * scaleFactor, false, false);
@@ -1799,6 +1830,17 @@ jQuery(async () => {
         ctx.fillStyle = '#f0e6d2'; // Fallback paper color
         ctx.fillRect(0, 0, width, height);
       }
+    } else if (isClassicNight) {
+      // 经典夜间：深蓝灰底色 + 蓝紫渐变边框
+      ctx.fillStyle = '#1f2937';
+      ctx.fillRect(0, 0, width, height);
+      const borderW = 6 * scaleFactor;
+      const gradient = ctx.createLinearGradient(0, 0, width, height);
+      gradient.addColorStop(0, '#3b82f6');
+      gradient.addColorStop(1, '#8b5cf6');
+      ctx.strokeStyle = gradient;
+      ctx.lineWidth = borderW;
+      ctx.strokeRect(borderW / 2, borderW / 2, width - borderW, height - borderW);
     } else if (isPocketSticker || isY2k) {
       ctx.fillStyle = '#FFFFFF';
       ctx.fillRect(0, 0, width, height);
@@ -1832,8 +1874,8 @@ jQuery(async () => {
       }
     } else if (isPixel) {
       // Pixel Pink Background - Simple pink fill already done in step 3
-    } else if (shareStyle === 'ancient') {
-      // Ancient style doesn't need a content area background box
+    } else if (shareStyle === 'ancient' || isClassicNight) {
+      // Ancient/Classic-night style doesn't need a content area background box
     } else if (isPocketSticker || isY2k) {
       // Pocket sticker and Y2K don't need a content area background box
     } else if (stats.length > 0) {
@@ -1846,7 +1888,156 @@ jQuery(async () => {
 
 
     // 4. 绘制头像 (Moved to after background, before header logic)
-    if (isAncient) {
+    if (isClassicNight) {
+      // ========== 经典夜间专属绘制 ==========
+      const avatarUrl = getCharacterAvatar();
+      const userAvatarUrl = getUserAvatar();
+      const loadImg = (url) => new Promise((resolve) => {
+        if (!url) return resolve(null);
+        const img = new Image();
+        img.crossOrigin = 'anonymous';
+        const timeout = setTimeout(() => { resolve(null); }, 5000);
+        img.onload = () => { clearTimeout(timeout); resolve(img); };
+        img.onerror = () => { clearTimeout(timeout); resolve(null); };
+        img.src = url;
+      });
+      const [charImg, userImg] = await Promise.all([loadImg(avatarUrl), loadImg(userAvatarUrl)]);
+      const showUser = $("#ccs-share-user-avatar").is(":checked") && userImg;
+
+      // 头像参数
+      const cnAvatarW = 90 * scaleFactor;
+      const cnAvatarH = 120 * scaleFactor;
+      const cnCornerR = 10 * scaleFactor;
+      const cnAvatarY = 40 * scaleFactor;
+      const cnSpacing = 200 * scaleFactor;
+
+      // 绘制圆角矩形头像
+      function drawCNAvatar(img, x) {
+        // 背景板
+        ctx.fillStyle = '#2a3441';
+        roundRect(x, cnAvatarY, cnAvatarW, cnAvatarH, cnCornerR);
+        // 渐变边框
+        const borderGrad = ctx.createLinearGradient(x, cnAvatarY, x, cnAvatarY + cnAvatarH);
+        borderGrad.addColorStop(0, '#3b82f6');
+        borderGrad.addColorStop(1, '#8b5cf6');
+        ctx.strokeStyle = borderGrad;
+        ctx.lineWidth = 2 * scaleFactor;
+        roundRect(x, cnAvatarY, cnAvatarW, cnAvatarH, cnCornerR, false, true);
+        // 图片
+        if (img) {
+          ctx.save();
+          roundRect(x, cnAvatarY, cnAvatarW, cnAvatarH, cnCornerR, false, false);
+          ctx.clip();
+          const scale = Math.max(cnAvatarW / img.width, cnAvatarH / img.height);
+          const sw = img.width * scale;
+          const sh = img.height * scale;
+          ctx.drawImage(img, x + (cnAvatarW - sw) / 2, cnAvatarY + (cnAvatarH - sh) / 2, sw, sh);
+          ctx.restore();
+        }
+      }
+
+      // 绘制两个头像（用户左、角色右）
+      const cnLeftX = width / 2 - cnSpacing / 2 - cnAvatarW;
+      const cnRightX = width / 2 + cnSpacing / 2;
+      if (showUser) {
+        drawCNAvatar(userImg, cnLeftX);
+      }
+      drawCNAvatar(charImg, showUser ? cnRightX : (width / 2 - cnAvatarW / 2));
+
+      // 虚线连接 + 锁符号（仅双头像时绘制）
+      if (showUser) {
+        const cnLineY = cnAvatarY + cnAvatarH / 2;
+        const cnLineStartX = cnLeftX + cnAvatarW + 10 * scaleFactor;
+        const cnLineEndX = cnRightX - 10 * scaleFactor;
+        const lineGrad = ctx.createLinearGradient(cnLineStartX, cnLineY, cnLineEndX, cnLineY);
+        lineGrad.addColorStop(0, '#3b82f6');
+        lineGrad.addColorStop(1, '#8b5cf6');
+        ctx.beginPath();
+        ctx.strokeStyle = lineGrad;
+        ctx.lineWidth = 2 * scaleFactor;
+        ctx.setLineDash([5 * scaleFactor, 3 * scaleFactor]);
+        ctx.moveTo(cnLineStartX, cnLineY);
+        ctx.lineTo(cnLineEndX, cnLineY);
+        ctx.stroke();
+        ctx.setLineDash([]);
+
+        // 锁符号
+        ctx.save();
+        ctx.translate(width / 2, cnLineY);
+        const lockSize = 30 * scaleFactor;
+        const lockGrad = ctx.createLinearGradient(-lockSize / 2, -lockSize / 2, lockSize / 2, lockSize / 2);
+        lockGrad.addColorStop(0, '#3b82f6');
+        lockGrad.addColorStop(1, '#8b5cf6');
+        ctx.strokeStyle = lockGrad;
+        ctx.fillStyle = lockGrad;
+        ctx.lineWidth = 3 * scaleFactor;
+        // 拱形
+        const archW = lockSize * 0.6;
+        ctx.beginPath();
+        ctx.moveTo(-archW / 2, -lockSize / 4);
+        ctx.bezierCurveTo(-archW / 2, -lockSize / 2, archW / 2, -lockSize / 2, archW / 2, -lockSize / 4);
+        ctx.stroke();
+        // 锁体
+        const lockW = lockSize * 0.7;
+        const lockH = lockSize * 0.6;
+        const lockR = 5 * scaleFactor;
+        ctx.beginPath();
+        ctx.moveTo(-lockW / 2 + lockR, -lockSize / 4);
+        ctx.arcTo(lockW / 2, -lockSize / 4, lockW / 2, -lockSize / 4 + lockH, lockR);
+        ctx.arcTo(lockW / 2, -lockSize / 4 + lockH, -lockW / 2, -lockSize / 4 + lockH, lockR);
+        ctx.arcTo(-lockW / 2, -lockSize / 4 + lockH, -lockW / 2, -lockSize / 4, lockR);
+        ctx.arcTo(-lockW / 2, -lockSize / 4, lockW / 2, -lockSize / 4, lockR);
+        ctx.closePath();
+        ctx.fill();
+        ctx.stroke();
+        // 锁孔
+        ctx.beginPath();
+        ctx.arc(0, 0, 3 * scaleFactor, 0, Math.PI * 2);
+        ctx.fillStyle = '#1f2937';
+        ctx.fill();
+        ctx.beginPath();
+        ctx.moveTo(0, 3 * scaleFactor);
+        ctx.lineTo(0, 8 * scaleFactor);
+        ctx.strokeStyle = '#1f2937';
+        ctx.stroke();
+        ctx.restore();
+      }
+
+      // 标题 "我的羁绊"
+      ctx.textAlign = 'center';
+      ctx.fillStyle = '#ffffff';
+      ctx.font = `bold ${32 * scaleFactor}px ${baseFontFamily}`;
+      ctx.fillText('我的羁绊', width / 2, 200 * scaleFactor);
+
+      // 分割线
+      ctx.beginPath();
+      ctx.strokeStyle = '#4b5563';
+      ctx.lineWidth = 2 * scaleFactor;
+      const cnDividerY = 220 * scaleFactor;
+      ctx.moveTo(width * 0.22, cnDividerY);
+      ctx.lineTo(width * 0.78, cnDividerY);
+      ctx.stroke();
+
+      // 统计文本
+      const classicLines = stats._classicLines || [];
+      const cnStartDrawY = 260 * scaleFactor;
+      const cnStatLineH = 45 * scaleFactor;
+      ctx.font = `${26 * scaleFactor}px ${baseFontFamily}`;
+      ctx.fillStyle = '#ffffff';
+      classicLines.forEach((text, index) => {
+        ctx.fillText(text, width / 2, cnStartDrawY + index * cnStatLineH);
+      });
+
+      // 水印
+      ctx.font = `${16 * scaleFactor}px ${baseFontFamily}`;
+      ctx.fillStyle = '#6b7280';
+      ctx.fillText('SillyTavern羁绊助手', width / 2, height - 30 * scaleFactor);
+
+      // 经典夜间绘制完成，跳过后续所有绘制分支
+      ctx.restore(); // Restore from card-level clipping
+      return canvas.toDataURL('image/png');
+
+    } else if (isAncient) {
       // 青纹信笺专属竖排绘制
       ctx.save();
       ctx.fillStyle = '#2c2824'; // 深墨色
@@ -2849,7 +3040,7 @@ jQuery(async () => {
     } else if (shareStyle === 'nostalgic-y2k') {
       $("#ccs-color-selector").hide();
       $("#ccs-y2k-color-selector").show();
-    } else {
+    } else { // modern, ins, pixel, ancient, classic-night 等无需颜色选择
       $("#ccs-color-selector").hide();
       $("#ccs-y2k-color-selector").hide();
     }
