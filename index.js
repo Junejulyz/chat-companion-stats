@@ -1783,10 +1783,10 @@ jQuery(async () => {
     canvas.width = width;
     canvas.height = dynamicHeight;
 
-    // Apply 16px border radius to the entire card
+    // Apply 16px border radius to the entire card (except sharp corner styles like ancient, classicNight, and spaceTime)
     ctx.save();
-    if (shareStyle === 'ancient' || isClassicNight) {
-      // ancient/classic-night style doesn't need border radius
+    if (shareStyle === 'ancient' || isClassicNight || isSpaceTime) {
+      // sharp corner styles don't need border radius
       ctx.rect(0, 0, width, dynamicHeight);
     } else {
       roundRect(0, 0, width, dynamicHeight, 16 * scaleFactor, false, false);
@@ -2637,15 +2637,11 @@ jQuery(async () => {
           ctx.fillText(`${stat.value}${stat.unit || ''}`, valueX, textY);
 
         } else if (isSpaceTime) {
-          // Shifted rowY values down by 24px
-          const spaceTimePositions = {
-            '聊天对话': 675 * scaleFactor,
-            '相伴天数': 807 * scaleFactor,
-            '聊天字数': 939 * scaleFactor,
-            '回忆大小': 1071 * scaleFactor
-          };
+          // Dynamic slots: if a stat is unselected, they shift up sequentially.
+          // Base row positions are shifted down by another 7px: [682, 814, 946, 1078]
+          const spaceTimeSlots = [682 * scaleFactor, 814 * scaleFactor, 946 * scaleFactor, 1078 * scaleFactor];
+          const rowY = spaceTimeSlots[i];
 
-          const rowY = spaceTimePositions[stat.label];
           if (rowY !== undefined) {
             ctx.textAlign = 'left';
             ctx.textBaseline = 'middle';
