@@ -1482,6 +1482,7 @@ jQuery(async () => {
     const isPixel = shareStyle === 'pixel-pink';
     const isPocketSticker = shareStyle === 'pocket-sticker';
     const isY2k = shareStyle === 'nostalgic-y2k';
+    const isSpaceTime = shareStyle === 'space-time';
     const isModern = shareStyle === 'modern-light' || shareStyle === 'modern-dark' || shareStyle === 'modern';
     const isAncient = shareStyle === 'ancient';
     const isClassicNight = shareStyle === 'classic-night';
@@ -1497,7 +1498,7 @@ jQuery(async () => {
     const charName = getCurrentCharacterName();
 
     const scaleFactor = 2; // HD
-    const width = (isPocketSticker || isY2k) ? 896 * scaleFactor : 663 * scaleFactor;
+    const width = (isPocketSticker || isY2k || isSpaceTime) ? 896 * scaleFactor : 663 * scaleFactor;
 
     // Scrapbook Pixel Colors
     const pixelBg = '#FEF9F0'; // Warm Cream
@@ -1525,6 +1526,7 @@ jQuery(async () => {
     const ancientAssets = {};
     const pocketAssets = {};
     const y2kAssets = {};
+    const spaceTimeAssets = {};
 
     const loadAssetImg = (url) => new Promise((resolve) => {
       const img = new Image();
@@ -1564,6 +1566,17 @@ jQuery(async () => {
       };
       await Promise.all(Object.entries(y2kAssetList).map(async ([key, url]) => {
         y2kAssets[key] = await loadAssetImg(url);
+      }));
+    }
+
+    if (isSpaceTime) {
+      const v = Date.now();
+      const spaceTimeAssetList = {
+        bg: `${extensionWebPath}/assets/futuristiccard/futurebg_origin.svg?v=${v}`,
+        frame: `${extensionWebPath}/assets/futuristiccard/avatarframe.svg?v=${v}`
+      };
+      await Promise.all(Object.entries(spaceTimeAssetList).map(async ([key, url]) => {
+        spaceTimeAssets[key] = await loadAssetImg(url);
       }));
     }
 
@@ -1623,13 +1636,14 @@ jQuery(async () => {
 
     let stats = statsItems.filter(s => $(`#${s.id}`).is(":checked"));
 
-    if (isPixel || isY2k || isClassicNight) {
+    if (isPixel || isY2k || isClassicNight || isSpaceTime) {
       stats = stats.filter(s => s.id !== 'ccs-share-start');
     }
 
-    if (isPocketSticker || isY2k) {
+    if (isPocketSticker || isY2k || isSpaceTime) {
       stats = stats.map(s => {
         let newValue = s.value;
+        let newUnit = s.unit;
         if (s.id === 'ccs-share-words') {
           let num = parseInt(s.value.replace(/,/g, '')) || 0;
           if (num >= 10000) {
@@ -1637,10 +1651,15 @@ jQuery(async () => {
             if (formatted.endsWith('.0')) {
               formatted = formatted.substring(0, formatted.length - 2);
             }
-            newValue = formatted + 'w';
+            if (isSpaceTime) {
+              newValue = formatted + 'W';
+              newUnit = '字';
+            } else {
+              newValue = formatted + 'w';
+            }
           }
         }
-        return { ...s, label: s.label, value: newValue, unit: s.unit };
+        return { ...s, label: s.label, value: newValue, unit: newUnit };
       });
     }
 
@@ -1743,7 +1762,7 @@ jQuery(async () => {
     let height = headerH + totalStatsH + (isPixel ? 0 : footerH);
     if (shareStyle === 'ancient') {
       height = 816 * scaleFactor;
-    } else if (isPocketSticker || isY2k) {
+    } else if (isPocketSticker || isY2k || isSpaceTime) {
       height = 1216 * scaleFactor;
     } else if (isClassicNight) {
       // 经典夜间：头部600px(头像+标题+分割线) + 每行统计90px + 水印40px + 底部60px
@@ -1780,7 +1799,6 @@ jQuery(async () => {
         // 使用最终处理后的 stats 数组（包含青纹信笺转换后的中文数字和单位）来提取字符，确保子集字体正确加载
         const statChars = Array.from(new Set(stats.map(s => (s.label + s.value + (s.unit || '')).split('')).flat())).join('');
 
-        // Trigger font loading
         const fontPromises = [
           document.fonts.load(`400 32px "LXGW Neo XiHei"`, charName + statChars + '初遇'),
           document.fonts.load(`700 32px "LXGW Neo XiHei"`, statChars),
@@ -1791,7 +1809,10 @@ jQuery(async () => {
           document.fonts.load(`400 32px "Xiaolai"`, charName + statChars + '初遇'),
           document.fonts.load(`700 32px "Xiaolai"`, statChars),
           document.fonts.load(`400 48px "Long Cang"`, '初遇'),
-          document.fonts.load(`400 32px "PING FANG GONG ZI TI"`, charName + statChars + '初见')
+          document.fonts.load(`400 32px "PING FANG GONG ZI TI"`, charName + statChars + '初见'),
+          document.fonts.load(`400 32px "Unbounded Sans"`, charName + statChars),
+          document.fonts.load(`700 32px "Unbounded Sans"`, charName + statChars),
+          document.fonts.load(`400 32px "Gajraj One"`, '0123456789.')
         ];
 
         // Wait for fonts to load, with a timeout to prevent hanging forever
@@ -1841,10 +1862,12 @@ jQuery(async () => {
       ctx.strokeStyle = gradient;
       ctx.lineWidth = borderW;
       ctx.strokeRect(borderW / 2, borderW / 2, width - borderW, height - borderW);
-    } else if (isPocketSticker || isY2k) {
-      ctx.fillStyle = '#FFFFFF';
+    } else if (isPocketSticker || isY2k || isSpaceTime) {
+      ctx.fillStyle = '#1A1A1A';
       ctx.fillRect(0, 0, width, height);
-      if (isY2k && y2kAssets.bg) {
+      if (isSpaceTime && spaceTimeAssets.bg) {
+        ctx.drawImage(spaceTimeAssets.bg, 0, 0, width, height);
+      } else if (isY2k && y2kAssets.bg) {
         ctx.drawImage(y2kAssets.bg, 0, 0, width, height);
       } else if (isPocketSticker && pocketAssets.bg) {
         ctx.drawImage(pocketAssets.bg, 0, 0, width, height);
@@ -1876,8 +1899,8 @@ jQuery(async () => {
       // Pixel Pink Background - Simple pink fill already done in step 3
     } else if (shareStyle === 'ancient' || isClassicNight) {
       // Ancient/Classic-night style doesn't need a content area background box
-    } else if (isPocketSticker || isY2k) {
-      // Pocket sticker and Y2K don't need a content area background box
+    } else if (isPocketSticker || isY2k || isSpaceTime) {
+      // Pocket sticker, Y2K and SpaceTime don't need a content area background box
     } else if (stats.length > 0) {
       ctx.fillStyle = contentAreaBg;
       const contentAreaW = 599 * scaleFactor;
@@ -2331,6 +2354,79 @@ jQuery(async () => {
         // Character overlaps user
         drawY2kAvatar(charImg, 501 * scaleFactor, 831 * scaleFactor);
 
+      } else if (isSpaceTime) {
+        // --- SPACE-TIME ARCHIVE HEADER & AVATAR DRAWING ---
+        // 1. Character Name
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'top';
+        ctx.fillStyle = '#FFFFFF';
+        ctx.font = `700 ${98 * scaleFactor}px "Unbounded Sans", sans-serif`;
+        ctx.fillText(charName || "角色名", width / 2, 93 * scaleFactor);
+
+        // 2. Encounter Date (formatted as YYYY.MM.DD inside the white box)
+        const rawStart = $("#ccs-start").text();
+        const dateMatch = rawStart.match(/(\d{4})年(\d{1,2})月(\d{1,2})日/);
+        const formattedDate = dateMatch
+          ? `${dateMatch[1]}.${dateMatch[2].padStart(2, '0')}.${dateMatch[3].padStart(2, '0')}`
+          : rawStart.replace(/约/g, '').trim().split(' ')[0].replace(/[-/]/g, '.');
+
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'top';
+        ctx.fillStyle = '#1A1A1A';
+        ctx.font = `400 ${37 * scaleFactor}px "Gajraj One", sans-serif`;
+        ctx.fillText(formattedDate, width / 2, 534 * scaleFactor);
+        ctx.textBaseline = 'alphabetic'; // Reset
+
+        // 3. Avatar Mask drawing function with 20px bevel (45-degree flat cut corners)
+        const drawBeveledAvatar = (img, x, y) => {
+          const avatarSize = 210 * scaleFactor;
+          const bevel = 20 * scaleFactor;
+
+          ctx.save();
+          ctx.beginPath();
+          ctx.moveTo(x + bevel, y);
+          ctx.lineTo(x + avatarSize - bevel, y);
+          ctx.lineTo(x + avatarSize, y + bevel);
+          ctx.lineTo(x + avatarSize, y + avatarSize - bevel);
+          ctx.lineTo(x + avatarSize - bevel, y + avatarSize);
+          ctx.lineTo(x + bevel, y + avatarSize);
+          ctx.lineTo(x, y + avatarSize - bevel);
+          ctx.lineTo(x, y + bevel);
+          ctx.closePath();
+          ctx.clip();
+
+          if (img) {
+            // Fill background in case image has transparency
+            ctx.fillStyle = '#FFFFFF';
+            ctx.fillRect(x, y, avatarSize, avatarSize);
+
+            const scale = Math.max(avatarSize / img.width, avatarSize / img.height);
+            const sw = img.width * scale;
+            const sh = img.height * scale;
+            ctx.drawImage(img, x + (avatarSize - sw) / 2, y + (avatarSize - sh) / 2, sw, sh);
+          } else {
+            ctx.fillStyle = '#e0e0e0';
+            ctx.fillRect(x, y, avatarSize, avatarSize);
+          }
+          ctx.restore();
+        };
+
+        // Draw character avatar
+        drawBeveledAvatar(charImg, 206 * scaleFactor, 285 * scaleFactor);
+
+        // Draw character avatar frame
+        if (spaceTimeAssets.frame) {
+          ctx.drawImage(spaceTimeAssets.frame, 191 * scaleFactor, 270 * scaleFactor, 240 * scaleFactor, 240 * scaleFactor);
+        }
+
+        // Draw user avatar and frame if showUser is enabled
+        if (showUser) {
+          drawBeveledAvatar(userImg, 480 * scaleFactor, 285 * scaleFactor);
+          if (spaceTimeAssets.frame) {
+            ctx.drawImage(spaceTimeAssets.frame, 465 * scaleFactor, 270 * scaleFactor, 240 * scaleFactor, 240 * scaleFactor);
+          }
+        }
+
       } else {
         // Modern style header logic...
         const avatarW = 100 * scaleFactor;
@@ -2531,6 +2627,30 @@ jQuery(async () => {
           const labelWidth = ctx.measureText(stat.label).width;
           const valueX = labelX + labelWidth + 24 * scaleFactor;
           ctx.fillText(`${stat.value}${stat.unit || ''}`, valueX, textY);
+
+        } else if (isSpaceTime) {
+          const spaceTimePositions = {
+            '聊天对话': 651 * scaleFactor,
+            '相伴天数': 783 * scaleFactor,
+            '聊天字数': 915 * scaleFactor,
+            '回忆大小': 1047 * scaleFactor
+          };
+
+          const rowY = spaceTimePositions[stat.label];
+          if (rowY !== undefined) {
+            ctx.textAlign = 'left';
+            ctx.textBaseline = 'middle';
+            ctx.fillStyle = '#FFFFFF';
+            ctx.font = `400 ${32 * scaleFactor}px "Unbounded Sans", sans-serif`;
+
+            // Draw Label
+            ctx.fillText(stat.label, 205 * scaleFactor, rowY);
+
+            // Draw Value + Unit
+            ctx.textAlign = 'right';
+            const valueText = `${stat.value}${stat.unit || ''}`;
+            ctx.fillText(valueText, 673 * scaleFactor, rowY);
+          }
 
         } else if (isPixel) {
           // --- NEW PINK PIXEL STAT BOX ---
@@ -3208,15 +3328,17 @@ jQuery(async () => {
   // 初始化 Carousel Dots
   function initCarouselDots() {
     const $select = $("#ccs-style-select");
-    const options = $select.find("option");
+    const visibleOptions = $select.find("option:not([style*='display: none'])");
     const $dotsContainer = $("#ccs-carousel-dots");
     $dotsContainer.empty();
 
-    options.each(function (index) {
+    visibleOptions.each(function () {
+      const optionEl = this;
       const $dot = $('<div class="ccs-carousel-dot"></div>');
       $dot.on('click', function (e) {
         e.stopPropagation(); // Prevent modal close
-        $select.prop("selectedIndex", index).trigger("change");
+        const actualIndex = $select.find("option").index(optionEl);
+        $select.prop("selectedIndex", actualIndex).trigger("change");
       });
       $dotsContainer.append($dot);
     });
@@ -3225,11 +3347,14 @@ jQuery(async () => {
 
   function updateCarouselDots() {
     const $select = $("#ccs-style-select");
-    const options = $select.find("option");
-    const currentIndex = options.index(options.filter(":selected"));
+    const visibleOptions = $select.find("option:not([style*='display: none'])");
+    const selectedOption = $select.find("option:selected");
+    const currentIndex = visibleOptions.index(selectedOption);
 
     $("#ccs-carousel-dots .ccs-carousel-dot").removeClass("active");
-    $("#ccs-carousel-dots .ccs-carousel-dot").eq(currentIndex).addClass("active");
+    if (currentIndex !== -1) {
+      $("#ccs-carousel-dots .ccs-carousel-dot").eq(currentIndex).addClass("active");
+    }
   }
 
   // 仅初始化一次
@@ -3239,16 +3364,23 @@ jQuery(async () => {
   function cycleStyle(direction) {
     explicitSlideDirection = direction;
     const $select = $("#ccs-style-select");
-    const options = $select.find("option");
-    let currentIndex = options.index(options.filter(":selected"));
+    const visibleOptions = $select.find("option:not([style*='display: none'])");
+    const selectedOption = $select.find("option:selected");
+    let currentIndex = visibleOptions.index(selectedOption);
 
-    if (direction === 'next') {
-      currentIndex = (currentIndex + 1) % options.length;
+    if (currentIndex === -1) {
+      currentIndex = 0;
     } else {
-      currentIndex = (currentIndex - 1 + options.length) % options.length;
+      if (direction === 'next') {
+        currentIndex = (currentIndex + 1) % visibleOptions.length;
+      } else {
+        currentIndex = (currentIndex - 1 + visibleOptions.length) % visibleOptions.length;
+      }
     }
 
-    $select.prop("selectedIndex", currentIndex).trigger("change");
+    const targetOption = visibleOptions.eq(currentIndex);
+    const actualIndex = $select.find("option").index(targetOption);
+    $select.prop("selectedIndex", actualIndex).trigger("change");
   }
 
   $("#ccs-carousel-prev").on("click", function () {
