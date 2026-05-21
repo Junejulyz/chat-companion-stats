@@ -81,7 +81,7 @@
             <div class="ccs-spacetime-swatch ccs-color-swatch active" data-color="#ffffff" style="background-color: #ffffff; border: 1px solid #ccc;" title="白色"></div>
             <div class="ccs-spacetime-swatch ccs-color-swatch ccs-custom-color-swatch" id="ccs-spacetime-custom-swatch" data-color="#00f0ff" style="background-color: #00f0ff;" title="自定义颜色">
               <i class="fa-solid fa-pen"></i>
-              <input type="color" id="ccs-spacetime-color-picker" value="#00f0ff" />
+              <input type="color" id="ccs-spacetime-color-picker" style="display: none;" value="#00f0ff" />
             </div>
           </div>
           <div id="ccs-carousel-dots" class="ccs-carousel-dots"></div>
@@ -102,6 +102,50 @@
         </select>
         <input id="ccs-download" type="button" class="menu_button" value="保存图片" />
         <input id="ccs-cancel" type="button" class="menu_button" value="取消" />
+      </div>
+    </div>
+    <!-- Custom Color Picker Popover -->
+    <div id="ccs-custom-picker-popover" class="ccs-custom-picker-popover" style="display: none;">
+      <!-- Saturation/Value Area -->
+      <div class="ccs-picker-sv-panel" id="ccs-picker-sv-panel">
+        <div class="ccs-picker-sv-white"></div>
+        <div class="ccs-picker-sv-black"></div>
+        <div class="ccs-picker-sv-handle" id="ccs-picker-sv-handle"></div>
+      </div>
+      
+      <!-- Hue Slider -->
+      <div class="ccs-picker-hue-panel" id="ccs-picker-hue-panel">
+        <div class="ccs-picker-hue-handle" id="ccs-picker-hue-handle"></div>
+      </div>
+      
+      <!-- Alpha Slider -->
+      <div class="ccs-picker-alpha-panel" id="ccs-picker-alpha-panel">
+        <div class="ccs-picker-alpha-gradient" id="ccs-picker-alpha-gradient"></div>
+        <div class="ccs-picker-alpha-handle" id="ccs-picker-alpha-handle"></div>
+      </div>
+      
+      <!-- Inputs Row -->
+      <div class="ccs-picker-inputs-row">
+        <div class="ccs-picker-input-group hex-group">
+          <input type="text" id="ccs-picker-hex" class="ccs-picker-input" maxlength="6">
+          <div class="ccs-picker-label">Hex</div>
+        </div>
+        <div class="ccs-picker-input-group">
+          <input type="text" id="ccs-picker-r" class="ccs-picker-input" pattern="[0-9]*" inputmode="numeric">
+          <div class="ccs-picker-label">R</div>
+        </div>
+        <div class="ccs-picker-input-group">
+          <input type="text" id="ccs-picker-g" class="ccs-picker-input" pattern="[0-9]*" inputmode="numeric">
+          <div class="ccs-picker-label">G</div>
+        </div>
+        <div class="ccs-picker-input-group">
+          <input type="text" id="ccs-picker-b" class="ccs-picker-input" pattern="[0-9]*" inputmode="numeric">
+          <div class="ccs-picker-label">B</div>
+        </div>
+        <div class="ccs-picker-input-group">
+          <input type="text" id="ccs-picker-a" class="ccs-picker-input" pattern="[0-9]*" inputmode="numeric">
+          <div class="ccs-picker-label">A</div>
+        </div>
       </div>
     </div>
   </div>

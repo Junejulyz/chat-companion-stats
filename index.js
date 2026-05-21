@@ -3345,6 +3345,11 @@ jQuery(async () => {
   // 颜色选择器处理 (scoped to parent selector)
   $(".ccs-color-swatch").on('click', async function (e) {
     e.stopPropagation();
+    if ($(this).attr('id') === 'ccs-spacetime-custom-swatch') return;
+    
+    // Close custom picker if switching to preset swatches
+    $('#ccs-custom-picker-popover').fadeOut(150);
+
     const isActive = $(this).hasClass('active');
     if (isActive) return;
 
@@ -3369,23 +3374,189 @@ jQuery(async () => {
     }
   });
 
-  // Space-Time custom color picker event handling
-  $(document).on('input change', '#ccs-spacetime-color-picker', async function (e) {
-    const selectedColor = $(this).val();
-    const $customSwatch = $('#ccs-spacetime-custom-swatch');
+  // --- HSV / RGB / Hex Color Picker Math Helpers ---
+  function hsvToRgb(h, s, v) {
+    h = h / 360;
+    s = s / 100;
+    v = v / 100;
+    let r, g, b;
+    let i = Math.floor(h * 6);
+    let f = h * 6 - i;
+    let p = v * (1 - s);
+    let q = v * (1 - f * s);
+    let t = v * (1 - (1 - f) * s);
+    switch (i % 6) {
+      case 0: r = v; g = t; b = p; break;
+      case 1: r = q; g = v; b = p; break;
+      case 2: r = p; g = v; b = t; break;
+      case 3: r = p; g = q; b = v; break;
+      case 4: r = t; g = p; b = v; break;
+      case 5: r = v; g = p; b = q; break;
+    }
+    return {
+      r: Math.round(r * 255),
+      g: Math.round(g * 255),
+      b: Math.round(b * 255)
+    };
+  }
+
+  function rgbToHsv(r, g, b) {
+    r = r / 255;
+    g = g / 255;
+    b = b / 255;
+    let max = Math.max(r, g, b), min = Math.min(r, g, b);
+    let h, s, v = max;
+    let d = max - min;
+    s = max === 0 ? 0 : d / max;
+    if (max === min) {
+      h = 0; // achromatic
+    } else {
+      switch (max) {
+        case r: h = (g - b) / d + (g < b ? 6 : 0); break;
+        case g: h = (b - r) / d + 2; break;
+        case b: h = (r - g) / d + 4; break;
+      }
+      h /= 6;
+    }
+    return {
+      h: Math.round(h * 360),
+      s: Math.round(s * 100),
+      v: Math.round(v * 100)
+    };
+  }
+
+  function rgbToHex(r, g, b) {
+    const toHex = x => {
+      const hex = Math.round(x).toString(16);
+      return hex.length === 1 ? '0' + hex : hex;
+    };
+    return `${toHex(r)}${toHex(g)}${toHex(b)}`.toUpperCase();
+  }
+
+  function hexToRgb(hex) {
+    hex = hex.replace(/^#/, '');
+    if (hex.length === 3) {
+      hex = hex.split('').map(char => char + char).join('');
+    }
+    if (hex.length !== 6) return null;
+    const num = parseInt(hex, 16);
+    return {
+      r: (num >> 16) & 255,
+      g: (num >> 8) & 255,
+      b: num & 255
+    };
+  }
+
+  function parseColor(colorStr) {
+    colorStr = (colorStr || '#00f0ff').trim().toLowerCase();
     
-    // Update custom swatch background and data attribute
-    $customSwatch.css('background-color', selectedColor);
-    $customSwatch.attr('data-color', selectedColor);
-    $customSwatch.data('color', selectedColor);
-    
-    // Set custom swatch as active if it is not already
-    if (!$customSwatch.hasClass('active')) {
-      $customSwatch.closest('.ccs-color-selector').find('.ccs-color-swatch').removeClass('active');
-      $customSwatch.addClass('active');
+    // Check rgba/rgb
+    const rgbaMatch = colorStr.match(/^rgba?\(\s*(\d+)\s*,\s*(\d+)\s*,\s*(\d+)\s*(?:,\s*([\d.]+)\s*)?\)$/);
+    if (rgbaMatch) {
+      return {
+        r: parseInt(rgbaMatch[1], 10),
+        g: parseInt(rgbaMatch[2], 10),
+        b: parseInt(rgbaMatch[3], 10),
+        a: rgbaMatch[4] !== undefined ? parseFloat(rgbaMatch[4]) : 1.0
+      };
     }
     
-    // Trigger preview regeneration
+    // Check hex
+    let hex = colorStr.replace(/^#/, '');
+    if (hex.length === 3) {
+      hex = hex.split('').map(char => char + char).join('');
+    }
+    
+    if (hex.length === 8) {
+      return {
+        r: parseInt(hex.substring(0, 2), 16),
+        g: parseInt(hex.substring(2, 4), 16),
+        b: parseInt(hex.substring(4, 6), 16),
+        a: parseFloat((parseInt(hex.substring(6, 8), 16) / 255).toFixed(2))
+      };
+    }
+    
+    const rgb = hexToRgb(hex);
+    if (rgb) {
+      return {
+        r: rgb.r,
+        g: rgb.g,
+        b: rgb.b,
+        a: 1.0
+      };
+    }
+    
+    return { r: 0, g: 240, b: 255, a: 1.0 };
+  }
+
+  // --- touch and drag helpers ---
+  function setupDrag(element, onDrag) {
+    const el = typeof element === 'string' ? document.querySelector(element) : element;
+    if (!el) return;
+
+    function update(e) {
+      const rect = el.getBoundingClientRect();
+      let clientX, clientY;
+      
+      const touch = e.touches ? e.touches[0] : (e.originalEvent && e.originalEvent.touches ? e.originalEvent.touches[0] : null);
+      if (touch) {
+        clientX = touch.clientX;
+        clientY = touch.clientY;
+      } else {
+        clientX = e.clientX;
+        clientY = e.clientY;
+      }
+      
+      let x = (clientX - rect.left) / rect.width;
+      let y = (clientY - rect.top) / rect.height;
+      
+      x = Math.max(0, Math.min(1, x));
+      y = Math.max(0, Math.min(1, y));
+      
+      onDrag(x, y);
+    }
+
+    function onMouseDown(e) {
+      e.preventDefault();
+      update(e);
+      
+      document.addEventListener('mousemove', onMouseMove);
+      document.addEventListener('mouseup', onMouseUp);
+    }
+
+    function onMouseMove(e) {
+      update(e);
+    }
+
+    function onMouseUp() {
+      document.removeEventListener('mousemove', onMouseMove);
+      document.removeEventListener('mouseup', onMouseUp);
+    }
+
+    function onTouchStart(e) {
+      if (e.cancelable) e.preventDefault();
+      update(e);
+      
+      document.addEventListener('touchmove', onTouchMove, { passive: false });
+      document.addEventListener('touchend', onTouchEnd);
+    }
+
+    function onTouchMove(e) {
+      if (e.cancelable) e.preventDefault();
+      update(e);
+    }
+
+    function onTouchEnd() {
+      document.removeEventListener('touchmove', onTouchMove);
+      document.removeEventListener('touchend', onTouchEnd);
+    }
+
+    el.addEventListener('mousedown', onMouseDown);
+    el.addEventListener('touchstart', onTouchStart, { passive: false });
+  }
+
+  // Debounced custom color preview update to prevent rendering lag on touch drag
+  const debouncedRegeneratePreview = debounce(async function () {
     const $container = $("#ccs-preview-container");
     const $img = $container.find('img');
     $container.addClass('loading-preview');
@@ -3398,6 +3569,225 @@ jQuery(async () => {
       console.error('Failed to regenerate preview on custom color input:', err);
     } finally {
       $container.removeClass('loading-preview');
+    }
+  }, 100);
+
+  // Color Picker State variables
+  let pickerH = 0;
+  let pickerS = 100;
+  let pickerV = 100;
+  let pickerA = 1.0;
+  let isUpdatingPicker = false;
+
+  function updatePickerUI(source) {
+    if (isUpdatingPicker) return;
+    isUpdatingPicker = true;
+
+    const rgb = hsvToRgb(pickerH, pickerS, pickerV);
+    const hex = rgbToHex(rgb.r, rgb.g, rgb.b);
+
+    // SV panel background color (pure hue)
+    const pureRgb = hsvToRgb(pickerH, 100, 100);
+    $('#ccs-picker-sv-panel').css('background-color', `rgb(${pureRgb.r}, ${pureRgb.g}, ${pureRgb.b})`);
+
+    // SV Handle position
+    $('#ccs-picker-sv-handle').css({
+      left: pickerS + '%',
+      top: (100 - pickerV) + '%'
+    });
+
+    // Hue Slider Handle position
+    $('#ccs-picker-hue-handle').css('left', (pickerH / 360) * 100 + '%');
+
+    // Alpha Slider Handle position
+    $('#ccs-picker-alpha-handle').css('left', (pickerA * 100) + '%');
+
+    // Alpha Slider gradient background color
+    $('#ccs-picker-alpha-gradient').css(
+      'background', 
+      `linear-gradient(to right, transparent, rgb(${rgb.r}, ${rgb.g}, ${rgb.b}))`
+    );
+
+    // Text inputs (if not actively being typed)
+    if (source !== 'hex') $('#ccs-picker-hex').val(hex);
+    if (source !== 'r') $('#ccs-picker-r').val(rgb.r);
+    if (source !== 'g') $('#ccs-picker-g').val(rgb.g);
+    if (source !== 'b') $('#ccs-picker-b').val(rgb.b);
+    if (source !== 'a') $('#ccs-picker-a').val(Math.round(pickerA * 100));
+
+    // Construct final color
+    let finalColor;
+    if (pickerA === 1.0) {
+      finalColor = '#' + hex;
+    } else {
+      finalColor = `rgba(${rgb.r}, ${rgb.g}, ${rgb.b}, ${pickerA.toFixed(2)})`;
+    }
+
+    // Swatch values
+    const $customSwatch = $('#ccs-spacetime-custom-swatch');
+    $customSwatch.css('background-color', finalColor);
+    $customSwatch.attr('data-color', finalColor);
+    $customSwatch.data('color', finalColor);
+
+    // native hidden input state
+    $('#ccs-spacetime-color-picker').val('#' + hex);
+
+    isUpdatingPicker = false;
+
+    debouncedRegeneratePreview();
+  }
+
+  function initColorPicker(colorStr) {
+    const color = parseColor(colorStr);
+    const hsv = rgbToHsv(color.r, color.g, color.b);
+    
+    pickerH = hsv.h;
+    pickerS = hsv.s;
+    pickerV = hsv.v;
+    pickerA = color.a;
+    
+    updatePickerUI();
+  }
+
+  // Popover placement math
+  function positionPopover() {
+    const $swatch = $('#ccs-spacetime-custom-swatch');
+    const $popover = $('#ccs-custom-picker-popover');
+    if (!$swatch.length || !$popover.length || !$popover.is(':visible')) return;
+    
+    const rect = $swatch[0].getBoundingClientRect();
+    const popoverWidth = $popover.outerWidth() || 260;
+    const popoverHeight = $popover.outerHeight() || 240;
+    
+    let top = rect.bottom + 8;
+    let left = rect.left + rect.width / 2 - popoverWidth / 2;
+    
+    const viewportWidth = window.innerWidth;
+    const viewportHeight = window.innerHeight;
+    
+    if (left < 10) {
+      left = 10;
+    } else if (left + popoverWidth > viewportWidth - 10) {
+      left = viewportWidth - popoverWidth - 10;
+    }
+    
+    if (top + popoverHeight > viewportHeight - 10) {
+      const topAbove = rect.top - popoverHeight - 8;
+      if (topAbove > 10) {
+        top = topAbove;
+      }
+    }
+    
+    $popover.css({
+      top: top + 'px',
+      left: left + 'px'
+    });
+  }
+
+  // Bind popover position updates
+  $('#ccs-preview-modal > div').on('scroll', function () {
+    positionPopover();
+  });
+
+  $(window).on('resize.ccs_picker', function () {
+    positionPopover();
+  });
+
+  // Setup interaction drags
+  setupDrag('#ccs-picker-sv-panel', function (x, y) {
+    pickerS = Math.round(x * 100);
+    pickerV = Math.round((1 - y) * 100);
+    updatePickerUI();
+  });
+
+  setupDrag('#ccs-picker-hue-panel', function (x, y) {
+    pickerH = Math.round(x * 360);
+    if (pickerH === 360) pickerH = 0;
+    updatePickerUI();
+  });
+
+  setupDrag('#ccs-picker-alpha-panel', function (x, y) {
+    pickerA = parseFloat(x.toFixed(2));
+    updatePickerUI();
+  });
+
+  // Bind input listeners
+  $('#ccs-picker-hex').on('input', function () {
+    let val = $(this).val().trim().replace(/^#/, '');
+    if (val.length === 3) {
+      val = val.split('').map(char => char + char).join('');
+    }
+    if (val.length === 6) {
+      const rgb = hexToRgb(val);
+      if (rgb) {
+        const hsv = rgbToHsv(rgb.r, rgb.g, rgb.b);
+        pickerH = hsv.h;
+        pickerS = hsv.s;
+        pickerV = hsv.v;
+        updatePickerUI('hex');
+      }
+    }
+  });
+
+  $('#ccs-picker-r, #ccs-picker-g, #ccs-picker-b').on('input', function () {
+    let r = parseInt($('#ccs-picker-r').val(), 10) || 0;
+    let g = parseInt($('#ccs-picker-g').val(), 10) || 0;
+    let b = parseInt($('#ccs-picker-b').val(), 10) || 0;
+    
+    r = Math.max(0, Math.min(255, r));
+    g = Math.max(0, Math.min(255, g));
+    b = Math.max(0, Math.min(255, b));
+    
+    if ($(this).attr('id') === 'ccs-picker-r') $('#ccs-picker-r').val(r);
+    if ($(this).attr('id') === 'ccs-picker-g') $('#ccs-picker-g').val(g);
+    if ($(this).attr('id') === 'ccs-picker-b') $('#ccs-picker-b').val(b);
+    
+    const hsv = rgbToHsv(r, g, b);
+    pickerH = hsv.h;
+    pickerS = hsv.s;
+    pickerV = hsv.v;
+    
+    updatePickerUI($(this).attr('id').replace('ccs-picker-', ''));
+  });
+
+  $('#ccs-picker-a').on('input', function () {
+    let aVal = parseInt($(this).val(), 10);
+    if (isNaN(aVal)) aVal = 100;
+    aVal = Math.max(0, Math.min(100, aVal));
+    
+    pickerA = parseFloat((aVal / 100).toFixed(2));
+    updatePickerUI('a');
+  });
+
+  // Custom swatch click handler
+  $(document).on('click', '#ccs-spacetime-custom-swatch', function (e) {
+    e.stopPropagation();
+    const $popover = $('#ccs-custom-picker-popover');
+    
+    const $swatch = $(this);
+    if (!$swatch.hasClass('active')) {
+      $swatch.closest('.ccs-color-selector').find('.ccs-color-swatch').removeClass('active');
+      $swatch.addClass('active');
+    }
+    
+    if ($popover.is(':visible')) {
+      $popover.fadeOut(150);
+    } else {
+      let currentColor = $swatch.attr('data-color') || '#00f0ff';
+      initColorPicker(currentColor);
+      $popover.fadeIn(150, function() {
+        positionPopover();
+      });
+    }
+  });
+
+  // Document click-outside handler to close popover
+  $(document).on('click.ccs_picker', function (e) {
+    const $popover = $('#ccs-custom-picker-popover');
+    if ($popover.is(':visible') && 
+        !$(e.target).closest('#ccs-custom-picker-popover').length && 
+        !$(e.target).closest('#ccs-spacetime-custom-swatch').length) {
+      $popover.fadeOut(150);
     }
   });
 
