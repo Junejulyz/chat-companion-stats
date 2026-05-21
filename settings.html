@@ -81,7 +81,24 @@
             <div class="ccs-spacetime-swatch ccs-color-swatch active" data-color="#ffffff" style="background-color: #ffffff; border: 1px solid #ccc;" title="白色"></div>
             <div class="ccs-spacetime-swatch ccs-color-swatch ccs-custom-color-swatch" id="ccs-spacetime-custom-swatch" data-color="#00f0ff" style="background-color: #00f0ff;" title="自定义颜色">
               <i class="fa-solid fa-pen"></i>
-              <input type="color" id="ccs-spacetime-color-picker" value="#00f0ff" />
+              <input type="color" id="ccs-spacetime-color-picker" value="#00f0ff" style="display: none;" />
+            </div>
+            <!-- Custom Premium Color Picker Popover -->
+            <div id="ccs-custom-picker-popover" class="ccs-custom-picker-popover" style="display: none;">
+              <div class="ccs-picker-sl-container" id="ccs-picker-sl-container">
+                <div class="ccs-picker-sl-bg" id="ccs-picker-sl-bg"></div>
+                <div class="ccs-picker-sl-white"></div>
+                <div class="ccs-picker-sl-black"></div>
+                <div class="ccs-picker-sl-handle" id="ccs-picker-sl-handle"></div>
+              </div>
+              <div class="ccs-picker-hue-container" id="ccs-picker-hue-container">
+                <div class="ccs-picker-hue-bg"></div>
+                <div class="ccs-picker-hue-handle" id="ccs-picker-hue-handle"></div>
+              </div>
+              <div class="ccs-picker-hex-display">
+                <span class="ccs-picker-hex-hash">#</span>
+                <input type="text" class="ccs-picker-hex-val" id="ccs-picker-hex-val" value="00f0ff" maxlength="6" />
+              </div>
             </div>
           </div>
           <div id="ccs-carousel-dots" class="ccs-carousel-dots"></div>

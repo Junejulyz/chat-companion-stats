@@ -3226,6 +3226,7 @@ jQuery(async () => {
   $("#ccs-cancel").on("click", function () {
     $("#ccs-preview-modal").removeClass('ccs-modal-visible').hide();
     $('body').removeClass('ccs-no-scroll'); // 恢复背景滚动
+    $('#ccs-custom-picker-popover').hide();
   });
 
   // 添加保存按钮事件
@@ -3242,6 +3243,7 @@ jQuery(async () => {
     if (e.target === this) {
       $(this).removeClass('ccs-modal-visible').hide();
       $('body').removeClass('ccs-no-scroll'); // 恢复背景滚动
+      $('#ccs-custom-picker-popover').hide();
     }
   });
 
@@ -3260,6 +3262,7 @@ jQuery(async () => {
     shareStyle = $select.val();
     localStorage.setItem('ccs-share-style', shareStyle); // 保存用户选择到 localStorage
     if (DEBUG) console.log('Selected style changed (dropdown):', shareStyle);
+    $('#ccs-custom-picker-popover').hide();
 
     if (shareStyle === 'pocket-sticker') {
       $("#ccs-color-selector").show();
@@ -3344,10 +3347,176 @@ jQuery(async () => {
     updateCarouselDots();
   });
 
+  // HSV/Hex conversion utilities for Space-Time custom color picker
+  function hexToHsv(hex) {
+    let shorthandRegex = /^#?([a-f\d])([a-f\d])([a-f\d])$/i;
+    hex = hex.replace(shorthandRegex, function(m, r, g, b) {
+      return r + r + g + g + b + b;
+    });
+
+    let result = /^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(hex);
+    if (!result) return { h: 0, s: 100, v: 100 };
+    let r = parseInt(result[1], 16) / 255;
+    let g = parseInt(result[2], 16) / 255;
+    let b = parseInt(result[3], 16) / 255;
+
+    let max = Math.max(r, g, b), min = Math.min(r, g, b);
+    let h, s, v = max;
+
+    let d = max - min;
+    s = max === 0 ? 0 : d / max;
+
+    if (max === min) {
+      h = 0; // achromatic
+    } else {
+      switch (max) {
+        case r: h = (g - b) / d + (g < b ? 6 : 0); break;
+        case g: h = (b - r) / d + 2; break;
+        case b: h = (r - g) / d + 4; break;
+      }
+      h /= 6;
+    }
+
+    return {
+      h: Math.round(h * 360),
+      s: Math.round(s * 100),
+      v: Math.round(v * 100)
+    };
+  }
+
+  function hsvToHex(h, s, v) {
+    s /= 100;
+    v /= 100;
+    let r, g, b;
+    let i = Math.floor(h / 60);
+    let f = h / 60 - i;
+    let p = v * (1 - s);
+    let q = v * (1 - f * s);
+    let t = v * (1 - (1 - f) * s);
+    switch (i % 6) {
+      case 0: r = v; g = t; b = p; break;
+      case 1: r = q; g = v; b = p; break;
+      case 2: r = p; g = v; b = t; break;
+      case 3: r = p; g = q; b = v; break;
+      case 4: r = t; g = p; b = v; break;
+      case 5: r = v; g = p; b = q; break;
+    }
+    const toHex = x => {
+      const hex = Math.round(x * 255).toString(16);
+      return hex.length === 1 ? '0' + hex : hex;
+    };
+    return `#${toHex(r)}${toHex(g)}${toHex(b)}`;
+  }
+
+  // Setup generic drag listener with mouse/touch events and scroll lock
+  function setupDrag(element, onDrag) {
+    let isDragging = false;
+
+    function handleStart(e) {
+      isDragging = true;
+      handleMove(e);
+    }
+
+    function handleMove(e) {
+      if (!isDragging) return;
+      
+      // Crucial: Stop iOS/Android browser elastic scrolling while dragging colors
+      if (e.cancelable) {
+        e.preventDefault();
+      }
+      e.stopPropagation();
+
+      const rect = element.getBoundingClientRect();
+      let clientX, clientY;
+      
+      if (e.touches && e.touches.length) {
+        clientX = e.touches[0].clientX;
+        clientY = e.touches[0].clientY;
+      } else if (e.originalEvent && e.originalEvent.touches && e.originalEvent.touches.length) {
+        clientX = e.originalEvent.touches[0].clientX;
+        clientY = e.originalEvent.touches[0].clientY;
+      } else {
+        clientX = e.clientX;
+        clientY = e.clientY;
+      }
+
+      let x = (clientX - rect.left) / rect.width;
+      let y = (clientY - rect.top) / rect.height;
+
+      // Clamp coordinates
+      x = Math.max(0, Math.min(1, x));
+      y = Math.max(0, Math.min(1, y));
+
+      onDrag(x, y);
+    }
+
+    function handleEnd() {
+      isDragging = false;
+    }
+
+    // Register raw events
+    element.addEventListener('mousedown', handleStart);
+    window.addEventListener('mousemove', handleMove);
+    window.addEventListener('mouseup', handleEnd);
+
+    // Non-passive to enable preventDefault scroll blocking on mobile
+    element.addEventListener('touchstart', handleStart, { passive: false });
+    window.addEventListener('touchmove', handleMove, { passive: false });
+    window.addEventListener('touchend', handleEnd);
+  }
+
+  let pickerH = 180, pickerS = 100, pickerV = 100;
+  let isInitializingPicker = false;
+
+  function initCustomPicker(hex) {
+    isInitializingPicker = true;
+    const hsv = hexToHsv(hex);
+    pickerH = hsv.h;
+    pickerS = hsv.s;
+    pickerV = hsv.v;
+
+    // Update Hue handle position
+    const huePercent = (pickerH / 360) * 100;
+    $('#ccs-picker-hue-handle').css('left', `${huePercent}%`);
+
+    // Update Saturation-Value background color & handle position
+    const baseHueColor = `hsl(${pickerH}, 100%, 50%)`;
+    $('#ccs-picker-sl-bg').css('background-color', baseHueColor);
+    
+    $('#ccs-picker-sl-handle').css({
+      'left': `${pickerS}%`,
+      'top': `${100 - pickerV}%`
+    });
+
+    // Update Hex display val (without '#' prefix in the text box)
+    const cleanedHex = hex.replace('#', '').toUpperCase();
+    $('#ccs-picker-hex-val').val(cleanedHex);
+    isInitializingPicker = false;
+  }
+
   // 颜色选择器处理 (scoped to parent selector)
   $(".ccs-color-swatch").on('click', async function (e) {
     e.stopPropagation();
-    if ($(this).hasClass('active')) return;
+    const isCustom = $(this).attr('id') === 'ccs-spacetime-custom-swatch';
+    const isActive = $(this).hasClass('active');
+
+    if (isCustom) {
+      // Toggle popover visibility
+      const $popover = $('#ccs-custom-picker-popover');
+      if ($popover.is(':visible')) {
+        $popover.fadeOut(200);
+      } else {
+        $popover.fadeIn(200);
+        // Initialize color picker positions based on current color value
+        const currentColor = $(this).attr('data-color') || '#00f0ff';
+        initCustomPicker(currentColor);
+      }
+    } else {
+      // Hide popover if clicking another swatch
+      $('#ccs-custom-picker-popover').fadeOut(200);
+    }
+
+    if (isActive) return;
 
     // Update UI active state (only within the same parent color-selector)
     $(this).closest('.ccs-color-selector').find('.ccs-color-swatch').removeClass('active');
@@ -3363,8 +3532,8 @@ jQuery(async () => {
       if ($img.length) {
         $img.attr('src', imageData);
       }
-    } catch (e) {
-      console.error('Failed to regenerate preview on color change:', e);
+    } catch (err) {
+      console.error('Failed to regenerate preview on color change:', err);
     } finally {
       $container.removeClass('loading-preview');
     }
@@ -3394,6 +3563,82 @@ jQuery(async () => {
         console.error('Failed to regenerate preview on custom color input:', err);
       } finally {
         $container.removeClass('loading-preview');
+      }
+    }
+  });
+
+  // Initialize and bind drag handlers once elements exist
+  function bindCustomDragEvents() {
+    const slContainer = document.getElementById('ccs-picker-sl-container');
+    const hueContainer = document.getElementById('ccs-picker-hue-container');
+
+    if (slContainer && hueContainer) {
+      if (DEBUG) console.log('Binding custom color picker drag handlers.');
+      setupDrag(slContainer, function(x, y) {
+        if (isInitializingPicker) return;
+        pickerS = Math.round(x * 100);
+        pickerV = Math.round((1 - y) * 100);
+        
+        // Move handle
+        $('#ccs-picker-sl-handle').css({
+          'left': `${pickerS}%`,
+          'top': `${100 - pickerV}%`
+        });
+
+        // Recalculate hex color
+        const newHex = hsvToHex(pickerH, pickerS, pickerV);
+        $('#ccs-picker-hex-val').val(newHex.replace('#', '').toUpperCase());
+        
+        // Update the hidden input color value to trigger standard regenerate pipeline
+        $('#ccs-spacetime-color-picker').val(newHex).trigger('input');
+      });
+
+      setupDrag(hueContainer, function(x, y) {
+        if (isInitializingPicker) return;
+        pickerH = Math.round(x * 360);
+
+        // Move handle
+        $('#ccs-picker-hue-handle').css('left', `${x * 100}%`);
+
+        // Update 2D Saturation-Value base background
+        const baseHueColor = `hsl(${pickerH}, 100%, 50%)`;
+        $('#ccs-picker-sl-bg').css('background-color', baseHueColor);
+
+        // Recalculate hex color
+        const newHex = hsvToHex(pickerH, pickerS, pickerV);
+        $('#ccs-picker-hex-val').val(newHex.replace('#', '').toUpperCase());
+
+        // Update the hidden input color value to trigger standard regenerate pipeline
+        $('#ccs-spacetime-color-picker').val(newHex).trigger('input');
+      });
+    }
+  }
+
+  // Trigger bindings
+  bindCustomDragEvents();
+
+  // Hex Text typing manual override support
+  $(document).on('input change', '#ccs-picker-hex-val', function() {
+    let enteredVal = $(this).val().trim();
+    if (enteredVal.length === 6 || enteredVal.length === 3) {
+      if (!enteredVal.startsWith('#')) {
+        enteredVal = '#' + enteredVal;
+      }
+      const hexPattern = /^#([A-Fa-f0-9]{3}){1,2}$/;
+      if (hexPattern.test(enteredVal)) {
+        initCustomPicker(enteredVal);
+        $('#ccs-spacetime-color-picker').val(enteredVal).trigger('input');
+      }
+    }
+  });
+
+  // Click outside to close custom color picker popover
+  $(document).on('click', function(e) {
+    const $popover = $('#ccs-custom-picker-popover');
+    if ($popover.is(':visible')) {
+      if (!$(e.target).closest('#ccs-custom-picker-popover').length && 
+          !$(e.target).closest('#ccs-spacetime-custom-swatch').length) {
+        $popover.fadeOut(200);
       }
     }
   });
