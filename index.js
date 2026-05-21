@@ -2356,14 +2356,14 @@ jQuery(async () => {
 
       } else if (isSpaceTime) {
         // --- SPACE-TIME ARCHIVE HEADER & AVATAR DRAWING ---
-        // 1. Character Name
+        // 1. Character Name (font-weight 400 to prevent overlap, shifted down to 117px)
         ctx.textAlign = 'center';
         ctx.textBaseline = 'top';
         ctx.fillStyle = '#FFFFFF';
-        ctx.font = `700 ${98 * scaleFactor}px "Unbounded Sans", sans-serif`;
-        ctx.fillText(charName || "角色名", width / 2, 93 * scaleFactor);
+        ctx.font = `400 ${98 * scaleFactor}px "Unbounded Sans", sans-serif`;
+        ctx.fillText(charName || "角色名", width / 2, 117 * scaleFactor);
 
-        // 2. Encounter Date (formatted as YYYY.MM.DD inside the white box)
+        // 2. Encounter Date (formatted as YYYY.MM.DD inside the white box, shifted down to 558px)
         const rawStart = $("#ccs-start").text();
         const dateMatch = rawStart.match(/(\d{4})年(\d{1,2})月(\d{1,2})日/);
         const formattedDate = dateMatch
@@ -2374,7 +2374,7 @@ jQuery(async () => {
         ctx.textBaseline = 'top';
         ctx.fillStyle = '#1A1A1A';
         ctx.font = `400 ${37 * scaleFactor}px "Gajraj One", sans-serif`;
-        ctx.fillText(formattedDate, width / 2, 534 * scaleFactor);
+        ctx.fillText(formattedDate, width / 2, 558 * scaleFactor);
         ctx.textBaseline = 'alphabetic'; // Reset
 
         // 3. Avatar Mask drawing function with 20px bevel (45-degree flat cut corners)
@@ -2411,19 +2411,27 @@ jQuery(async () => {
           ctx.restore();
         };
 
-        // Draw character avatar
-        drawBeveledAvatar(charImg, 206 * scaleFactor, 285 * scaleFactor);
-
-        // Draw character avatar frame
-        if (spaceTimeAssets.frame) {
-          ctx.drawImage(spaceTimeAssets.frame, 191 * scaleFactor, 270 * scaleFactor, 240 * scaleFactor, 240 * scaleFactor);
-        }
-
-        // Draw user avatar and frame if showUser is enabled
         if (showUser) {
+          // Draw character avatar
+          drawBeveledAvatar(charImg, 206 * scaleFactor, 285 * scaleFactor);
+
+          // Draw character avatar frame
+          if (spaceTimeAssets.frame) {
+            ctx.drawImage(spaceTimeAssets.frame, 191 * scaleFactor, 270 * scaleFactor, 240 * scaleFactor, 240 * scaleFactor);
+          }
+
+          // Draw user avatar and frame if showUser is enabled
           drawBeveledAvatar(userImg, 480 * scaleFactor, 285 * scaleFactor);
           if (spaceTimeAssets.frame) {
             ctx.drawImage(spaceTimeAssets.frame, 465 * scaleFactor, 270 * scaleFactor, 240 * scaleFactor, 240 * scaleFactor);
+          }
+        } else {
+          // Draw character avatar and frame centered
+          const centerFrameX = 328 * scaleFactor;
+          const centerAvatarX = 343 * scaleFactor;
+          drawBeveledAvatar(charImg, centerAvatarX, 285 * scaleFactor);
+          if (spaceTimeAssets.frame) {
+            ctx.drawImage(spaceTimeAssets.frame, centerFrameX, 270 * scaleFactor, 240 * scaleFactor, 240 * scaleFactor);
           }
         }
 
@@ -2629,11 +2637,12 @@ jQuery(async () => {
           ctx.fillText(`${stat.value}${stat.unit || ''}`, valueX, textY);
 
         } else if (isSpaceTime) {
+          // Shifted rowY values down by 24px
           const spaceTimePositions = {
-            '聊天对话': 651 * scaleFactor,
-            '相伴天数': 783 * scaleFactor,
-            '聊天字数': 915 * scaleFactor,
-            '回忆大小': 1047 * scaleFactor
+            '聊天对话': 675 * scaleFactor,
+            '相伴天数': 807 * scaleFactor,
+            '聊天字数': 939 * scaleFactor,
+            '回忆大小': 1071 * scaleFactor
           };
 
           const rowY = spaceTimePositions[stat.label];
@@ -2641,14 +2650,15 @@ jQuery(async () => {
             ctx.textAlign = 'left';
             ctx.textBaseline = 'middle';
             ctx.fillStyle = '#FFFFFF';
-            ctx.font = `400 ${32 * scaleFactor}px "Unbounded Sans", sans-serif`;
+            // Increased font size from 32px to 40px
+            ctx.font = `400 ${40 * scaleFactor}px "Unbounded Sans", sans-serif`;
 
             // Draw Label
             ctx.fillText(stat.label, 205 * scaleFactor, rowY);
 
-            // Draw Value + Unit
+            // Draw Value + Unit (separated by a space, e.g., 35 条)
             ctx.textAlign = 'right';
-            const valueText = `${stat.value}${stat.unit || ''}`;
+            const valueText = `${stat.value}${stat.unit ? ' ' + stat.unit : ''}`;
             ctx.fillText(valueText, 673 * scaleFactor, rowY);
           }
 
