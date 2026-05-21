@@ -75,8 +75,8 @@ jQuery(async () => {
   $("#ccs-preview-modal, #ccs-global-modal, #ccs-advanced-modal").appendTo("body").removeClass('ccs-modal-visible').hide();
 
   // 阻止事件冒泡，防止点击模态框时触发 ST 原生的“点击外部关闭扩展面板”逻辑
-  // 增加 mousedown, mouseup, touchstart, touchend 确保全平台所有可能的触发事件都被拦截
-  $("#ccs-preview-modal, #ccs-global-modal, #ccs-advanced-modal").on('pointerdown pointerup mousedown mouseup touchstart touchend click', function (e) {
+  // 仅拦截 pointerdown/mousedown/touchstart/click，允许 mouseup/touchend 冒泡以支持全局拖放释放
+  $("#ccs-preview-modal, #ccs-global-modal, #ccs-advanced-modal").on('pointerdown mousedown touchstart click', function (e) {
     e.stopPropagation();
   });
 
@@ -1519,7 +1519,7 @@ jQuery(async () => {
     const statValueColor = isPixel ? '#1A1A1A' : (isDark ? '#FAFBF7' : '#131313');
     const charNameColor = isPixel ? pixelText : (isDark ? '#FAFBF7' : '#131313');
     const dashColor = '#FFFFFF';
-    const activeSpaceTimeColor = $('.ccs-spacetime-swatch.active').data('color') || '#ffffff';
+    const activeSpaceTimeColor = $('.ccs-spacetime-swatch.active').attr('data-color') || '#ffffff';
 
     // 0. 加载资产 (Ins & Pixel Style & Ancient)
     const insAssets = {};
@@ -3344,8 +3344,8 @@ jQuery(async () => {
 
   // 颜色选择器处理 (scoped to parent selector)
   $(".ccs-color-swatch").on('click', async function (e) {
-    e.stopPropagation();
     if ($(this).attr('id') === 'ccs-spacetime-custom-swatch') return;
+    e.stopPropagation();
     
     // Close custom picker if switching to preset swatches
     $('#ccs-custom-picker-popover').fadeOut(150);
@@ -3625,6 +3625,10 @@ jQuery(async () => {
 
     // Swatch values
     const $customSwatch = $('#ccs-spacetime-custom-swatch');
+    if (!$customSwatch.hasClass('active')) {
+      $customSwatch.closest('.ccs-color-selector').find('.ccs-color-swatch').removeClass('active');
+      $customSwatch.addClass('active');
+    }
     $customSwatch.css('background-color', finalColor);
     $customSwatch.attr('data-color', finalColor);
     $customSwatch.data('color', finalColor);
@@ -3759,8 +3763,8 @@ jQuery(async () => {
     updatePickerUI('a');
   });
 
-  // Custom swatch click handler
-  $(document).on('click', '#ccs-spacetime-custom-swatch', function (e) {
+  // Custom swatch click handler - bind directly to prevent event bubble blocking
+  $('#ccs-spacetime-custom-swatch').on('click', function (e) {
     e.stopPropagation();
     const $popover = $('#ccs-custom-picker-popover');
     
@@ -3783,6 +3787,16 @@ jQuery(async () => {
 
   // Document click-outside handler to close popover
   $(document).on('click.ccs_picker', function (e) {
+    const $popover = $('#ccs-custom-picker-popover');
+    if ($popover.is(':visible') && 
+        !$(e.target).closest('#ccs-custom-picker-popover').length && 
+        !$(e.target).closest('#ccs-spacetime-custom-swatch').length) {
+      $popover.fadeOut(150);
+    }
+  });
+
+  // Modal click-outside handler to close popover (since the modal blocks document events)
+  $('#ccs-preview-modal').on('click', function (e) {
     const $popover = $('#ccs-custom-picker-popover');
     if ($popover.is(':visible') && 
         !$(e.target).closest('#ccs-custom-picker-popover').length && 

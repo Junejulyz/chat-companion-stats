@@ -894,6 +894,7 @@ body.ccs-no-scroll {
 .ccs-custom-color-swatch i {
   font-size: 9px;
   color: #1a1a1a;
+  text-shadow: 0 0 2px rgba(255, 255, 255, 0.8);
   pointer-events: none;
 }
 
