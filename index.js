@@ -1519,6 +1519,7 @@ jQuery(async () => {
     const statValueColor = isPixel ? '#1A1A1A' : (isDark ? '#FAFBF7' : '#131313');
     const charNameColor = isPixel ? pixelText : (isDark ? '#FAFBF7' : '#131313');
     const dashColor = '#FFFFFF';
+    const activeSpaceTimeColor = $('.ccs-spacetime-swatch.active').data('color') || '#ffffff';
 
     // 0. 加载资产 (Ins & Pixel Style & Ancient)
     const insAssets = {};
@@ -1539,6 +1540,30 @@ jQuery(async () => {
       img.onerror = () => { clearTimeout(timeout); resolve(null); };
       img.src = url;
     });
+
+    async function loadRecoloredSvg(url, color) {
+      if (!color || color.toLowerCase() === '#ffffff' || color.toLowerCase() === 'white') {
+        return await loadAssetImg(url);
+      }
+      try {
+        const resp = await fetch(url);
+        if (!resp.ok) throw new Error(`HTTP error ${resp.status}`);
+        let svgText = await resp.text();
+        
+        // Replace fill="white" and stroke="white" (with single or double quotes, case-insensitive)
+        svgText = svgText.replace(/fill=["']white["']/gi, `fill="${color}"`);
+        svgText = svgText.replace(/stroke=["']white["']/gi, `stroke="${color}"`);
+        
+        // Convert to data URI
+        const encoded = btoa(unescape(encodeURIComponent(svgText)));
+        const dataUrl = `data:image/svg+xml;base64,${encoded}`;
+        
+        return await loadAssetImg(dataUrl);
+      } catch (err) {
+        console.error('Failed to recolor SVG:', url, err);
+        return await loadAssetImg(url); // Fallback to original
+      }
+    }
 
     if (shareStyle === 'ancient') {
       const v = Date.now();
@@ -1576,7 +1601,7 @@ jQuery(async () => {
         frame: `${extensionWebPath}/assets/futuristiccard/avatarframe.svg?v=${v}`
       };
       await Promise.all(Object.entries(spaceTimeAssetList).map(async ([key, url]) => {
-        spaceTimeAssets[key] = await loadAssetImg(url);
+        spaceTimeAssets[key] = await loadRecoloredSvg(url, activeSpaceTimeColor);
       }));
     }
 
@@ -2359,7 +2384,7 @@ jQuery(async () => {
         // 1. Character Name (font-weight 400 to prevent overlap, shifted down to 117px)
         ctx.textAlign = 'center';
         ctx.textBaseline = 'top';
-        ctx.fillStyle = '#FFFFFF';
+        ctx.fillStyle = activeSpaceTimeColor;
         ctx.font = `400 ${98 * scaleFactor}px "Unbounded Sans", sans-serif`;
         ctx.fillText(charName || "角色名", width / 2, 117 * scaleFactor);
 
@@ -2374,7 +2399,7 @@ jQuery(async () => {
         ctx.textBaseline = 'top';
         ctx.fillStyle = '#1A1A1A';
         ctx.font = `400 ${37 * scaleFactor}px "Gajraj One", sans-serif`;
-        ctx.fillText(formattedDate, width / 2, 558 * scaleFactor);
+        ctx.fillText(formattedDate, width / 2, 546 * scaleFactor);
         ctx.textBaseline = 'alphabetic'; // Reset
 
         // 3. Avatar Mask drawing function with 20px bevel (45-degree flat cut corners)
@@ -2638,14 +2663,14 @@ jQuery(async () => {
 
         } else if (isSpaceTime) {
           // Dynamic slots: if a stat is unselected, they shift up sequentially.
-          // Base row positions are shifted down by another 7px: [682, 814, 946, 1078]
-          const spaceTimeSlots = [682 * scaleFactor, 814 * scaleFactor, 946 * scaleFactor, 1078 * scaleFactor];
+          // Base row positions are shifted up by 2px per request: [680, 812, 944, 1076]
+          const spaceTimeSlots = [680 * scaleFactor, 812 * scaleFactor, 944 * scaleFactor, 1076 * scaleFactor];
           const rowY = spaceTimeSlots[i];
 
           if (rowY !== undefined) {
             ctx.textAlign = 'left';
             ctx.textBaseline = 'middle';
-            ctx.fillStyle = '#FFFFFF';
+            ctx.fillStyle = activeSpaceTimeColor;
             // Increased font size from 32px to 40px
             ctx.font = `400 ${40 * scaleFactor}px "Unbounded Sans", sans-serif`;
 
@@ -3163,12 +3188,19 @@ jQuery(async () => {
     if (shareStyle === 'pocket-sticker') {
       $("#ccs-color-selector").show();
       $("#ccs-y2k-color-selector").hide();
+      $("#ccs-spacetime-color-selector").hide();
     } else if (shareStyle === 'nostalgic-y2k') {
       $("#ccs-color-selector").hide();
       $("#ccs-y2k-color-selector").show();
+      $("#ccs-spacetime-color-selector").hide();
+    } else if (shareStyle === 'space-time') {
+      $("#ccs-color-selector").hide();
+      $("#ccs-y2k-color-selector").hide();
+      $("#ccs-spacetime-color-selector").show();
     } else { // modern, ins, pixel, ancient, classic-night 等无需颜色选择
       $("#ccs-color-selector").hide();
       $("#ccs-y2k-color-selector").hide();
+      $("#ccs-spacetime-color-selector").hide();
     }
 
     try {
@@ -3232,12 +3264,19 @@ jQuery(async () => {
     if (shareStyle === 'pocket-sticker') {
       $("#ccs-color-selector").show();
       $("#ccs-y2k-color-selector").hide();
+      $("#ccs-spacetime-color-selector").hide();
     } else if (shareStyle === 'nostalgic-y2k') {
       $("#ccs-color-selector").hide();
       $("#ccs-y2k-color-selector").show();
+      $("#ccs-spacetime-color-selector").hide();
+    } else if (shareStyle === 'space-time') {
+      $("#ccs-color-selector").hide();
+      $("#ccs-y2k-color-selector").hide();
+      $("#ccs-spacetime-color-selector").show();
     } else {
       $("#ccs-color-selector").hide();
       $("#ccs-y2k-color-selector").hide();
+      $("#ccs-spacetime-color-selector").hide();
     }
 
     const options = $select.find("option");
@@ -3328,6 +3367,34 @@ jQuery(async () => {
       console.error('Failed to regenerate preview on color change:', e);
     } finally {
       $container.removeClass('loading-preview');
+    }
+  });
+
+  // Space-Time custom color picker event handling
+  $(document).on('input change', '#ccs-spacetime-color-picker', async function (e) {
+    const selectedColor = $(this).val();
+    const $customSwatch = $('#ccs-spacetime-custom-swatch');
+    
+    // Update custom swatch background and data attribute
+    $customSwatch.css('background-color', selectedColor);
+    $customSwatch.attr('data-color', selectedColor);
+    $customSwatch.data('color', selectedColor);
+    
+    // If custom swatch is active, trigger preview regeneration
+    if ($customSwatch.hasClass('active')) {
+      const $container = $("#ccs-preview-container");
+      const $img = $container.find('img');
+      $container.addClass('loading-preview');
+      try {
+        const imageData = await generateShareImage();
+        if ($img.length) {
+          $img.attr('src', imageData);
+        }
+      } catch (err) {
+        console.error('Failed to regenerate preview on custom color input:', err);
+      } finally {
+        $container.removeClass('loading-preview');
+      }
     }
   });
 
