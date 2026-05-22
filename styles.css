@@ -107,10 +107,25 @@ body.ccs-no-scroll {
   border-radius: 10px;
   text-align: center;
   width: 420px;
-  max-width: 90%;
+  max-width: 95%;
   max-height: 90vh;
   overflow-y: auto;
   box-shadow: 0 4px 12px var(--SmartThemeShadowColor);
+  transition: width 0.3s cubic-bezier(0.25, 0.8, 0.25, 1), padding 0.3s ease;
+}
+
+@media (min-width: 768px) {
+  #ccs-preview-modal>div {
+    width: 680px;
+    padding: 30px;
+  }
+}
+
+@media (min-width: 1200px) {
+  #ccs-preview-modal>div {
+    width: 800px;
+    padding: 35px;
+  }
 }
 
 #ccs-preview-container {
