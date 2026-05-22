@@ -4,7 +4,7 @@ import { getContext } from "../../../extensions.js";
 import { getPastCharacterChats, getRequestHeaders } from '../../../../script.js';
 
 const extensionName = "chat-companion-stats";
-const extensionWebPath = import.meta.url.replace(/\/index\.js$/, '');
+const extensionWebPath = import.meta.url.split('?')[0].replace(/\/index\.js$/, '');
 const DEBUG = true;
 
 jQuery(async () => {
