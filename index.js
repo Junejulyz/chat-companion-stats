@@ -12,34 +12,6 @@ jQuery(async () => {
   // 加载CSS文件 using dynamic path
   $('head').append(`<link rel="stylesheet" type="text/css" href="${extensionWebPath}/styles.css">`);
 
-  // 自动更新检测与静默刷新机制 (Auto Update Checker & Silent Hot-Reload)
-  const CURRENT_VERSION = "1.4.3";
-  let isReloading = false;
-  async function checkPluginUpdate() {
-    if (isReloading) return;
-    try {
-      const manifestUrl = `${extensionWebPath}/manifest.json?t=${Date.now()}`;
-      const response = await fetch(manifestUrl);
-      if (response.ok) {
-        const manifest = await response.json();
-        if (manifest.version && manifest.version !== CURRENT_VERSION) {
-          isReloading = true;
-          console.log(`[CCStats] 检测到插件有新版本: ${CURRENT_VERSION} -> ${manifest.version}。正在自动刷新页面...`);
-          window.location.reload();
-        }
-      }
-    } catch (e) {
-      console.warn("[CCStats] 检查插件更新失败:", e);
-    }
-  }
-
-  // 延迟 3 秒进行首次检测，随后每 5 分钟检测一次
-  setTimeout(checkPluginUpdate, 3000);
-  setInterval(checkPluginUpdate, 300000);
-
-  // 当用户切回酒馆页面时，自动触发一次检测，以便在终端 git pull 后能瞬间刷新
-  window.addEventListener('focus', checkPluginUpdate);
-
   // 加载自定义字体 (Added handwritten and PING FANG SHAO HUA font)
   $('head').append(`<style>
     @import url("https://fontsapi.zeoseven.com/19/main/result.css");
