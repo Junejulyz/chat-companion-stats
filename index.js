@@ -4016,7 +4016,7 @@ jQuery(async () => {
   }
 
   // Bind popover position updates
-  $('#ccs-preview-modal > div').on('scroll', function () {
+  $('#ccs-preview-modal > .ccs-preview-modal-content').on('scroll', function () {
     positionPopover();
   });
 

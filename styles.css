@@ -100,7 +100,7 @@ body.ccs-no-scroll {
   height: 100vh !important;
 }
 
-#ccs-preview-modal>div {
+#ccs-preview-modal > .ccs-preview-modal-content {
   background-color: var(--SmartThemeBlurTintColor);
   color: var(--SmartThemeBodyColor);
   padding: 20px;
@@ -118,7 +118,7 @@ body.ccs-no-scroll {
 }
 
 @media (min-width: 768px) {
-  #ccs-preview-modal>div {
+  #ccs-preview-modal > .ccs-preview-modal-content {
     width: fit-content;
     max-width: 90%;
     min-width: 520px;
