@@ -12,13 +12,24 @@ jQuery(async () => {
   // 加载CSS文件 using dynamic path
   $('head').append(`<link rel="stylesheet" type="text/css" href="${extensionWebPath}/styles.css">`);
 
-  // 加载自定义字体 (Added handwritten and PING FANG SHAO HUA font)
+  // 加载自定义字体 (Loaded via robust <link> tags to fix desktop rendering issues)
+  const fontUrls = [
+    "https://fontsapi.zeoseven.com/19/main/result.css",
+    "https://fontsapi.zeoseven.com/157/main/result.css",
+    "https://fontsapi.zeoseven.com/101/main/result.css",
+    "https://fontsapi.zeoseven.com/494/main/result.css",
+    "https://fontsapi.zeoseven.com/383/main/result.css",
+    "https://fontsapi.zeoseven.com/281/main/result.css",
+    "https://fontsapi.zeoseven.com/18/main/result.css",
+    "https://fontsapi.zeoseven.com/522/main/result.css",
+    "https://fonts.googleapis.com/css2?family=Long+Cang&display=swap",
+    "https://fonts.googleapis.com/css2?family=Gajraj+One&display=swap"
+  ];
+  fontUrls.forEach(url => {
+    $('head').append(`<link rel="stylesheet" href="${url}">`);
+  });
+
   $('head').append(`<style>
-    @import url("https://fontsapi.zeoseven.com/19/main/result.css");
-    @import url("https://fontsapi.zeoseven.com/157/main/result.css");
-    @import url("https://fontsapi.zeoseven.com/101/main/result.css");
-    @import url("https://fonts.googleapis.com/css2?family=Long+Cang&display=swap");
-    
     #ccs-preview-container.loading-preview {
       position: relative;
       min-height: 200px;
@@ -1679,13 +1690,13 @@ jQuery(async () => {
       more: "M5.69238 14C7.73155 14 9.38477 15.6532 9.38477 17.6924C9.38473 19.7315 7.73153 21.3847 5.69238 21.3848C3.6532 21.3848 2.00004 19.7316 2 17.6924C2 15.6532 3.65318 14 5.69238 14ZM18 14C20.0392 14 21.6924 15.6532 21.6924 17.6924C21.6924 19.7316 20.0392 21.3848 18 21.3848C15.9608 21.3848 14.3076 19.7316 14.3076 17.6924C14.3076 15.6532 15.9608 14 18 14ZM30.3076 14C32.3468 14 34 15.6532 34 17.6924C34 19.7316 32.3468 21.3848 30.3076 21.3848C28.2684 21.3847 26.6152 19.7316 26.6152 17.6924C26.6152 15.6532 28.2684 14 30.3076 14Z"
     };
 
-    // 1. 获取选中的统计项
+    // 1. 获取选中的统计项 (Using Unicode escapes to prevent character corruption under non-UTF-8 servers)
     const statsItems = [
-      { id: 'ccs-share-messages', label: '聊天对话', value: $("#ccs-messages").text(), unit: '条' },
-      { id: 'ccs-share-days', label: '相伴天数', value: $("#ccs-days").text(), unit: '天' },
-      { id: 'ccs-share-words', label: '聊天字数', value: $("#ccs-words").text(), unit: '字' },
+      { id: 'ccs-share-messages', label: '\u804a\u5929\u5bf9\u8bdd', value: $("#ccs-messages").text(), unit: '\u6761' }, // 聊天对话, 条
+      { id: 'ccs-share-days', label: '\u76f8\u4f34\u5929\u6570', value: $("#ccs-days").text(), unit: '\u5929' }, // 相伴天数, 天
+      { id: 'ccs-share-words', label: '\u804a\u5929\u5b57\u6570', value: $("#ccs-words").text(), unit: '\u5b57' }, // 聊天字数, 字
       {
-        id: 'ccs-share-size', label: '回忆大小', value: (() => {
+        id: 'ccs-share-size', label: '\u56de\u5fc6\u5927\u5c0f', value: (() => { // 回忆大小
           const val = $("#ccs-total-size").text();
           const match = val.match(/^([\d.]+)\s*(\w+)$/);
           return match ? match[1] : val;
@@ -1699,7 +1710,11 @@ jQuery(async () => {
 
     // 如果是青纹信笺、像素风或怀旧y2k或经典夜间或索引铭牌，则加上初遇时间显示 (现代简约默认不加)
     if (isAncient || isPixel || isY2k || isClassicNight || isIndexTag) {
-      statsItems.unshift({ id: 'ccs-share-start', label: '初遇时间', value: $("#ccs-start").text().replace(/约/g, '').replace(/点/g, ':').replace(/分/g, '') });
+      statsItems.unshift({ 
+        id: 'ccs-share-start', 
+        label: '\u521d\u9047\u65f6\u95f4', // 初遇时间
+        value: $("#ccs-start").text().replace(/\u7ea6/g, '').replace(/\u70b9/g, ':').replace(/\u5206/g, '') // 约, 点, 分
+      });
     }
 
     let stats = statsItems.filter(s => $(`#${s.id}`).is(":checked"));
@@ -1721,7 +1736,7 @@ jQuery(async () => {
             }
             if (isSpaceTime || isIndexTag) {
               newValue = formatted + 'W';
-              newUnit = '字';
+              newUnit = '\u5b57'; // 字
             } else {
               newValue = formatted + 'w';
             }
@@ -1729,10 +1744,10 @@ jQuery(async () => {
         }
         if (s.id === 'ccs-share-start' && isIndexTag) {
           const rawStart = $("#ccs-start").text();
-          const dateMatch = rawStart.match(/(\d{4})年(\d{1,2})月(\d{1,2})日/);
+          const dateMatch = rawStart.match(/(\d{4})\u5e74(\d{1,2})\u6708(\d{1,2})\u65e5/); // 年, 月, 日
           newValue = dateMatch
             ? `${dateMatch[1]}.${dateMatch[2].padStart(2, '0')}.${dateMatch[3].padStart(2, '0')}`
-            : rawStart.replace(/约/g, '').trim().split(' ')[0].replace(/[-/]/g, '.');
+            : rawStart.replace(/\u7ea6/g, '').trim().split(' ')[0].replace(/[-/]/g, '.'); // 约
           newUnit = '';
         }
         return { ...s, label: s.label, value: newValue, unit: newUnit };
@@ -1876,20 +1891,20 @@ jQuery(async () => {
         const statChars = Array.from(new Set(stats.map(s => (s.label + s.value + (s.unit || '')).split('')).flat())).join('');
 
         const fontPromises = [
-          document.fonts.load(`400 32px "LXGW Neo XiHei"`, charName + statChars + '初遇'),
+          document.fonts.load(`400 32px "LXGW Neo XiHei"`, charName + statChars + '\u521d\u9047'),
           document.fonts.load(`700 32px "LXGW Neo XiHei"`, statChars),
           document.fonts.load(`400 32px "PING FANG SHAO HUA"`, statChars),
-          document.fonts.load(`400 32px "Cubic 11"`, charName + statChars + '初遇'),
-          document.fonts.load(`400 32px "MaoKenTangYuan (beta)"`, charName + statChars + '初遇'),
+          document.fonts.load(`400 32px "Cubic 11"`, charName + statChars + '\u521d\u9047'),
+          document.fonts.load(`400 32px "MaoKenTangYuan (beta)"`, charName + statChars + '\u521d\u9047'),
           document.fonts.load(`700 32px "MaoKenTangYuan (beta)"`, statChars),
-          document.fonts.load(`400 32px "Xiaolai"`, charName + statChars + '初遇'),
+          document.fonts.load(`400 32px "Xiaolai"`, charName + statChars + '\u521d\u9047'),
           document.fonts.load(`700 32px "Xiaolai"`, statChars),
-          document.fonts.load(`400 48px "Long Cang"`, '初遇'),
-          document.fonts.load(`400 32px "PING FANG GONG ZI TI"`, charName + statChars + '初见'),
+          document.fonts.load(`400 48px "Long Cang"`, '\u521d\u9047'),
+          document.fonts.load(`400 32px "PING FANG GONG ZI TI"`, charName + statChars + '\u521d\u89c1'),
           document.fonts.load(`400 32px "Unbounded Sans"`, charName + statChars),
           document.fonts.load(`700 32px "Unbounded Sans"`, charName + statChars),
           document.fonts.load(`400 32px "Gajraj One"`, '0123456789.'),
-          document.fonts.load(`400 32px "致一宋體"`, charName + statChars + '初遇聊天对话相伴天数字数回忆大小条天字MB')
+          document.fonts.load(`400 32px "\u81f4\u4e00\u5b8b\u9ad4"`, charName + statChars + '\u521d\u9047\u804a\u5929\u5bf9\u8bdd\u76f8\u4f34\u5929\u6570\u5b57\u6570\u56de\u5fc6\u5927\u5c0f\u6761\u5929\u5b57MB')
         ];
 
         // Wait for fonts to load, with a timeout to prevent hanging forever
@@ -1940,8 +1955,10 @@ jQuery(async () => {
       ctx.lineWidth = borderW;
       ctx.strokeRect(borderW / 2, borderW / 2, width - borderW, height - borderW);
     } else if (isPocketSticker || isY2k || isSpaceTime || isIndexTag) {
-      ctx.fillStyle = '#1A1A1A';
-      ctx.fillRect(0, 0, width, height);
+      if (!isIndexTag) {
+        ctx.fillStyle = '#1A1A1A';
+        ctx.fillRect(0, 0, width, height);
+      }
       if (isSpaceTime && spaceTimeAssets.bg) {
         ctx.drawImage(spaceTimeAssets.bg, 0, 0, width, height);
       } else if (isIndexTag && indexTagAssets.bg) {
@@ -2558,9 +2575,9 @@ jQuery(async () => {
         ctx.textAlign = 'center';
         ctx.textBaseline = 'top';
         ctx.fillStyle = activeIndexTagColor;
-        ctx.font = `400 ${68 * scaleFactor}px "致一宋體", sans-serif`;
+        ctx.font = `400 ${68 * scaleFactor}px "\u81f4\u4e00\u5b8b\u9ad4", "PingFang SC", "Microsoft YaHei", sans-serif`;
         // iOS WebKit shift adjustment
-        ctx.fillText(charName || "角色名", 428.5 * scaleFactor, 473 * scaleFactor - (isIOS ? 10 * scaleFactor : 0));
+        ctx.fillText(charName || "\u89d2\u8272\u540d", 428.5 * scaleFactor, 473 * scaleFactor - (isIOS ? 10 * scaleFactor : 0));
         ctx.restore();
 
       } else {
@@ -2787,28 +2804,28 @@ jQuery(async () => {
           }
 
         } else if (isIndexTag) {
-          const rowYMap = {
-            'ccs-share-start': 620 * scaleFactor,
-            'ccs-share-messages': 730 * scaleFactor,
-            'ccs-share-days': 839 * scaleFactor,
-            'ccs-share-words': 948 * scaleFactor,
-            'ccs-share-size': 1057 * scaleFactor
-          };
-          const rowY = rowYMap[stat.id];
+          const indexTagSlots = [
+            620 * scaleFactor,
+            730 * scaleFactor,
+            839 * scaleFactor,
+            948 * scaleFactor,
+            1057 * scaleFactor
+          ];
+          const rowY = indexTagSlots[i] + 24 * scaleFactor;
           if (rowY !== undefined) {
             ctx.save();
             ctx.textAlign = 'left';
             ctx.textBaseline = 'middle';
             ctx.fillStyle = activeIndexTagColor;
-            ctx.font = `400 ${40 * scaleFactor}px "致一宋體", sans-serif`;
+            ctx.font = `400 ${40 * scaleFactor}px "\u81f4\u4e00\u5b8b\u9ad4", "PingFang SC", "Microsoft YaHei", sans-serif`;
             
-            // Draw Left Label
+            // Draw Left Label using Unicode escapes to guarantee robust encoding
             const labelMap = {
-              'ccs-share-start': '初遇时间',
-              'ccs-share-messages': '聊天对话',
-              'ccs-share-days': '相伴天数',
-              'ccs-share-words': '聊天字数',
-              'ccs-share-size': '回忆大小'
+              'ccs-share-start': '\u521d\u9047\u65f6\u95f4', // 初遇时间
+              'ccs-share-messages': '\u804a\u5929\u5bf9\u8bdd', // 聊天对话
+              'ccs-share-days': '\u76f8\u4f34\u5929\u6570', // 相伴天数
+              'ccs-share-words': '\u804a\u5929\u5b57\u6570', // 聊天字数
+              'ccs-share-size': '\u56de\u5fc6\u5927\u5c0f' // 回忆大小
             };
             ctx.fillText(labelMap[stat.id] || stat.label, 174 * scaleFactor, rowY);
             
