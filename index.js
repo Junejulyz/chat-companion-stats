@@ -1488,6 +1488,8 @@ jQuery(async () => {
     const isAncient = shareStyle === 'ancient';
     const isClassicNight = shareStyle === 'classic-night';
 
+    const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
+
     // 强制等待所有字体加载完毕，防止 Canvas 渲染时回退到默认字体
     await document.fonts.ready;
 
@@ -2387,7 +2389,8 @@ jQuery(async () => {
         ctx.textBaseline = 'top';
         ctx.fillStyle = activeSpaceTimeColor;
         ctx.font = `400 ${98 * scaleFactor}px "Unbounded Sans", sans-serif`;
-        ctx.fillText(charName || "角色名", width / 2, 117 * scaleFactor);
+        // iOS WebKit shift adjustment
+        ctx.fillText(charName || "角色名", width / 2, 117 * scaleFactor - (isIOS ? 17 * scaleFactor : 0));
 
         // 2. Encounter Date (formatted as YYYY.MM.DD inside the white box, shifted down to 558px)
         const rawStart = $("#ccs-start").text();
@@ -2400,7 +2403,8 @@ jQuery(async () => {
         ctx.textBaseline = 'top';
         ctx.fillStyle = '#1A1A1A';
         ctx.font = `400 ${37 * scaleFactor}px "Gajraj One", sans-serif`;
-        ctx.fillText(formattedDate, width / 2, 546 * scaleFactor);
+        // iOS WebKit shift adjustment
+        ctx.fillText(formattedDate, width / 2, 546 * scaleFactor - (isIOS ? 7 * scaleFactor : 0));
         ctx.textBaseline = 'alphabetic'; // Reset
 
         // 3. Avatar Mask drawing function with 20px bevel (45-degree flat cut corners)
@@ -2664,8 +2668,8 @@ jQuery(async () => {
 
         } else if (isSpaceTime) {
           // Dynamic slots: if a stat is unselected, they shift up sequentially.
-          // Base row positions are shifted up by 2px per request: [680, 812, 944, 1076]
-          const spaceTimeSlots = [680 * scaleFactor, 812 * scaleFactor, 944 * scaleFactor, 1076 * scaleFactor];
+          // Base row positions are shifted up by 3px: [677, 809, 941, 1073]
+          const spaceTimeSlots = [677 * scaleFactor, 809 * scaleFactor, 941 * scaleFactor, 1073 * scaleFactor];
           const rowY = spaceTimeSlots[i];
 
           if (rowY !== undefined) {
