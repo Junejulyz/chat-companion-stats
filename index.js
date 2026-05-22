@@ -61,6 +61,7 @@ jQuery(async () => {
   let shareStyle = localStorage.getItem('ccs-share-style') || 'modern-light';
   let currentAdvancedStats = null;
   let lastDeepScanPartial = false; // 记录上次深度扫描是否有部分文件失败
+  let isDraggingColorPicker = false; // 全局拖拽状态标志，防止调色时误关闭模态框
   // 核心功能：全局缓存准确的初遇时间，避免在扫描模式间切换时发生横跳
   const accurateEncounterTimeCache = {};
   // 核心功能：全局缓存准确的字数/体积比，校准估算系统
@@ -3236,9 +3237,15 @@ jQuery(async () => {
     link.click();
   });
 
-  // 点击模态框背景关闭
+  // 点击模态框背景关闭 - 增加 mousedown 校验防止拖拽释放时误关闭
+  let modalMouseDownTarget = null;
+  $("#ccs-preview-modal").on("mousedown touchstart", function (e) {
+    modalMouseDownTarget = e.target;
+  });
+
   $("#ccs-preview-modal").on("click", function (e) {
-    if (e.target === this) {
+    if (isDraggingColorPicker) return; // 正在拖动调色板时，忽略背景关闭逻辑
+    if (e.target === this && modalMouseDownTarget === this) {
       $(this).removeClass('ccs-modal-visible').hide();
       $('body').removeClass('ccs-no-scroll'); // 恢复背景滚动
     }
@@ -3518,6 +3525,7 @@ jQuery(async () => {
 
     function onMouseDown(e) {
       e.preventDefault();
+      isDraggingColorPicker = true;
       update(e);
       
       document.addEventListener('mousemove', onMouseMove);
@@ -3531,10 +3539,12 @@ jQuery(async () => {
     function onMouseUp() {
       document.removeEventListener('mousemove', onMouseMove);
       document.removeEventListener('mouseup', onMouseUp);
+      setTimeout(() => { isDraggingColorPicker = false; }, 50);
     }
 
     function onTouchStart(e) {
       if (e.cancelable) e.preventDefault();
+      isDraggingColorPicker = true;
       update(e);
       
       document.addEventListener('touchmove', onTouchMove, { passive: false });
@@ -3549,6 +3559,7 @@ jQuery(async () => {
     function onTouchEnd() {
       document.removeEventListener('touchmove', onTouchMove);
       document.removeEventListener('touchend', onTouchEnd);
+      setTimeout(() => { isDraggingColorPicker = false; }, 50);
     }
 
     el.addEventListener('mousedown', onMouseDown);
@@ -3785,8 +3796,14 @@ jQuery(async () => {
     }
   });
 
+  // Stop propagation of mousedown, click, and touchstart inside the popover to prevent interfering with modal backdrop close logic
+  $('#ccs-custom-picker-popover').on('mousedown click touchstart', function (e) {
+    e.stopPropagation();
+  });
+
   // Document click-outside handler to close popover
   $(document).on('click.ccs_picker', function (e) {
+    if (isDraggingColorPicker) return;
     const $popover = $('#ccs-custom-picker-popover');
     if ($popover.is(':visible') && 
         !$(e.target).closest('#ccs-custom-picker-popover').length && 
@@ -3797,6 +3814,7 @@ jQuery(async () => {
 
   // Modal click-outside handler to close popover (since the modal blocks document events)
   $('#ccs-preview-modal').on('click', function (e) {
+    if (isDraggingColorPicker) return;
     const $popover = $('#ccs-custom-picker-popover');
     if ($popover.is(':visible') && 
         !$(e.target).closest('#ccs-custom-picker-popover').length && 
