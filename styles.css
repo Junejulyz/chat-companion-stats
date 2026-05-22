@@ -920,17 +920,17 @@ body.ccs-no-scroll {
 
 .ccs-custom-picker-popover {
   position: fixed;
-  width: 135px !important; /* Compact, narrower width */
+  width: 220px !important; /* Increased width, twice/1.5x as large as previous tiny version */
   background: var(--SmartThemeBlurTintColor) !important; /* Directly follow Tavern UI theme color */
   backdrop-filter: var(--SmartThemeBlur, blur(10px)) !important; /* Premium glassmorphism blur */
   -webkit-backdrop-filter: var(--SmartThemeBlur, blur(10px)) !important;
   border: 1px solid var(--SmartThemeBorderColor) !important; /* Follow Tavern theme border */
-  border-radius: 8px !important; /* Sleek roundness */
-  padding: 6px !important; /* Super compact padding */
-  box-shadow: 0 4px 15px var(--SmartThemeShadowColor) !important; /* Follow Tavern shadow */
+  border-radius: 10px !important; /* Match premium modal roundness */
+  padding: 10px !important; /* Generous comfortable padding */
+  box-shadow: 0 6px 20px var(--SmartThemeShadowColor) !important; /* Follow Tavern shadow */
   display: flex;
   flex-direction: column;
-  gap: 5px !important; /* Narrow gaps */
+  gap: 8px !important; /* Generous gaps */
   z-index: 30000 !important;
   user-select: none;
   -webkit-user-select: none;
@@ -944,8 +944,8 @@ body.ccs-no-scroll {
 .ccs-picker-sv-panel {
   position: relative;
   width: 100%;
-  height: 65px !important; /* Compact SV grid height */
-  border-radius: 4px !important;
+  height: 110px !important; /* Generous SV grid height for comfortable dragging */
+  border-radius: 6px !important;
   overflow: hidden;
   cursor: crosshair;
   background-color: #ff0000;
@@ -973,11 +973,11 @@ body.ccs-no-scroll {
 
 .ccs-picker-sv-handle {
   position: absolute;
-  width: 8px !important; /* Tiny premium SV handle */
-  height: 8px !important;
-  border: 1.5px solid #ffffff;
+  width: 12px !important; /* Premium comfortable SV handle */
+  height: 12px !important;
+  border: 2px solid #ffffff;
   border-radius: 50%;
-  box-shadow: 0 0 3px rgba(0, 0, 0, 0.8);
+  box-shadow: 0 0 4px rgba(0, 0, 0, 0.8), inset 0 0 2px rgba(0, 0, 0, 0.5);
   transform: translate(-50%, -50%);
   pointer-events: none;
   left: 100%;
@@ -990,8 +990,8 @@ body.ccs-no-scroll {
 .ccs-picker-alpha-panel {
   position: relative;
   width: 100%;
-  height: 6px !important; /* Thinner elegant tracks */
-  border-radius: 3px !important;
+  height: 8px !important; /* Comfortable elegant tracks */
+  border-radius: 4px !important;
   cursor: pointer;
   touch-action: none; /* Disable default scrolling on touch drag */
   box-shadow: inset 0 1px 2px rgba(0, 0, 0, 0.4), 0 1px 0 rgba(255, 255, 255, 0.1);
@@ -1020,19 +1020,19 @@ body.ccs-no-scroll {
   left: 0;
   width: 100%;
   height: 100%;
-  border-radius: 3px !important;
+  border-radius: 4px !important;
   background: linear-gradient(to right, transparent, #ff0000);
 }
 
 .ccs-picker-hue-handle,
 .ccs-picker-alpha-handle {
   position: absolute;
-  width: 5px !important; /* Super narrow elegant handles */
-  height: 10px !important;
+  width: 6px !important; /* Readable elegant handles */
+  height: 12px !important;
   background: #ffffff;
   border: 1px solid rgba(0, 0, 0, 0.6);
-  border-radius: 1.5px !important;
-  box-shadow: 0 1px 2px rgba(0,0,0,0.5);
+  border-radius: 2px !important;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.5), inset 0 0.5px 0 rgba(255,255,255,0.5);
   top: 50%;
   transform: translate(-50%, -50%);
   pointer-events: none;
@@ -1042,7 +1042,7 @@ body.ccs-no-scroll {
 /* Inputs Row */
 .ccs-picker-inputs-row {
   display: flex;
-  gap: 2px !important; /* Very compact spacing */
+  gap: 3px !important; /* Perfect spacing */
   width: 100%;
   box-sizing: border-box !important;
 }
@@ -1061,13 +1061,13 @@ body.ccs-no-scroll {
 
 .ccs-picker-input {
   width: 100% !important;
-  height: 16px !important; /* Opaque compact inputs */
+  height: 20px !important; /* Readable height */
   background: rgba(0, 0, 0, 0.25) !important;
   border: 1px solid var(--SmartThemeBorderColor) !important;
-  border-radius: 3px !important;
+  border-radius: 4px !important;
   color: var(--SmartThemeBodyColor) !important;
   text-align: center !important;
-  font-size: 8px !important; /* Ultra compact monospace */
+  font-size: 10px !important; /* Highly legible monospace font */
   font-family: monospace, system-ui !important;
   padding: 0 1px !important;
   margin: 0 !important;
@@ -1082,10 +1082,10 @@ body.ccs-no-scroll {
 }
 
 .ccs-picker-label {
-  font-size: 6.5px !important; /* Micro elegant labels */
+  font-size: 8px !important; /* Clear elegant labels */
   color: var(--SmartThemeBodyColor) !important;
   opacity: 0.6 !important;
-  margin-top: 1px !important;
+  margin-top: 2px !important;
   font-weight: 500 !important;
   text-transform: uppercase;
 }
@@ -1093,18 +1093,18 @@ body.ccs-no-scroll {
 /* Mobile responsive refinements for settings modal to make sure popover fits beautifully */
 @media screen and (max-width: 600px) {
   .ccs-custom-picker-popover {
-    width: 125px !important; /* Narrower on mobile as well */
-    padding: 5px !important;
-    gap: 4px !important;
+    width: 180px !important; /* Slightly narrower on mobile for screens */
+    padding: 8px !important;
+    gap: 6px !important;
   }
   .ccs-picker-sv-panel {
-    height: 55px !important;
+    height: 90px !important;
   }
   .ccs-picker-input {
-    font-size: 7.5px !important;
-    height: 15px !important;
+    font-size: 9px !important;
+    height: 18px !important;
   }
   .ccs-picker-label {
-    font-size: 6px !important;
+    font-size: 7.5px !important;
   }
 }
