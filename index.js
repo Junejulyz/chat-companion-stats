@@ -1838,7 +1838,7 @@ jQuery(async () => {
     let height = headerH + totalStatsH + (isPixel ? 0 : footerH);
     if (shareStyle === 'ancient') {
       height = 816 * scaleFactor;
-    } else if (isPocketSticker || isY2k || isSpaceTime) {
+    } else if (isPocketSticker || isY2k || isSpaceTime || isIndexTag) {
       height = 1216 * scaleFactor;
     } else if (isClassicNight) {
       // 经典夜间：头部600px(头像+标题+分割线) + 每行统计90px + 水印40px + 底部60px
@@ -2528,6 +2528,11 @@ jQuery(async () => {
             // Fill background in case image has transparency
             ctx.fillStyle = '#FFFFFF';
             ctx.fillRect(x, y, avatarSize, avatarSize);
+            
+            // Crop to perfect square
+            ctx.beginPath();
+            ctx.rect(x, y, avatarSize, avatarSize);
+            ctx.clip();
             
             const scale = Math.max(avatarSize / img.width, avatarSize / img.height);
             const sw = img.width * scale;
