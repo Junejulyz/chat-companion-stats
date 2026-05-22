@@ -1484,6 +1484,7 @@ jQuery(async () => {
     const isPocketSticker = shareStyle === 'pocket-sticker';
     const isY2k = shareStyle === 'nostalgic-y2k';
     const isSpaceTime = shareStyle === 'space-time';
+    const isIndexTag = shareStyle === 'index-tag';
     const isModern = shareStyle === 'modern-light' || shareStyle === 'modern-dark' || shareStyle === 'modern';
     const isAncient = shareStyle === 'ancient';
     const isClassicNight = shareStyle === 'classic-night';
@@ -1501,7 +1502,7 @@ jQuery(async () => {
     const charName = getCurrentCharacterName();
 
     const scaleFactor = 2; // HD
-    const width = (isPocketSticker || isY2k || isSpaceTime) ? 896 * scaleFactor : 663 * scaleFactor;
+    const width = (isPocketSticker || isY2k || isSpaceTime || isIndexTag) ? 896 * scaleFactor : 663 * scaleFactor;
 
     // Scrapbook Pixel Colors
     const pixelBg = '#FEF9F0'; // Warm Cream
@@ -1523,6 +1524,7 @@ jQuery(async () => {
     const charNameColor = isPixel ? pixelText : (isDark ? '#FAFBF7' : '#131313');
     const dashColor = '#FFFFFF';
     const activeSpaceTimeColor = $('.ccs-spacetime-swatch.active').attr('data-color') || '#ffffff';
+    const activeIndexTagColor = $('.ccs-indextag-swatch.active').attr('data-color') || '#000000';
 
     // 0. 加载资产 (Ins & Pixel Style & Ancient)
     const insAssets = {};
@@ -1531,6 +1533,7 @@ jQuery(async () => {
     const pocketAssets = {};
     const y2kAssets = {};
     const spaceTimeAssets = {};
+    const indexTagAssets = {};
 
     const loadAssetImg = (url) => new Promise((resolve) => {
       const img = new Image();
@@ -1564,6 +1567,38 @@ jQuery(async () => {
         return await loadAssetImg(dataUrl);
       } catch (err) {
         console.error('Failed to recolor SVG:', url, err);
+        return await loadAssetImg(url); // Fallback to original
+      }
+    }
+
+    async function loadRecoloredBlackSvg(url, color) {
+      if (!color || color.toLowerCase() === '#000000' || color.toLowerCase() === 'black') {
+        return await loadAssetImg(url);
+      }
+      try {
+        const resp = await fetch(url);
+        if (!resp.ok) throw new Error(`HTTP error ${resp.status}`);
+        let svgText = await resp.text();
+        
+        // Replace fill="black", stroke="black", fill="#000000", stroke="#000000"
+        svgText = svgText.replace(/fill=["']black["']/gi, `fill="${color}"`);
+        svgText = svgText.replace(/stroke=["']black["']/gi, `stroke="${color}"`);
+        svgText = svgText.replace(/fill=["']#000000["']/gi, `fill="${color}"`);
+        svgText = svgText.replace(/stroke=["']#000000["']/gi, `stroke="${color}"`);
+        
+        // Also replace fill:black and stroke:black and #000000 in styling blocks
+        svgText = svgText.replace(/fill\s*:\s*#000000/gi, `fill:${color}`);
+        svgText = svgText.replace(/stroke\s*:\s*#000000/gi, `stroke:${color}`);
+        svgText = svgText.replace(/fill\s*:\s*black/gi, `fill:${color}`);
+        svgText = svgText.replace(/stroke\s*:\s*black/gi, `stroke:${color}`);
+        
+        // Convert to data URI
+        const encoded = btoa(unescape(encodeURIComponent(svgText)));
+        const dataUrl = `data:image/svg+xml;base64,${encoded}`;
+        
+        return await loadAssetImg(dataUrl);
+      } catch (err) {
+        console.error('Failed to recolor black SVG:', url, err);
         return await loadAssetImg(url); // Fallback to original
       }
     }
@@ -1606,6 +1641,11 @@ jQuery(async () => {
       await Promise.all(Object.entries(spaceTimeAssetList).map(async ([key, url]) => {
         spaceTimeAssets[key] = await loadRecoloredSvg(url, activeSpaceTimeColor);
       }));
+    }
+
+    if (isIndexTag) {
+      const v = Date.now();
+      indexTagAssets.bg = await loadRecoloredBlackSvg(`${extensionWebPath}/assets/indextag/tagcard_bg.svg?v=${v}`, activeIndexTagColor);
     }
 
     if (shareStyle === 'ins') {
@@ -1657,8 +1697,8 @@ jQuery(async () => {
       }
     ];
 
-    // 如果是青纹信笺、像素风或怀旧y2k或经典夜间，则加上初遇时间显示 (现代简约默认不加)
-    if (isAncient || isPixel || isY2k || isClassicNight) {
+    // 如果是青纹信笺、像素风或怀旧y2k或经典夜间或索引铭牌，则加上初遇时间显示 (现代简约默认不加)
+    if (isAncient || isPixel || isY2k || isClassicNight || isIndexTag) {
       statsItems.unshift({ id: 'ccs-share-start', label: '初遇时间', value: $("#ccs-start").text().replace(/约/g, '').replace(/点/g, ':').replace(/分/g, '') });
     }
 
@@ -1668,7 +1708,7 @@ jQuery(async () => {
       stats = stats.filter(s => s.id !== 'ccs-share-start');
     }
 
-    if (isPocketSticker || isY2k || isSpaceTime) {
+    if (isPocketSticker || isY2k || isSpaceTime || isIndexTag) {
       stats = stats.map(s => {
         let newValue = s.value;
         let newUnit = s.unit;
@@ -1679,13 +1719,21 @@ jQuery(async () => {
             if (formatted.endsWith('.0')) {
               formatted = formatted.substring(0, formatted.length - 2);
             }
-            if (isSpaceTime) {
+            if (isSpaceTime || isIndexTag) {
               newValue = formatted + 'W';
               newUnit = '字';
             } else {
               newValue = formatted + 'w';
             }
           }
+        }
+        if (s.id === 'ccs-share-start' && isIndexTag) {
+          const rawStart = $("#ccs-start").text();
+          const dateMatch = rawStart.match(/(\d{4})年(\d{1,2})月(\d{1,2})日/);
+          newValue = dateMatch
+            ? `${dateMatch[1]}.${dateMatch[2].padStart(2, '0')}.${dateMatch[3].padStart(2, '0')}`
+            : rawStart.replace(/约/g, '').trim().split(' ')[0].replace(/[-/]/g, '.');
+          newUnit = '';
         }
         return { ...s, label: s.label, value: newValue, unit: newUnit };
       });
@@ -1811,9 +1859,9 @@ jQuery(async () => {
     canvas.width = width;
     canvas.height = dynamicHeight;
 
-    // Apply 16px border radius to the entire card (except sharp corner styles like ancient, classicNight, and spaceTime)
+    // Apply 16px border radius to the entire card (except sharp corner styles like ancient, classicNight, spaceTime, and indexTag)
     ctx.save();
-    if (shareStyle === 'ancient' || isClassicNight || isSpaceTime) {
+    if (shareStyle === 'ancient' || isClassicNight || isSpaceTime || isIndexTag) {
       // sharp corner styles don't need border radius
       ctx.rect(0, 0, width, dynamicHeight);
     } else {
@@ -1840,7 +1888,8 @@ jQuery(async () => {
           document.fonts.load(`400 32px "PING FANG GONG ZI TI"`, charName + statChars + '初见'),
           document.fonts.load(`400 32px "Unbounded Sans"`, charName + statChars),
           document.fonts.load(`700 32px "Unbounded Sans"`, charName + statChars),
-          document.fonts.load(`400 32px "Gajraj One"`, '0123456789.')
+          document.fonts.load(`400 32px "Gajraj One"`, '0123456789.'),
+          document.fonts.load(`400 32px "致一宋體"`, charName + statChars + '初遇聊天对话相伴天数字数回忆大小条天字MB')
         ];
 
         // Wait for fonts to load, with a timeout to prevent hanging forever
@@ -1890,11 +1939,13 @@ jQuery(async () => {
       ctx.strokeStyle = gradient;
       ctx.lineWidth = borderW;
       ctx.strokeRect(borderW / 2, borderW / 2, width - borderW, height - borderW);
-    } else if (isPocketSticker || isY2k || isSpaceTime) {
+    } else if (isPocketSticker || isY2k || isSpaceTime || isIndexTag) {
       ctx.fillStyle = '#1A1A1A';
       ctx.fillRect(0, 0, width, height);
       if (isSpaceTime && spaceTimeAssets.bg) {
         ctx.drawImage(spaceTimeAssets.bg, 0, 0, width, height);
+      } else if (isIndexTag && indexTagAssets.bg) {
+        ctx.drawImage(indexTagAssets.bg, 0, 0, width, height);
       } else if (isY2k && y2kAssets.bg) {
         ctx.drawImage(y2kAssets.bg, 0, 0, width, height);
       } else if (isPocketSticker && pocketAssets.bg) {
@@ -1927,8 +1978,8 @@ jQuery(async () => {
       // Pixel Pink Background - Simple pink fill already done in step 3
     } else if (shareStyle === 'ancient' || isClassicNight) {
       // Ancient/Classic-night style doesn't need a content area background box
-    } else if (isPocketSticker || isY2k || isSpaceTime) {
-      // Pocket sticker, Y2K and SpaceTime don't need a content area background box
+    } else if (isPocketSticker || isY2k || isSpaceTime || isIndexTag) {
+      // Pocket sticker, Y2K, SpaceTime and IndexTag don't need a content area background box
     } else if (stats.length > 0) {
       ctx.fillStyle = contentAreaBg;
       const contentAreaW = 599 * scaleFactor;
@@ -2465,6 +2516,48 @@ jQuery(async () => {
           }
         }
 
+      } else if (isIndexTag) {
+        // --- INDEX TAG HEADER & AVATAR DRAWING ---
+        // 1. Draw Character Avatar (and User Avatar if enabled)
+        // Character avatar at X=134, Y=102, square size 235x235 (scaled)
+        // User avatar at X=407, Y=102, square size 235x235 (scaled)
+        const drawSquareAvatar = (img, x, y) => {
+          const avatarSize = 235 * scaleFactor;
+          ctx.save();
+          if (img) {
+            // Fill background in case image has transparency
+            ctx.fillStyle = '#FFFFFF';
+            ctx.fillRect(x, y, avatarSize, avatarSize);
+            
+            const scale = Math.max(avatarSize / img.width, avatarSize / img.height);
+            const sw = img.width * scale;
+            const sh = img.height * scale;
+            ctx.drawImage(img, x + (avatarSize - sw) / 2, y + (avatarSize - sh) / 2, sw, sh);
+          } else {
+            ctx.fillStyle = '#e0e0e0';
+            ctx.fillRect(x, y, avatarSize, avatarSize);
+          }
+          ctx.restore();
+        };
+
+        // If showUser is enabled, draw both. If not, only draw character avatar at X=134.
+        drawSquareAvatar(charImg, 134 * scaleFactor, 102 * scaleFactor);
+        if (showUser) {
+          drawSquareAvatar(userImg, 407 * scaleFactor, 102 * scaleFactor);
+        }
+
+        // 2. Character Name Centering in the Frame Container
+        // Font: 68px "致一宋體", weight normal, Y=473, horizontally centers within frame bounds
+        // Frame bounds span X=134.5 to 722.5, centering at X=428.5.
+        ctx.save();
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'top';
+        ctx.fillStyle = activeIndexTagColor;
+        ctx.font = `400 ${68 * scaleFactor}px "致一宋體", sans-serif`;
+        // iOS WebKit shift adjustment
+        ctx.fillText(charName || "角色名", 428.5 * scaleFactor, 473 * scaleFactor - (isIOS ? 10 * scaleFactor : 0));
+        ctx.restore();
+
       } else {
         // Modern style header logic...
         const avatarW = 100 * scaleFactor;
@@ -2686,6 +2779,39 @@ jQuery(async () => {
             ctx.textAlign = 'right';
             const valueText = `${stat.value}${stat.unit ? ' ' + stat.unit : ''}`;
             ctx.fillText(valueText, 673 * scaleFactor, rowY);
+          }
+
+        } else if (isIndexTag) {
+          const rowYMap = {
+            'ccs-share-start': 620 * scaleFactor,
+            'ccs-share-messages': 730 * scaleFactor,
+            'ccs-share-days': 839 * scaleFactor,
+            'ccs-share-words': 948 * scaleFactor,
+            'ccs-share-size': 1057 * scaleFactor
+          };
+          const rowY = rowYMap[stat.id];
+          if (rowY !== undefined) {
+            ctx.save();
+            ctx.textAlign = 'left';
+            ctx.textBaseline = 'middle';
+            ctx.fillStyle = activeIndexTagColor;
+            ctx.font = `400 ${40 * scaleFactor}px "致一宋體", sans-serif`;
+            
+            // Draw Left Label
+            const labelMap = {
+              'ccs-share-start': '初遇时间',
+              'ccs-share-messages': '聊天对话',
+              'ccs-share-days': '相伴天数',
+              'ccs-share-words': '聊天字数',
+              'ccs-share-size': '回忆大小'
+            };
+            ctx.fillText(labelMap[stat.id] || stat.label, 174 * scaleFactor, rowY);
+            
+            // Draw Right Value & Unit separated by space
+            ctx.textAlign = 'right';
+            const valueText = `${stat.value}${stat.unit ? ' ' + stat.unit : ''}`;
+            ctx.fillText(valueText, 682 * scaleFactor, rowY);
+            ctx.restore();
           }
 
         } else if (isPixel) {
@@ -3194,18 +3320,27 @@ jQuery(async () => {
       $("#ccs-color-selector").show();
       $("#ccs-y2k-color-selector").hide();
       $("#ccs-spacetime-color-selector").hide();
+      $("#ccs-indextag-color-selector").hide();
     } else if (shareStyle === 'nostalgic-y2k') {
       $("#ccs-color-selector").hide();
       $("#ccs-y2k-color-selector").show();
       $("#ccs-spacetime-color-selector").hide();
+      $("#ccs-indextag-color-selector").hide();
     } else if (shareStyle === 'space-time') {
       $("#ccs-color-selector").hide();
       $("#ccs-y2k-color-selector").hide();
       $("#ccs-spacetime-color-selector").show();
+      $("#ccs-indextag-color-selector").hide();
+    } else if (shareStyle === 'index-tag') {
+      $("#ccs-color-selector").hide();
+      $("#ccs-y2k-color-selector").hide();
+      $("#ccs-spacetime-color-selector").hide();
+      $("#ccs-indextag-color-selector").show();
     } else { // modern, ins, pixel, ancient, classic-night 等无需颜色选择
       $("#ccs-color-selector").hide();
       $("#ccs-y2k-color-selector").hide();
       $("#ccs-spacetime-color-selector").hide();
+      $("#ccs-indextag-color-selector").hide();
     }
 
     try {
@@ -3274,18 +3409,27 @@ jQuery(async () => {
       $("#ccs-color-selector").show();
       $("#ccs-y2k-color-selector").hide();
       $("#ccs-spacetime-color-selector").hide();
+      $("#ccs-indextag-color-selector").hide();
     } else if (shareStyle === 'nostalgic-y2k') {
       $("#ccs-color-selector").hide();
       $("#ccs-y2k-color-selector").show();
       $("#ccs-spacetime-color-selector").hide();
+      $("#ccs-indextag-color-selector").hide();
     } else if (shareStyle === 'space-time') {
       $("#ccs-color-selector").hide();
       $("#ccs-y2k-color-selector").hide();
       $("#ccs-spacetime-color-selector").show();
+      $("#ccs-indextag-color-selector").hide();
+    } else if (shareStyle === 'index-tag') {
+      $("#ccs-color-selector").hide();
+      $("#ccs-y2k-color-selector").hide();
+      $("#ccs-spacetime-color-selector").hide();
+      $("#ccs-indextag-color-selector").show();
     } else {
       $("#ccs-color-selector").hide();
       $("#ccs-y2k-color-selector").hide();
       $("#ccs-spacetime-color-selector").hide();
+      $("#ccs-indextag-color-selector").hide();
     }
 
     const options = $select.find("option");
@@ -3355,7 +3499,7 @@ jQuery(async () => {
 
   // 颜色选择器处理 (scoped to parent selector)
   $(".ccs-color-swatch").on('click', async function (e) {
-    if ($(this).attr('id') === 'ccs-spacetime-custom-swatch') return;
+    if ($(this).attr('id') === 'ccs-spacetime-custom-swatch' || $(this).attr('id') === 'ccs-indextag-custom-swatch') return;
     e.stopPropagation();
     
     // Close custom picker if switching to preset swatches
@@ -3639,7 +3783,8 @@ jQuery(async () => {
     }
 
     // Swatch values
-    const $customSwatch = $('#ccs-spacetime-custom-swatch');
+    const $popover = $('#ccs-custom-picker-popover');
+    const $customSwatch = $popover.data('associated-swatch') || $('#ccs-spacetime-custom-swatch');
     if (!$customSwatch.hasClass('active')) {
       $customSwatch.closest('.ccs-color-selector').find('.ccs-color-swatch').removeClass('active');
       $customSwatch.addClass('active');
@@ -3649,7 +3794,8 @@ jQuery(async () => {
     $customSwatch.data('color', finalColor);
 
     // native hidden input state
-    $('#ccs-spacetime-color-picker').val('#' + hex);
+    const pickerInputId = $customSwatch.attr('id') === 'ccs-indextag-custom-swatch' ? '#ccs-indextag-color-picker' : '#ccs-spacetime-color-picker';
+    $(pickerInputId).val('#' + hex);
 
     isUpdatingPicker = false;
 
@@ -3670,8 +3816,8 @@ jQuery(async () => {
 
   // Popover placement math
   function positionPopover() {
-    const $swatch = $('#ccs-spacetime-custom-swatch');
     const $popover = $('#ccs-custom-picker-popover');
+    const $swatch = $popover.data('associated-swatch') || $('#ccs-spacetime-custom-swatch');
     if (!$swatch.length || !$popover.length || !$popover.is(':visible')) return;
     
     const rect = $swatch[0].getBoundingClientRect();
@@ -3779,20 +3925,25 @@ jQuery(async () => {
   });
 
   // Custom swatch click handler - bind directly to prevent event bubble blocking
-  $('#ccs-spacetime-custom-swatch').on('click', function (e) {
+  $('.ccs-custom-color-swatch').on('click', function (e) {
     e.stopPropagation();
     const $popover = $('#ccs-custom-picker-popover');
     
     const $swatch = $(this);
+    const prevSwatchId = $popover.data('associated-swatch-id');
+    $popover.data('associated-swatch', $swatch);
+    
     if (!$swatch.hasClass('active')) {
       $swatch.closest('.ccs-color-selector').find('.ccs-color-swatch').removeClass('active');
       $swatch.addClass('active');
     }
     
-    if ($popover.is(':visible')) {
+    if ($popover.is(':visible') && prevSwatchId === $swatch.attr('id')) {
       $popover.fadeOut(150);
     } else {
-      let currentColor = $swatch.attr('data-color') || '#00f0ff';
+      $popover.data('associated-swatch-id', $swatch.attr('id'));
+      let defaultColor = $swatch.attr('id') === 'ccs-indextag-custom-swatch' ? '#333333' : '#00f0ff';
+      let currentColor = $swatch.attr('data-color') || defaultColor;
       initColorPicker(currentColor);
       $popover.fadeIn(150, function() {
         positionPopover();
@@ -3811,7 +3962,7 @@ jQuery(async () => {
     const $popover = $('#ccs-custom-picker-popover');
     if ($popover.is(':visible') && 
         !$(e.target).closest('#ccs-custom-picker-popover').length && 
-        !$(e.target).closest('#ccs-spacetime-custom-swatch').length) {
+        !$(e.target).closest('.ccs-custom-color-swatch').length) {
       $popover.fadeOut(150);
     }
   });
@@ -3822,7 +3973,7 @@ jQuery(async () => {
     const $popover = $('#ccs-custom-picker-popover');
     if ($popover.is(':visible') && 
         !$(e.target).closest('#ccs-custom-picker-popover').length && 
-        !$(e.target).closest('#ccs-spacetime-custom-swatch').length) {
+        !$(e.target).closest('.ccs-custom-color-swatch').length) {
       $popover.fadeOut(150);
     }
   });

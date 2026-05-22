@@ -3,11 +3,12 @@
 @import url("https://fontsapi.zeoseven.com/383/main/result.css");
 @import url("https://fontsapi.zeoseven.com/281/main/result.css");
 @import url("https://fontsapi.zeoseven.com/18/main/result.css");
+@import url("https://fontsapi.zeoseven.com/522/main/result.css");
 @import url("https://fonts.googleapis.com/css2?family=Gajraj+One&display=swap");
 
 /* Hidden element to ensure the font is loaded for Canvas */
 .ccs-font-loader {
-    font-family: "Cubic 11", "PING FANG GONG ZI TI", "MaoKenTangYuan (beta)", "Xiaolai", "Unbounded Sans", "Gajraj One";
+    font-family: "Cubic 11", "PING FANG GONG ZI TI", "MaoKenTangYuan (beta)", "Xiaolai", "Unbounded Sans", "Gajraj One", "致一宋體";
     position: absolute;
     opacity: 0;
     pointer-events: none;
