@@ -3,12 +3,12 @@
 @import url("https://fontsapi.zeoseven.com/383/main/result.css");
 @import url("https://fontsapi.zeoseven.com/281/main/result.css");
 @import url("https://fontsapi.zeoseven.com/18/main/result.css");
-@import url("https://fontsapi.zeoseven.com/522/main/result.css");
+@import url("https://fontsapi.zeoseven.com/379/main/result.css");
 @import url("https://fonts.googleapis.com/css2?family=Gajraj+One&display=swap");
 
 /* Hidden element to ensure the font is loaded for Canvas */
 .ccs-font-loader {
-    font-family: "Cubic 11", "PING FANG GONG ZI TI", "MaoKenTangYuan (beta)", "Xiaolai", "Unbounded Sans", "Gajraj One", "致一宋體";
+    font-family: "Cubic 11", "PING FANG GONG ZI TI", "MaoKenTangYuan (beta)", "Xiaolai", "Unbounded Sans", "Gajraj One", "TW-Sung";
     position: absolute;
     opacity: 0;
     pointer-events: none;
@@ -133,6 +133,29 @@ body.ccs-no-scroll {
   background-size: 20px 20px;
   background-position: 0 0, 0 10px, 10px -10px, -10px 0px;
   box-shadow: 0 4px 12px var(--SmartThemeShadowColor);
+}
+
+/* Light theme preview image background - pristine premium light-colored checkerboard */
+#ccs-preview-modal.ccs-light-theme #ccs-preview-container img {
+  background-color: #ffffff;
+  background-image: linear-gradient(45deg, #f5f5f5 25%, transparent 25%),
+                    linear-gradient(-45deg, #f5f5f5 25%, transparent 25%),
+                    linear-gradient(45deg, transparent 75%, #f5f5f5 75%),
+                    linear-gradient(-45deg, transparent 75%, #f5f5f5 75%);
+  background-size: 20px 20px;
+  background-position: 0 0, 0 10px, 10px -10px, -10px 0px;
+}
+
+@media (prefers-color-scheme: light) {
+  #ccs-preview-modal:not(.ccs-dark-theme) #ccs-preview-container img {
+    background-color: #ffffff;
+    background-image: linear-gradient(45deg, #f5f5f5 25%, transparent 25%),
+                      linear-gradient(-45deg, #f5f5f5 25%, transparent 25%),
+                      linear-gradient(45deg, transparent 75%, #f5f5f5 75%),
+                      linear-gradient(-45deg, transparent 75%, #f5f5f5 75%);
+    background-size: 20px 20px;
+    background-position: 0 0, 0 10px, 10px -10px, -10px 0px;
+  }
 }
 
 .button-container {

@@ -21,13 +21,30 @@ jQuery(async () => {
     "https://fontsapi.zeoseven.com/383/main/result.css",
     "https://fontsapi.zeoseven.com/281/main/result.css",
     "https://fontsapi.zeoseven.com/18/main/result.css",
-    "https://fontsapi.zeoseven.com/522/main/result.css",
+    "https://fontsapi.zeoseven.com/379/main/result.css",
     "https://fonts.googleapis.com/css2?family=Long+Cang&display=swap",
     "https://fonts.googleapis.com/css2?family=Gajraj+One&display=swap"
   ];
   fontUrls.forEach(url => {
     $('head').append(`<link rel="stylesheet" href="${url}">`);
   });
+
+  // Inject hidden DOM font preloader to trigger browser subset woff2 downloads for canvas rendering
+  const preloaderText = "0123456789. 初遇时间聊天对话相伴天数聊天字数回忆大小条天字MB";
+  const families = [
+    "Cubic 11",
+    "PING FANG GONG ZI TI",
+    "MaoKenTangYuan (beta)",
+    "Xiaolai",
+    "Unbounded Sans",
+    "Gajraj One",
+    "TW-Sung"
+  ];
+  const $loaderContainer = $('<div id="ccs-font-preloader-container" style="position: absolute; top: -9999px; left: -9999px; opacity: 0; pointer-events: none; visibility: hidden; width: 1px; height: 1px; overflow: hidden;"></div>');
+  families.forEach(family => {
+    $loaderContainer.append(`<div style="font-family: '${family}';">${preloaderText}</div>`);
+  });
+  $('body').append($loaderContainer);
 
   $('head').append(`<style>
     #ccs-preview-container.loading-preview {
@@ -116,6 +133,79 @@ jQuery(async () => {
     }
 
     return "未知角色";
+  }
+
+  function isLightThemeActive() {
+    try {
+      // 1. Get computed text color of body
+      const bodyColor = window.getComputedStyle(document.body).color;
+      if (bodyColor) {
+        const rgb = bodyColor.match(/\d+/g);
+        if (rgb && rgb.length >= 3) {
+          const r = parseInt(rgb[0], 10), g = parseInt(rgb[1], 10), b = parseInt(rgb[2], 10);
+          const luminance = (0.2126 * r + 0.7152 * g + 0.0722 * b) / 255;
+          if (DEBUG) console.log("[CCStats] Detected body text color luminance:", luminance, "rgb:", r, g, b);
+          return luminance < 0.5; // Dark text (luminance < 0.5) indicates Light theme
+        }
+      }
+
+      // 2. Fallback to background color of body if explicitly set and opaque
+      const bodyBg = window.getComputedStyle(document.body).backgroundColor;
+      if (bodyBg && bodyBg !== 'transparent' && bodyBg !== 'rgba(0, 0, 0, 0)') {
+        const rgb = bodyBg.match(/\d+/g);
+        if (rgb && rgb.length >= 3) {
+          const r = parseInt(rgb[0], 10), g = parseInt(rgb[1], 10), b = parseInt(rgb[2], 10);
+          const luminance = (0.2126 * r + 0.7152 * g + 0.0722 * b) / 255;
+          return luminance > 0.5; // Light background (luminance > 0.5) indicates Light theme
+        }
+      }
+      
+      // 3. Fallback to `--SmartThemeBodyColor` variable
+      const smartBodyColor = window.getComputedStyle(document.documentElement || document.body).getPropertyValue('--SmartThemeBodyColor').trim();
+      if (smartBodyColor) {
+        let rgb = null;
+        if (smartBodyColor.startsWith('#')) {
+          const hex = smartBodyColor.slice(1);
+          if (hex.length === 3) {
+            rgb = [parseInt(hex[0]+hex[0], 16), parseInt(hex[1]+hex[1], 16), parseInt(hex[2]+hex[2], 16)];
+          } else if (hex.length === 6) {
+            rgb = [parseInt(hex.slice(0, 2), 16), parseInt(hex.slice(2, 4), 16), parseInt(hex.slice(4, 6), 16)];
+          }
+        } else {
+          rgb = smartBodyColor.match(/\d+/g);
+        }
+        if (rgb && rgb.length >= 3) {
+          const r = parseInt(rgb[0], 10), g = parseInt(rgb[1], 10), b = parseInt(rgb[2], 10);
+          const luminance = (0.2126 * r + 0.7152 * g + 0.0722 * b) / 255;
+          return luminance < 0.5;
+        }
+      }
+    } catch (e) {
+      console.error('Error detecting light theme:', e);
+    }
+    return window.matchMedia && window.matchMedia('(prefers-color-scheme: light)').matches;
+  }
+
+  function getSafeFontStack(fontName, fallbackStack = '"PingFang SC", "Microsoft YaHei", sans-serif') {
+    try {
+      if (document.fonts && typeof document.fonts.check === 'function') {
+        if (document.fonts.check(`12px "${fontName}"`)) {
+          return `"${fontName}", ${fallbackStack}`;
+        }
+      }
+    } catch (e) {
+      console.warn(`[CCStats] Font check failed for ${fontName}:`, e);
+    }
+    return fallbackStack;
+  }
+
+  function updatePreviewTheme() {
+    const $modal = $("#ccs-preview-modal");
+    if (isLightThemeActive()) {
+      $modal.addClass('ccs-light-theme').removeClass('ccs-dark-theme');
+    } else {
+      $modal.removeClass('ccs-light-theme').addClass('ccs-dark-theme');
+    }
   }
 
   // Helper function to parse SillyTavern's date format more reliably
@@ -1500,6 +1590,7 @@ jQuery(async () => {
     const isAncient = shareStyle === 'ancient';
     const isClassicNight = shareStyle === 'classic-night';
 
+    const charName = getCurrentCharacterName();
     const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
 
     // 强制等待所有字体加载完毕，防止 Canvas 渲染时回退到默认字体
@@ -1510,7 +1601,58 @@ jQuery(async () => {
 
     const canvas = document.getElementById('ccs-canvas');
     const ctx = canvas.getContext('2d');
-    const charName = getCurrentCharacterName();
+
+    // Reset context font to a safe base font immediately to clear any leftover Font Awesome state
+    ctx.font = `400 16px ${baseFontFamily}`;
+
+    // 针对各种自定义字体使用 document.fonts.load 强制预加载具体字符，彻底解决 Canvas 懒加载导致的 fallback 甚至问号故障
+    try {
+      const statsText = "0123456789. 初遇时间聊天对话相伴天数聊天字数回忆大小条天字MB个点约点分";
+      const charNameText = charName || "角色名";
+      const userText = "我您你";
+      const allText = statsText + charNameText + userText;
+      const sf = 2; // scaleFactor
+
+      if (document.fonts && typeof document.fonts.load === 'function') {
+        if (isIndexTag) {
+          // Dynamic DOM preloader update for "TW-Sung" to trigger lazy range fetching
+          let $preloader = $("#ccs-font-preloader-container");
+          if ($preloader.length > 0) {
+            $preloader.find('div[style*="TW-Sung"]').text(allText);
+          }
+          if (DEBUG) console.log("[CCStats] Preloading TW-Sung for text:", allText);
+          await document.fonts.load(`400 ${68 * sf}px "TW-Sung"`, allText);
+          await document.fonts.load(`400 ${40 * sf}px "TW-Sung"`, allText);
+        } else if (isSpaceTime) {
+          let $preloader = $("#ccs-font-preloader-container");
+          if ($preloader.length > 0) {
+            $preloader.find('div[style*="Unbounded Sans"]').text(allText);
+            $preloader.find('div[style*="Gajraj One"]').text(allText);
+            $preloader.find('div[style*="Cubic 11"]').text(allText);
+          }
+          await document.fonts.load(`400 ${98 * sf}px "Unbounded Sans"`, allText);
+          await document.fonts.load(`400 ${37 * sf}px "Gajraj One"`, allText);
+          await document.fonts.load(`400 ${34 * sf}px "Cubic 11"`, allText);
+        } else if (isY2k) {
+          let $preloader = $("#ccs-font-preloader-container");
+          if ($preloader.length > 0) {
+            $preloader.find('div[style*="Cubic 11"]').text(allText);
+            $preloader.find('div[style*="Xiaolai"]').text(allText);
+          }
+          await document.fonts.load(`400 ${34 * sf}px "Cubic 11"`, allText);
+          await document.fonts.load(`400 ${45 * sf}px "Xiaolai"`, allText);
+        } else if (isPocketSticker) {
+          let $preloader = $("#ccs-font-preloader-container");
+          if ($preloader.length > 0) {
+            $preloader.find('div[style*="PING FANG GONG ZI TI"]').text(allText);
+          }
+          await document.fonts.load(`400 ${100 * sf}px "PING FANG GONG ZI TI"`, allText);
+          await document.fonts.load(`400 ${40 * sf}px "PING FANG GONG ZI TI"`, allText);
+        }
+      }
+    } catch (e) {
+      console.warn("[CCStats] Error preloading specific custom fonts:", e);
+    }
 
     const scaleFactor = 2; // HD
     const width = (isPocketSticker || isY2k || isSpaceTime || isIndexTag) ? 896 * scaleFactor : 663 * scaleFactor;
@@ -1904,7 +2046,7 @@ jQuery(async () => {
           document.fonts.load(`400 32px "Unbounded Sans"`, charName + statChars),
           document.fonts.load(`700 32px "Unbounded Sans"`, charName + statChars),
           document.fonts.load(`400 32px "Gajraj One"`, '0123456789.'),
-          document.fonts.load(`400 32px "\u81f4\u4e00\u5b8b\u9ad4"`, charName + statChars + '\u521d\u9047\u804a\u5929\u5bf9\u8bdd\u76f8\u4f34\u5929\u6570\u5b57\u6570\u56de\u5fc6\u5927\u5c0f\u6761\u5929\u5b57MB')
+          document.fonts.load(`400 32px "TW-Sung"`, charName + statChars + '\u521d\u9047\u804a\u5929\u5bf9\u8bdd\u76f8\u4f34\u5929\u6570\u5b57\u6570\u56de\u5fc6\u5927\u5c0f\u6761\u5929\u5b57MB')
         ];
 
         // Wait for fonts to load, with a timeout to prevent hanging forever
@@ -2569,13 +2711,13 @@ jQuery(async () => {
         }
 
         // 2. Character Name Centering in the Frame Container
-        // Font: 68px "致一宋體", weight normal, Y=473, horizontally centers within frame bounds
+        // Font: 68px "TW-Sung", weight normal, Y=473, horizontally centers within frame bounds
         // Frame bounds span X=134.5 to 722.5, centering at X=428.5.
         ctx.save();
         ctx.textAlign = 'center';
         ctx.textBaseline = 'top';
         ctx.fillStyle = activeIndexTagColor;
-        ctx.font = `400 ${68 * scaleFactor}px "\u81f4\u4e00\u5b8b\u9ad4", "PingFang SC", "Microsoft YaHei", sans-serif`;
+        ctx.font = `400 ${68 * scaleFactor}px ${getSafeFontStack("TW-Sung", '"PingFang SC", "Microsoft YaHei", sans-serif')}`;
         // iOS WebKit shift adjustment
         ctx.fillText(charName || "\u89d2\u8272\u540d", 428.5 * scaleFactor, 473 * scaleFactor - (isIOS ? 10 * scaleFactor : 0));
         ctx.restore();
@@ -2817,7 +2959,7 @@ jQuery(async () => {
             ctx.textAlign = 'left';
             ctx.textBaseline = 'middle';
             ctx.fillStyle = activeIndexTagColor;
-            ctx.font = `400 ${40 * scaleFactor}px "\u81f4\u4e00\u5b8b\u9ad4", "PingFang SC", "Microsoft YaHei", sans-serif`;
+            ctx.font = `400 ${40 * scaleFactor}px ${getSafeFontStack("TW-Sung", '"PingFang SC", "Microsoft YaHei", sans-serif')}`;
             
             // Draw Left Label using Unicode escapes to guarantee robust encoding
             const labelMap = {
@@ -3267,6 +3409,7 @@ jQuery(async () => {
 
   function showPreview(imageData, customFilename) {
     const $modal = $("#ccs-preview-modal");
+    updatePreviewTheme();
     const $container = $("#ccs-preview-container");
 
     // 清空之前的内容
@@ -3332,6 +3475,7 @@ jQuery(async () => {
 
     // Show modal in loading state first to give immediate feedback
     const $modal = $("#ccs-preview-modal");
+    updatePreviewTheme();
     const $container = $("#ccs-preview-container");
     $container.empty().addClass('loading-preview');
     $modal.addClass('ccs-modal-visible');
@@ -4542,6 +4686,7 @@ jQuery(async () => {
 
     // 打开预览模块，并清空容器
     const $modal = $("#ccs-preview-modal");
+    updatePreviewTheme();
     const $container = $("#ccs-preview-container");
     $container.empty().addClass('loading-preview');
     $modal.addClass('ccs-modal-visible');
