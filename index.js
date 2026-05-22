@@ -12,67 +12,20 @@ jQuery(async () => {
   // 加载CSS文件 using dynamic path
   $('head').append(`<link rel="stylesheet" type="text/css" href="${extensionWebPath}/styles.css">`);
 
-  // 自动更新检测与提醒机制 (Auto Update Checker & Notifier)
+  // 自动更新检测与静默刷新机制 (Auto Update Checker & Silent Hot-Reload)
   const CURRENT_VERSION = "1.4.3";
+  let isReloading = false;
   async function checkPluginUpdate() {
+    if (isReloading) return;
     try {
       const manifestUrl = `${extensionWebPath}/manifest.json?t=${Date.now()}`;
       const response = await fetch(manifestUrl);
       if (response.ok) {
         const manifest = await response.json();
         if (manifest.version && manifest.version !== CURRENT_VERSION) {
-          console.log(`[CCStats] 检测到插件有新版本: ${CURRENT_VERSION} -> ${manifest.version}`);
-          
-          // 使用酒馆自带的 toastr 进行通知提示
-          if (window.toastr) {
-            window.toastr.info(
-              `羁绊助手已更新至新版本 v${manifest.version}！<br><a style="text-decoration: underline; font-weight: bold; cursor: pointer;" onclick="window.location.reload()">点击此处立即刷新页面</a>`,
-              "插件已更新",
-              {
-                timeOut: 0,
-                extendedTimeOut: 0,
-                closeButton: true,
-                enableHtml: true,
-                positionClass: "toast-top-right"
-              }
-            );
-          } else {
-            // 后备方案：如果没有 toastr，则渲染一个精美的浮动提示框
-            const existingBanner = document.getElementById('ccs-update-banner');
-            if (existingBanner) return;
-            
-            const banner = document.createElement('div');
-            banner.id = 'ccs-update-banner';
-            banner.style.cssText = `
-              position: fixed;
-              top: 20px;
-              right: 20px;
-              background: rgba(30, 30, 30, 0.95);
-              color: #ffffff;
-              padding: 15px 20px;
-              border-radius: 8px;
-              box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
-              z-index: 99999;
-              font-family: system-ui, sans-serif;
-              border-left: 4px solid var(--SmartThemeEmColor, #00bfff);
-              font-size: 14px;
-            `;
-            banner.innerHTML = `
-              <div style="font-weight: bold; margin-bottom: 5px;">羁绊助手已更新 (v${manifest.version})</div>
-              <div style="margin-bottom: 10px;">请刷新酒馆页面以应用新功能</div>
-              <button onclick="window.location.reload()" style="
-                background: var(--SmartThemeEmColor, #00bfff);
-                color: #fff;
-                border: none;
-                padding: 6px 12px;
-                border-radius: 4px;
-                cursor: pointer;
-                font-weight: bold;
-                width: 100%;
-              ">立即刷新</button>
-            `;
-            document.body.appendChild(banner);
-          }
+          isReloading = true;
+          console.log(`[CCStats] 检测到插件有新版本: ${CURRENT_VERSION} -> ${manifest.version}。正在自动刷新页面...`);
+          window.location.reload();
         }
       }
     } catch (e) {
@@ -83,6 +36,9 @@ jQuery(async () => {
   // 延迟 3 秒进行首次检测，随后每 5 分钟检测一次
   setTimeout(checkPluginUpdate, 3000);
   setInterval(checkPluginUpdate, 300000);
+
+  // 当用户切回酒馆页面时，自动触发一次检测，以便在终端 git pull 后能瞬间刷新
+  window.addEventListener('focus', checkPluginUpdate);
 
   // 加载自定义字体 (Added handwritten and PING FANG SHAO HUA font)
   $('head').append(`<style>
