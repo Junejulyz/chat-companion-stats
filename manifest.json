@@ -3,10 +3,10 @@
     "loading_order": 12,
     "requires": [],
     "optional": [],
-    "js": "index.js",
-    "css": "styles.css",
+    "js": "index.js?v=1.4.2",
+    "css": "styles.css?v=1.4.2",
     "author": "Junezz&AI",
-    "version": "1.4.1",
+    "version": "1.4.2",
     "description": "记录你与角色的聊天楼数、字数与陪伴天数",
     "homePage": "https://github.com/Junejulyz/chat-companion-stats.git"
 }

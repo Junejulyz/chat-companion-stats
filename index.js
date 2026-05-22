@@ -2403,8 +2403,8 @@ jQuery(async () => {
         ctx.textBaseline = 'top';
         ctx.fillStyle = '#1A1A1A';
         ctx.font = `400 ${37 * scaleFactor}px "Gajraj One", sans-serif`;
-        // iOS WebKit shift adjustment
-        ctx.fillText(formattedDate, width / 2, 546 * scaleFactor - (isIOS ? 7 * scaleFactor : 0));
+        // iOS WebKit shift adjustment (increased from 7 to 13 per user request to move it up a bit more)
+        ctx.fillText(formattedDate, width / 2, 546 * scaleFactor - (isIOS ? 13 * scaleFactor : 0));
         ctx.textBaseline = 'alphabetic'; // Reset
 
         // 3. Avatar Mask drawing function with 20px bevel (45-degree flat cut corners)
