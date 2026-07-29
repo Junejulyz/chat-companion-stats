@@ -832,6 +832,12 @@ body.ccs-no-scroll {
   justify-content: center;
   gap: 15px;
   width: 100%;
+  box-sizing: border-box;
+  /* This element clips too (overflow-x:hidden forces overflow-y to auto), so it
+     needs the same bottom allowance as .ccs-preview-wrapper for the image's
+     downward box-shadow; the negative margin keeps outer layout unchanged. */
+  padding-bottom: 28px;
+  margin-bottom: -28px;
   overflow-x: hidden;
 }
 
@@ -866,10 +872,14 @@ body.ccs-no-scroll {
   gap: 10px;
   width: 100%;
   box-sizing: border-box;
-  /* Side padding gives the image's box-shadow room to render before hitting this
-     element's own overflow-x clip boundary (needed to hide the ±30px carousel
-     slide transform) — without it the shadow was cut flat at the image edge. */
-  padding: 0 24px;
+  /* Padding gives the image's box-shadow room to render before hitting this
+     element's clip boundary (overflow-x:hidden is needed to hide the ±30px
+     carousel slide transform, but per spec it also forces overflow-y from
+     visible to auto — so this element clips vertically too). Side padding
+     protects the horizontal spread; bottom padding protects the ~38px downward
+     extent, and the negative margin cancels it out so layout is unchanged. */
+  padding: 0 24px 28px;
+  margin-bottom: -28px;
   overflow-x: hidden;
 }
 
