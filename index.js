@@ -5,7 +5,8 @@ import { getPastCharacterChats, getRequestHeaders } from '../../../../script.js'
 
 const extensionName = "chat-companion-stats";
 const extensionWebPath = import.meta.url.split('?')[0].replace(/\/index\.js$/, '');
-const DEBUG = true;
+// 发布版关闭调试日志：热循环里的 console.log（尤其是打印大对象）本身就有可观开销
+const DEBUG = false;
 
 jQuery(async () => {
   if (DEBUG) console.log("[CCStats] Booting...");
@@ -91,9 +92,55 @@ jQuery(async () => {
   let lastDeepScanPartial = false; // 记录上次深度扫描是否有部分文件失败
   let isDraggingColorPicker = false; // 全局拖拽状态标志，防止调色时误关闭模态框
   // 核心功能：全局缓存准确的初遇时间，避免在扫描模式间切换时发生横跳
+  // 条目形如 { date: Date, sig: string }。sig 是根据"最老的可解析文件日期 + 改名文件数量"
+  // 生成的签名：只要没有删除最老的聊天或改名文件，签名不变、缓存精确可信；
+  // 一旦签名变化（例如删档、导入更老的记录），自动作废并重新扫描。
   const accurateEncounterTimeCache = {};
   // 核心功能：全局缓存准确的字数/体积比，校准估算系统
   const accurateWordRatioCache = {};
+
+  // ---- 持久化缓存（localStorage）：初遇时间算一次终身受用，刷新页面不再重扫 ----
+  const CCS_PERSIST_CACHE_KEY = 'ccs-encounter-cache-v1';
+
+  function computeEncounterSig(parseableFilesInfo, unparseableFiles) {
+    let oldest = null;
+    for (const f of parseableFilesInfo) {
+      if (f.date && (!oldest || f.date < oldest)) oldest = f.date;
+    }
+    return `${oldest ? oldest.getTime() : 0}|${(unparseableFiles || []).length}`;
+  }
+
+  function loadPersistentCaches() {
+    try {
+      const raw = localStorage.getItem(CCS_PERSIST_CACHE_KEY);
+      if (!raw) return;
+      const obj = JSON.parse(raw);
+      for (const [k, v] of Object.entries(obj.encounters || {})) {
+        if (v && v.t) accurateEncounterTimeCache[k] = { date: new Date(v.t), sig: v.sig || '' };
+      }
+      Object.assign(accurateWordRatioCache, obj.wordRatios || {});
+    } catch (e) {
+      if (DEBUG) console.warn('[StatsDebug] Failed to load persistent cache, starting fresh:', e);
+    }
+  }
+
+  let persistCacheTimer = null;
+  function schedulePersistCaches() {
+    clearTimeout(persistCacheTimer);
+    persistCacheTimer = setTimeout(() => {
+      try {
+        const encounters = {};
+        for (const [k, v] of Object.entries(accurateEncounterTimeCache)) {
+          if (v && v.date) encounters[k] = { t: v.date.getTime(), sig: v.sig || '' };
+        }
+        localStorage.setItem(CCS_PERSIST_CACHE_KEY, JSON.stringify({ encounters, wordRatios: accurateWordRatioCache }));
+      } catch (e) {
+        if (DEBUG) console.warn('[StatsDebug] Failed to persist cache (quota/private mode?):', e);
+      }
+    }, 800);
+  }
+
+  loadPersistentCaches();
 
   // 加载HTML using dynamic path with cache buster
   const settingsHtml = await $.get(`${extensionWebPath}/settings.html?v=${Date.now()}`);
@@ -866,11 +913,15 @@ jQuery(async () => {
       }
       let estimatedWords = Math.round((totalSizeBytesRaw / 1024) * currentRatio);
 
+      // 当前文件列表的指纹，用于校验持久化缓存是否仍然可信
+      const encounterSig = computeEncounterSig(parseableFilesInfo, unparseableFiles);
+
       // 如果不是深度扫描，直接返回基础数据，但运用更为宽广的“精准打击”或读取锁定缓存
       if (!forceDeepScan) {
-        if (accurateEncounterTimeCache[characterId]) {
+        const cachedEncounter = accurateEncounterTimeCache[characterId];
+        if (cachedEncounter && cachedEncounter.date && cachedEncounter.sig === encounterSig) {
           // 方案B：直接调用曾经找到的那个锁定好的绝对真理，防止被回退
-          earliestTime = accurateEncounterTimeCache[characterId];
+          earliestTime = cachedEncounter.date;
         } else {
           // 方案A：扩大打击范围，获取名义上最老的3个文件（完整统计）
           parseableFilesInfo.sort((a, b) => a.date - b.date);
@@ -903,9 +954,10 @@ jQuery(async () => {
             }
           }
 
-          // 把首发找到的准确时间写入内存保险箱
+          // 把首发找到的准确时间写入保险箱（内存 + localStorage）
           if (earliestTime) {
-            accurateEncounterTimeCache[characterId] = earliestTime;
+            accurateEncounterTimeCache[characterId] = { date: earliestTime, sig: encounterSig };
+            schedulePersistCaches();
           }
         }
 
@@ -969,12 +1021,14 @@ jQuery(async () => {
 
       // 深度扫描找出了贯穿所有聊天系统的绝对真理，霸道覆盖并永久锁定缓存！
       if (absoluteEarliestTime) {
-        accurateEncounterTimeCache[characterId] = absoluteEarliestTime;
+        accurateEncounterTimeCache[characterId] = { date: absoluteEarliestTime, sig: encounterSig };
+        schedulePersistCaches();
       }
 
       // 如果是一次完整的深度分析，记录这名角色专属的字数密度（字数 / 每KB体积）
       if (forceDeepScan && totalSizeBytesRaw > 0 && totalWordsCalculated > 0) {
         accurateWordRatioCache[characterId] = totalWordsCalculated / (totalSizeBytesRaw / 1024);
+        schedulePersistCaches();
       }
 
       return {
@@ -4354,30 +4408,18 @@ jQuery(async () => {
   // =========================================================================
 
   async function fetchAllCharactersStats() {
-    console.log("--- DEBUG GLOBAL STATS ---");
     const context = getContext();
-    console.log("Context from getContext():", context);
 
     // We need to hunt down the characters array in SillyTavern global scope.
     let charsSource = context.characters || window.characters || window.characters_data;
-    console.log("Initial charsSource:", charsSource);
 
-    // Some versions of ST keep characters in localstorage or need it fetched differently, 
-    // but window.characters is the standard since 1.X. Let's inspect window keys.
     if (!charsSource) {
-      console.warn("Could not find standard characters object. Listing window keys with 'char':");
-      const charKeys = Object.keys(window).filter(k => k.toLowerCase().includes('char'));
-      console.log(charKeys);
+      if (DEBUG) console.warn("[GlobalStats] Could not find standard characters object.");
       return [];
     }
 
-    // DEBUG: Understand how getPastCharacterChats works internally in ST
-    console.log("getPastCharacterChats signature:", getPastCharacterChats.toString());
-
     // 使用 entries 来保留角色的原始 ID (Key 或数组 Index)
     const charsEntries = Object.entries(charsSource);
-    console.log("Parsed charsEntries length:", charsEntries.length);
-    console.log("First character item sample:", charsEntries[0]);
 
     if (charsEntries.length === 0) {
       if (DEBUG) console.warn("Characters array is empty.");
@@ -4388,27 +4430,30 @@ jQuery(async () => {
     const now = new Date();
     const utcNow = Date.UTC(now.getFullYear(), now.getMonth(), now.getDate());
 
-    // Fetch sequentially to prevent hitting ST server concurrency limits or deadlocks
     const $spinner = $('#ccs-global-spinner');
     const totalChars = charsEntries.length;
+    let completedChars = 0;
 
-    for (let i = 0; i < totalChars; i++) {
-      const [charId, char] = charsEntries[i];
-
+    // 进度按"已完成的角色数"计（并发下完成顺序不定，但计数单调递增）
+    function reportProgress() {
+      completedChars++;
       if ($spinner.length) {
-        const percent = Math.round(((i + 1) / totalChars) * 100);
-        $('#ccs-global-progress-text').text(`正在读取回忆... (${i + 1}/${totalChars})`);
+        const percent = Math.round((completedChars / totalChars) * 100);
+        $('#ccs-global-progress-text').text(`正在读取回忆... (${completedChars}/${totalChars})`);
         $('#ccs-global-progress-bar').css('width', `${percent}%`);
       }
+    }
 
+    // 提取单个角色的统计（供下方并发池调用），无数据/无互动返回 null
+    async function fetchOneCharacterStats(charId, char) {
       // Skip default/empty characters
       if (!char || !char.avatar) {
-        console.log(`[GlobalStats] Skipping index ${charId} - missing avatar.`);
-        continue;
+        if (DEBUG) console.log(`[GlobalStats] Skipping index ${charId} - missing avatar.`);
+        return null;
       }
 
       try {
-        if (DEBUG) console.log(`[GlobalStats] [${i + 1}/${totalChars}] Fetching chats for ${char.name} (ID: ${charId})`);
+        if (DEBUG) console.log(`[GlobalStats] Fetching chats for ${char.name} (ID: ${charId})`);
         // 致命 Bug 修复：SillyTavern 原生 API 接受的是 characterId (即在 characters 数组里的 Index/Key)
         let chats = await getPastCharacterChats(charId);
 
@@ -4420,9 +4465,9 @@ jQuery(async () => {
 
         if (!chats || chats.length === 0) {
           if (DEBUG) console.log(`[GlobalStats] => No chats found for: ${char.name}`);
-          continue;
+          return null;
         }
-        console.log(`[GlobalStats] => Found ${chats.length} chat items for: ${char.name}`, chats);
+        if (DEBUG) console.log(`[GlobalStats] => Found ${chats.length} chat items for: ${char.name}`);
 
         let totalMessages = 0;
         let totalSizeBytesRaw = 0;
@@ -4473,16 +4518,18 @@ jQuery(async () => {
 
         // Only include characters with actual interaction
         if (!hasInteraction) {
-          console.log(`[GlobalStats] => No real interactions for ${char.name}, skipping.`);
-          continue;
+          if (DEBUG) console.log(`[GlobalStats] => No real interactions for ${char.name}, skipping.`);
+          return null;
         }
 
         // 全局排行：运用精准打击与缓存共享策略统一时间
         // 关键修复：API 调用必须使用 char.avatar（如 "character.png"）而非 charId（数组索引 "0","1"...）
         // 否则 /api/chats/get 无法定位正确的聊天文件目录，导致改名文件的初遇时间丢失
         const avatarForApi = char.avatar;
-        if (accurateEncounterTimeCache[avatarForApi]) {
-          earliestTime = accurateEncounterTimeCache[avatarForApi];
+        const encounterSig = computeEncounterSig(parseableFilesInfo, unparseableFiles);
+        const cachedEncounter = accurateEncounterTimeCache[avatarForApi];
+        if (cachedEncounter && cachedEncounter.date && cachedEncounter.sig === encounterSig) {
+          earliestTime = cachedEncounter.date;
         } else {
           parseableFilesInfo.sort((a, b) => a.date - b.date);
           // 全局扫描：对最老的2个可解析文件进行完整统计
@@ -4511,7 +4558,10 @@ jQuery(async () => {
             }
           }
 
-          if (earliestTime) accurateEncounterTimeCache[avatarForApi] = earliestTime;
+          if (earliestTime) {
+            accurateEncounterTimeCache[avatarForApi] = { date: earliestTime, sig: encounterSig };
+            schedulePersistCaches();
+          }
         }
 
         let days = 0;
@@ -4533,7 +4583,7 @@ jQuery(async () => {
           else formattedSize = `${Math.round(totalSizeBytesRaw)} B`;
         }
 
-        statsList.push({
+        return {
           name: char.name || '未知角色',
           avatar: `/characters/${char.avatar}`,
           messages: totalMessages,
@@ -4541,12 +4591,27 @@ jQuery(async () => {
           sizeRaw: totalSizeBytesRaw,
           formattedSize: formattedSize,
           firstTimeRaw: earliestTime
-        });
+        };
 
       } catch (err) {
         if (DEBUG) console.error(`Error fetching stats for char ${char.name}:`, err);
       }
+      return null;
     }
+
+    // 有界并发池：同时处理 5 个角色。相比原先的严格串行大幅缩短总耗时，
+    // 又不会像无限并发那样打爆本地 ST 服务（尤其是缓存未命中要下载聊天文件时）
+    const CONCURRENCY = 5;
+    let nextIndex = 0;
+    async function poolWorker() {
+      while (nextIndex < charsEntries.length) {
+        const [charId, char] = charsEntries[nextIndex++];
+        const stat = await fetchOneCharacterStats(charId, char);
+        if (stat) statsList.push(stat);
+        reportProgress();
+      }
+    }
+    await Promise.all(Array.from({ length: Math.min(CONCURRENCY, charsEntries.length) }, poolWorker));
 
     return statsList;
   }
