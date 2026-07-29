@@ -3407,6 +3407,14 @@ jQuery(async () => {
     return { dataUrl: canvas.toDataURL('image/png'), filename: `羁绊排行_${tabName}.png` };
   }
 
+  // 根据当前选择的卡片风格，同步显示对应的颜色选择器（其余全部隐藏）
+  function syncColorSelectorVisibility(style) {
+    $("#ccs-color-selector").toggle(style === 'pocket-sticker');
+    $("#ccs-y2k-color-selector").toggle(style === 'nostalgic-y2k');
+    $("#ccs-spacetime-color-selector").toggle(style === 'space-time');
+    $("#ccs-indextag-color-selector").toggle(style === 'index-tag');
+  }
+
   function showPreview(imageData, customFilename) {
     const $modal = $("#ccs-preview-modal");
     updatePreviewTheme();
@@ -3432,11 +3440,19 @@ jQuery(async () => {
     // Store filename
     $("#ccs-download").data('filename', customFilename || '');
 
-    // Hide UI elements not relevant for global share
-    if (customFilename && customFilename.includes('排行')) {
+    // 全局排行分享的图片是一次性渲染好的静态图，不应该暴露"生成卡片"专用的
+    // 风格轮播（左右箭头/圆点）与配色选择器——之前这些控件一直可见且可点击，
+    // 点击后会触发 cycleStyle -> generateShareImage，把排行榜图替换成单角色卡片，
+    // 造成"串屏"。这里根据来源彻底隐藏/恢复这些控件。
+    const isGlobalShare = !!(customFilename && customFilename.includes('排行'));
+    if (isGlobalShare) {
       $("#ccs-style-select").hide();
+      $("#ccs-carousel-prev, #ccs-carousel-next, #ccs-carousel-dots").hide();
+      syncColorSelectorVisibility(null);
     } else {
       $("#ccs-style-select").show();
+      $("#ccs-carousel-prev, #ccs-carousel-next, #ccs-carousel-dots").show();
+      syncColorSelectorVisibility($("#ccs-style-select").val());
     }
   }
 
@@ -3571,32 +3587,7 @@ jQuery(async () => {
     shareStyle = $select.val();
     localStorage.setItem('ccs-share-style', shareStyle); // 保存用户选择到 localStorage
     if (DEBUG) console.log('Selected style changed (dropdown):', shareStyle);
-    if (shareStyle === 'pocket-sticker') {
-      $("#ccs-color-selector").show();
-      $("#ccs-y2k-color-selector").hide();
-      $("#ccs-spacetime-color-selector").hide();
-      $("#ccs-indextag-color-selector").hide();
-    } else if (shareStyle === 'nostalgic-y2k') {
-      $("#ccs-color-selector").hide();
-      $("#ccs-y2k-color-selector").show();
-      $("#ccs-spacetime-color-selector").hide();
-      $("#ccs-indextag-color-selector").hide();
-    } else if (shareStyle === 'space-time') {
-      $("#ccs-color-selector").hide();
-      $("#ccs-y2k-color-selector").hide();
-      $("#ccs-spacetime-color-selector").show();
-      $("#ccs-indextag-color-selector").hide();
-    } else if (shareStyle === 'index-tag') {
-      $("#ccs-color-selector").hide();
-      $("#ccs-y2k-color-selector").hide();
-      $("#ccs-spacetime-color-selector").hide();
-      $("#ccs-indextag-color-selector").show();
-    } else {
-      $("#ccs-color-selector").hide();
-      $("#ccs-y2k-color-selector").hide();
-      $("#ccs-spacetime-color-selector").hide();
-      $("#ccs-indextag-color-selector").hide();
-    }
+    syncColorSelectorVisibility(shareStyle);
 
     const options = $select.find("option");
     const currentIndex = options.index(options.filter(":selected"));
