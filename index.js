@@ -124,6 +124,30 @@ jQuery(async () => {
     }
   }
 
+  // ---- 重资源操作限流 ----
+  // 下载并 JSON.parse 一个完整聊天文件的瞬时内存可达文件体积的数倍到十倍。
+  // 角色级 5 路并发若同时进入这段"重活"，手机浏览器会因内存峰值直接杀掉页面（闪退）。
+  // 因此把重活单独限流：移动端同一时刻只放行 1 个，桌面端 2 个；
+  // 轻量的元数据请求不受此限制，缓存命中后的扫描完全不进这里。
+  const HEAVY_OP_LIMIT = /Mobi|Android|iPhone|iPad/i.test(navigator.userAgent) ? 1 : 2;
+  const heavyOpQueue = [];
+  let heavyOpActive = 0;
+  async function acquireHeavyOpSlot() {
+    // while 而非 if：被唤醒后重新检查，防止唤醒间隙有其他调用者抢占名额导致超限
+    while (heavyOpActive >= HEAVY_OP_LIMIT) {
+      await new Promise(resolve => heavyOpQueue.push(resolve));
+    }
+    heavyOpActive++;
+    let released = false;
+    return function releaseHeavyOpSlot() {
+      if (released) return;
+      released = true;
+      heavyOpActive--;
+      const next = heavyOpQueue.shift();
+      if (next) next();
+    };
+  }
+
   let persistCacheTimer = null;
   function schedulePersistCaches() {
     clearTimeout(persistCacheTimer);
@@ -4531,31 +4555,38 @@ jQuery(async () => {
         if (cachedEncounter && cachedEncounter.date && cachedEncounter.sig === encounterSig) {
           earliestTime = cachedEncounter.date;
         } else {
-          parseableFilesInfo.sort((a, b) => a.date - b.date);
-          // 全局扫描：对最老的2个可解析文件进行完整统计
-          let filesToCheck = parseableFilesInfo.slice(0, 2).map(f => f.name);
+          // 重活区：要下载并解析完整聊天文件，必须经过全局限流闸门，
+          // 否则 5 路并发同时解析大文件会把手机浏览器的内存打爆（闪退）
+          const releaseHeavySlot = await acquireHeavyOpSlot();
+          try {
+            parseableFilesInfo.sort((a, b) => a.date - b.date);
+            // 全局扫描：对最老的2个可解析文件进行完整统计
+            let filesToCheck = parseableFilesInfo.slice(0, 2).map(f => f.name);
 
-          if (filesToCheck.length > 0) {
-            for (const file of filesToCheck) {
-              const fileStats = await getChatFileStats(file, avatarForApi, char.name);
-              if (fileStats && fileStats.earliestTime) {
-                if (!earliestTime || fileStats.earliestTime < earliestTime) {
-                  earliestTime = fileStats.earliestTime;
+            if (filesToCheck.length > 0) {
+              for (const file of filesToCheck) {
+                const fileStats = await getChatFileStats(file, avatarForApi, char.name);
+                if (fileStats && fileStats.earliestTime) {
+                  if (!earliestTime || fileStats.earliestTime < earliestTime) {
+                    earliestTime = fileStats.earliestTime;
+                  }
                 }
               }
             }
-          }
 
-          // 对所有被改名的文件，使用轻量API检查第一条消息日期
-          if (unparseableFiles.length > 0) {
-            for (const file of unparseableFiles) {
-              const msgDate = await getEarliestMessageDate(file, avatarForApi, char.name);
-              if (msgDate) {
-                if (!earliestTime || msgDate < earliestTime) {
-                  earliestTime = msgDate;
+            // 对所有被改名的文件，使用轻量API检查第一条消息日期
+            if (unparseableFiles.length > 0) {
+              for (const file of unparseableFiles) {
+                const msgDate = await getEarliestMessageDate(file, avatarForApi, char.name);
+                if (msgDate) {
+                  if (!earliestTime || msgDate < earliestTime) {
+                    earliestTime = msgDate;
+                  }
                 }
               }
             }
+          } finally {
+            releaseHeavySlot();
           }
 
           if (earliestTime) {
