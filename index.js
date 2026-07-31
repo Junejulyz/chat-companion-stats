@@ -167,7 +167,7 @@ jQuery(async () => {
   loadPersistentCaches();
 
   // 加载HTML using dynamic path with cache buster
-  const settingsHtml = await $.get(`${extensionWebPath}/settings.html?v=${Date.now()}`);
+  const settingsHtml = await $.get(`${extensionWebPath}/settings.html`);
   $("#extensions_settings").append(settingsHtml);
   if (DEBUG) console.log("[CCStats] UI Template loaded.");
 
@@ -1835,28 +1835,25 @@ jQuery(async () => {
     }
 
     if (shareStyle === 'ancient') {
-      const v = Date.now();
-      ancientAssets.bg = await loadAssetImg(`${extensionWebPath}/assets/ancient-bg.png?v=${v}`);
+      ancientAssets.bg = await loadAssetImg(`${extensionWebPath}/assets/ancient-bg.png`);
     }
 
     if (isPocketSticker) {
-      const v = Date.now();
       const activePocketColor = $('.ccs-color-swatch.active').data('color') || 'blue';
       const bgImage = activePocketColor === 'blue' ? 'sticker-bg-blue.png' : 'sticker-bg.png';
-      pocketAssets.bg = await loadAssetImg(`${extensionWebPath}/assets/${bgImage}?v=${v}`);
-      pocketAssets.decor = await loadAssetImg(`${extensionWebPath}/assets/heart-decor.svg?v=${v}`);
+      pocketAssets.bg = await loadAssetImg(`${extensionWebPath}/assets/${bgImage}`);
+      pocketAssets.decor = await loadAssetImg(`${extensionWebPath}/assets/heart-decor.svg`);
     }
 
     if (isY2k) {
-      const v = Date.now();
       const activeY2kColor = $('.ccs-y2k-swatch.active').data('color') || 'purple';
       const y2kBgImage = activeY2kColor === 'blue' ? 'nostagic_bg_blue.png' : 'nostagic_bg.png';
       const y2kAssetList = {
-        bg: `${extensionWebPath}/assets/nostalgicpurple/${y2kBgImage}?v=${v}`,
-        calendar: `${extensionWebPath}/assets/nostalgicpurple/calendaricon.svg?v=${v}`,
-        chat: `${extensionWebPath}/assets/nostalgicpurple/chaticon.svg?v=${v}`,
-        disc: `${extensionWebPath}/assets/nostalgicpurple/discicon.svg?v=${v}`,
-        number: `${extensionWebPath}/assets/nostalgicpurple/number.svg?v=${v}`
+        bg: `${extensionWebPath}/assets/nostalgicpurple/${y2kBgImage}`,
+        calendar: `${extensionWebPath}/assets/nostalgicpurple/calendaricon.svg`,
+        chat: `${extensionWebPath}/assets/nostalgicpurple/chaticon.svg`,
+        disc: `${extensionWebPath}/assets/nostalgicpurple/discicon.svg`,
+        number: `${extensionWebPath}/assets/nostalgicpurple/number.svg`
       };
       await Promise.all(Object.entries(y2kAssetList).map(async ([key, url]) => {
         y2kAssets[key] = await loadAssetImg(url);
@@ -1864,10 +1861,9 @@ jQuery(async () => {
     }
 
     if (isSpaceTime) {
-      const v = Date.now();
       const spaceTimeAssetList = {
-        bg: `${extensionWebPath}/assets/futuristiccard/futurebg_origin.svg?v=${v}`,
-        frame: `${extensionWebPath}/assets/futuristiccard/avatarframe.svg?v=${v}`
+        bg: `${extensionWebPath}/assets/futuristiccard/futurebg_origin.svg`,
+        frame: `${extensionWebPath}/assets/futuristiccard/avatarframe.svg`
       };
       await Promise.all(Object.entries(spaceTimeAssetList).map(async ([key, url]) => {
         spaceTimeAssets[key] = await loadRecoloredSvg(url, activeSpaceTimeColor);
@@ -1875,25 +1871,22 @@ jQuery(async () => {
     }
 
     if (isIndexTag) {
-      const v = Date.now();
-      indexTagAssets.bg = await loadRecoloredBlackSvg(`${extensionWebPath}/assets/indextag/tagcard_bg.svg?v=${v}`, activeIndexTagColor);
+      indexTagAssets.bg = await loadRecoloredBlackSvg(`${extensionWebPath}/assets/indextag/tagcard_bg.svg`, activeIndexTagColor);
     }
 
     if (shareStyle === 'ins') {
-      const v = Date.now();
-      insAssets.bg = await loadAssetImg(`${extensionWebPath}/assets/mesh-bg.svg?v=${v}`);
+      insAssets.bg = await loadAssetImg(`${extensionWebPath}/assets/mesh-bg.svg`);
     }
 
     if (isPixel) {
       if (DEBUG) console.log('Loading pixel assets...');
-      const v = Date.now();
       const pixelAssetList = {
-        header: `${extensionWebPath}/assets/headerbackground.png?v=${v}`,
-        chats: `${extensionWebPath}/assets/chats.png?v=${v}`,
-        days: `${extensionWebPath}/assets/days.png?v=${v}`,
-        characters: `${extensionWebPath}/assets/characters.png?v=${v}`,
-        size: `${extensionWebPath}/assets/size.png?v=${v}`,
-        decor: `${extensionWebPath}/assets/decor.png?v=${v}`
+        header: `${extensionWebPath}/assets/headerbackground.png`,
+        chats: `${extensionWebPath}/assets/chats.png`,
+        days: `${extensionWebPath}/assets/days.png`,
+        characters: `${extensionWebPath}/assets/characters.png`,
+        size: `${extensionWebPath}/assets/size.png`,
+        decor: `${extensionWebPath}/assets/decor.png`
       };
 
       await Promise.all(Object.entries(pixelAssetList).map(async ([key, url]) => {
