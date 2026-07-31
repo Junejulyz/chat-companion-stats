@@ -1,10 +1,5 @@
-@import url("https://fontsapi.zeoseven.com/101/main/result.css");
-@import url("https://fontsapi.zeoseven.com/494/main/result.css");
-@import url("https://fontsapi.zeoseven.com/383/main/result.css");
-@import url("https://fontsapi.zeoseven.com/281/main/result.css");
-@import url("https://fontsapi.zeoseven.com/18/main/result.css");
-@import url("https://fontsapi.zeoseven.com/379/main/result.css");
-@import url("https://fonts.googleapis.com/css2?family=Gajraj+One&display=swap");
+/* 字体样式表统一由 index.js 注入 <link> 加载（那份是这里的超集），
+   此处不再 @import，避免同一批 CSS 被请求两次 */
 
 /* Hidden element to ensure the font is loaded for Canvas */
 .ccs-font-loader {

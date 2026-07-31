@@ -3620,13 +3620,48 @@ jQuery(async () => {
     $('body').removeClass('ccs-no-scroll'); // 恢复背景滚动
   });
 
+  // data URL -> Blob：几 MB 的 base64 直接塞进 <a href> 会撞上部分内核的
+  // data URL 长度上限；Blob 对象 URL 在所有环境下都更稳
+  function dataUrlToBlob(dataUrl) {
+    const commaIdx = dataUrl.indexOf(',');
+    const header = dataUrl.slice(0, commaIdx);
+    const mime = (header.match(/data:([^;]+)/) || [])[1] || 'image/png';
+    const bin = atob(dataUrl.slice(commaIdx + 1));
+    const bytes = new Uint8Array(bin.length);
+    for (let i = 0; i < bin.length; i++) bytes[i] = bin.charCodeAt(i);
+    return new Blob([bytes], { type: mime });
+  }
+
   // 添加保存按钮事件
   $("#ccs-download").on("click", function () {
     const filename = $(this).data('filename') || '羁绊卡片.png';
-    const link = document.createElement('a');
-    link.download = filename;
-    link.href = $("#ccs-preview-container img").attr('src');
-    link.click();
+    const src = $("#ccs-preview-container img").attr('src');
+    if (!src) return;
+
+    try {
+      const objectUrl = URL.createObjectURL(dataUrlToBlob(src));
+      const link = document.createElement('a');
+      link.download = filename;
+      link.href = objectUrl;
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+      // 延迟回收，给下载管线留出读取时间
+      setTimeout(() => URL.revokeObjectURL(objectUrl), 10000);
+    } catch (e) {
+      console.error('[CCStats] Blob download failed, falling back to data URL:', e);
+      const link = document.createElement('a');
+      link.download = filename;
+      link.href = src;
+      link.click();
+    }
+
+    // WKWebView / Tauri 客户端可能不响应 <a download>，点击后毫无反应。
+    // 无法从 JS 侧检测下载是否真的发生，因此在这类环境下提示长按保存兜底。
+    const maybeNoDownloadSupport = window.__TAURI__ !== undefined || 'ontouchstart' in window;
+    if (maybeNoDownloadSupport && typeof toastr !== 'undefined') {
+      toastr.info('如果没有弹出保存，请长按预览图片保存到相册');
+    }
   });
 
   // 点击模态框背景关闭 - 增加 mousedown 校验防止拖拽释放时误关闭
