@@ -166,17 +166,76 @@ jQuery(async () => {
 
   loadPersistentCaches();
 
+  // ---- 插件设置（localStorage 持久化，目前仅一项） ----
+  const CCS_SETTINGS_KEY = 'ccs-settings-v1';
+  const ccsSettings = { excludeCheckpoints: false };
+  try {
+    const saved = JSON.parse(localStorage.getItem(CCS_SETTINGS_KEY) || '{}');
+    if (saved && typeof saved === 'object') Object.assign(ccsSettings, saved);
+  } catch (e) {
+    if (DEBUG) console.warn('[StatsDebug] Failed to load settings:', e);
+  }
+  function saveCcsSettings() {
+    try {
+      localStorage.setItem(CCS_SETTINGS_KEY, JSON.stringify(ccsSettings));
+    } catch (e) {
+      if (DEBUG) console.warn('[StatsDebug] Failed to save settings:', e);
+    }
+  }
+
+  // 带 chat_metadata 拉取角色聊天列表，用于识别检查点/分支（第 0 行头部的 chat_metadata.main_chat）。
+  // 服务端 getChatInfo 本来就要逐行读完整个文件数 chat_items，metadata:true 只是顺带解析头部，无额外 I/O。
+  // 无法解析出 avatar 时回退到原生 getPastCharacterChats（拿不到 metadata，过滤自动失效 = 维持现状）。
+  async function getCharacterChatsWithMeta(idOrAvatar) {
+    let avatar = null;
+    if (typeof idOrAvatar === 'string' && idOrAvatar.endsWith('.png')) {
+      avatar = idOrAvatar;
+    } else {
+      const chars = getContext()?.characters || window.characters || [];
+      const char = chars[parseInt(idOrAvatar)];
+      if (char && char.avatar) avatar = char.avatar;
+    }
+    if (!avatar) return await getPastCharacterChats(idOrAvatar);
+
+    try {
+      const response = await fetch('/api/characters/chats', {
+        method: 'POST',
+        headers: getRequestHeaders(),
+        body: JSON.stringify({ avatar_url: avatar, metadata: true }),
+      });
+      if (!response.ok) return await getPastCharacterChats(idOrAvatar);
+      const data = await response.json();
+      if (!data || data.error === true) return [];
+      const chats = Object.values(data);
+      return chats.sort((a, b) => a.file_name.localeCompare(b.file_name)).reverse();
+    } catch (e) {
+      if (DEBUG) console.warn('[StatsDebug] getCharacterChatsWithMeta failed, falling back:', e);
+      return await getPastCharacterChats(idOrAvatar);
+    }
+  }
+
+  // 按设置排除检查点/分支聊天。识别靠 metadata 而非文件名，改过名的检查点也能认出来。
+  // 父聊天已不存在（被删/改名）的不排除：此时它是仅存的记录，不构成重复计数。
+  function filterCheckpointChats(chats) {
+    if (!ccsSettings.excludeCheckpoints || !Array.isArray(chats)) return chats;
+    const fileIds = new Set(chats.map(c => String(c.file_name || '').replace(/\.jsonl$/i, '')));
+    return chats.filter(c => {
+      const parent = c.chat_metadata?.main_chat;
+      return !(parent && fileIds.has(String(parent)));
+    });
+  }
+
   // 加载HTML using dynamic path with cache buster
   const settingsHtml = await $.get(`${extensionWebPath}/settings.html`);
   $("#extensions_settings").append(settingsHtml);
   if (DEBUG) console.log("[CCStats] UI Template loaded.");
 
   // Move modals to body to prevent clipping by parent containers and fix fixed positioning
-  $("#ccs-preview-modal, #ccs-global-modal, #ccs-advanced-modal").appendTo("body").removeClass('ccs-modal-visible').hide();
+  $("#ccs-preview-modal, #ccs-global-modal, #ccs-advanced-modal, #ccs-settings-modal").appendTo("body").removeClass('ccs-modal-visible').hide();
 
   // 阻止事件冒泡，防止点击模态框时触发 ST 原生的“点击外部关闭扩展面板”逻辑
   // 仅拦截 pointerdown/mousedown/touchstart/click，允许 mouseup/touchend 冒泡以支持全局拖放释放
-  $("#ccs-preview-modal, #ccs-global-modal, #ccs-advanced-modal").on('pointerdown mousedown touchstart click', function (e) {
+  $("#ccs-preview-modal, #ccs-global-modal, #ccs-advanced-modal, #ccs-settings-modal").on('pointerdown mousedown touchstart click', function (e) {
     e.stopPropagation();
   });
 
@@ -850,8 +909,8 @@ jQuery(async () => {
     if (!characterId) return null;
 
     try {
-      // 1. 先尝试获取一次列表 (酒馆的 getPastCharacterChats 支持数字索引)
-      const chats = await getPastCharacterChats(characterId);
+      // 1. 先尝试获取一次列表（带 metadata 以便识别检查点/分支）
+      const chats = filterCheckpointChats(await getCharacterChatsWithMeta(characterId));
       const chatFilesCount = Array.isArray(chats) ? chats.length : 0;
 
       // 2. 如果当前 ID 是数字，尝试修复为正确的 avatar 文件名
@@ -4416,6 +4475,31 @@ jQuery(async () => {
     }
   });
 
+  // ---- 设置模态框 ----
+  $(document).on('click', '#ccs-settings-btn', function () {
+    $('#ccs-exclude-checkpoints').prop('checked', !!ccsSettings.excludeCheckpoints);
+    $('#ccs-settings-modal').addClass('ccs-modal-visible').show();
+    $('body').addClass('ccs-no-scroll');
+  });
+
+  function closeSettingsModal() {
+    $('#ccs-settings-modal').removeClass('ccs-modal-visible').hide();
+    $('body').removeClass('ccs-no-scroll');
+  }
+
+  $("#ccs-settings-close").on('click', closeSettingsModal);
+
+  // 点击背景关闭设置
+  $("#ccs-settings-modal").on('click', function (e) {
+    if (e.target === this) closeSettingsModal();
+  });
+
+  $(document).on('change', '#ccs-exclude-checkpoints', function () {
+    ccsSettings.excludeCheckpoints = this.checked;
+    saveCcsSettings();
+    updateStats(); // 立即按新口径重算当前角色统计（全局排行下次打开时自动生效）
+  });
+
   // Add change listener to checkboxes to update share button state
   $(document).on('change', '.ccs-share-option input[type="checkbox"]', function () {
     // Re-evaluate button state based on current message count whenever options change
@@ -4507,13 +4591,15 @@ jQuery(async () => {
       try {
         if (DEBUG) console.log(`[GlobalStats] Fetching chats for ${char.name} (ID: ${charId})`);
         // 致命 Bug 修复：SillyTavern 原生 API 接受的是 characterId (即在 characters 数组里的 Index/Key)
-        let chats = await getPastCharacterChats(charId);
+        let chats = await getCharacterChatsWithMeta(charId);
 
         // --- 【增强】如果 index 找不到，尝试直接用 avatar 名字 ---
         if (!chats || chats.length === 0) {
           if (DEBUG) console.log(`[GlobalStats] => Index ${charId} returned no chats, trying avatar: ${char.avatar}`);
-          chats = await getPastCharacterChats(char.avatar);
+          chats = await getCharacterChatsWithMeta(char.avatar);
         }
+
+        chats = filterCheckpointChats(chats);
 
         if (!chats || chats.length === 0) {
           if (DEBUG) console.log(`[GlobalStats] => No chats found for: ${char.name}`);
