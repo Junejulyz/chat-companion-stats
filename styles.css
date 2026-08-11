@@ -562,7 +562,8 @@ body.ccs-no-scroll {
 /* Advanced Stats Modal Styles                                              */
 /* ========================================================================= */
 #ccs-advanced-modal,
-#ccs-settings-modal {
+#ccs-settings-modal,
+#ccs-archive-modal {
   position: fixed;
   top: 0;
   left: 0;
@@ -581,7 +582,8 @@ body.ccs-no-scroll {
 }
 
 #ccs-advanced-modal .ccs-advanced-modal-content,
-#ccs-settings-modal .ccs-advanced-modal-content {
+#ccs-settings-modal .ccs-advanced-modal-content,
+#ccs-archive-modal .ccs-advanced-modal-content {
   background-color: var(--SmartThemeBlurTintColor);
   color: var(--SmartThemeBodyColor);
   border-radius: 20px;
@@ -694,6 +696,26 @@ body.ccs-no-scroll {
 /* ========================================================================= */
 /* Settings Modal Styles                                                     */
 /* ========================================================================= */
+/* 存档管理叠在设置模态框之上 */
+#ccs-archive-modal {
+  z-index: 20001;
+}
+
+.ccs-settings-section-title {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 0.78rem;
+  font-weight: bold;
+  letter-spacing: 0.05em;
+  opacity: 0.6;
+  margin: 4px 2px 10px;
+}
+
+.ccs-settings-section-title:not(:first-child) {
+  margin-top: 20px;
+}
+
 .ccs-setting-row {
   display: flex;
   align-items: flex-start;
@@ -701,6 +723,169 @@ body.ccs-no-scroll {
   padding: 14px 16px;
   border-radius: 12px;
   background: rgba(128, 128, 128, 0.08);
+}
+
+.ccs-setting-row + .ccs-setting-row {
+  margin-top: 10px;
+}
+
+/* 行内小按钮：对齐设置按钮的紧凑规格，并抵消 ST 移动端 .menu_button 的 flex:1 拉伸 */
+.ccs-setting-btn {
+  padding: 2px 10px !important;
+  font-size: 0.85em !important;
+  width: auto !important;
+  min-width: unset !important;
+  height: 26px !important;
+  flex: 0 0 auto !important;
+  margin: 0 !important;
+  align-self: center;
+}
+
+.ccs-setting-btn:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
+.ccs-setting-badge {
+  font-weight: normal;
+  font-size: 0.78rem;
+  opacity: 0.6;
+  margin-left: 4px;
+}
+
+.ccs-setting-btns {
+  display: flex;
+  gap: 6px;
+  flex-shrink: 0;
+  align-self: center;
+}
+
+/* 已删除角色的占位头像（排行榜） */
+.ccs-rank-avatar-deleted {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  background: rgba(128, 128, 128, 0.25);
+  color: rgba(255, 255, 255, 0.55);
+  font-size: 18px;
+}
+
+/* ---- 存档管理列表 ---- */
+.ccs-archive-group-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  padding: 8px 4px 2px;
+}
+
+.ccs-archive-group-name {
+  font-size: 0.85rem;
+  font-weight: bold;
+  opacity: 0.85;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.ccs-archive-char-delete {
+  cursor: pointer;
+  opacity: 0.55;
+  flex-shrink: 0;
+  font-size: 0.85rem;
+  padding: 4px;
+  transition: opacity 0.2s;
+}
+
+.ccs-archive-char-delete:hover {
+  opacity: 1;
+  color: var(--SmartThemeErrorColor, #e05555);
+}
+
+.ccs-archive-hint {
+  font-size: 0.8rem;
+  line-height: 1.5;
+  opacity: 0.7;
+  margin-bottom: 12px;
+}
+
+#ccs-archive-list {
+  max-height: 45vh;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.ccs-archive-empty {
+  text-align: center;
+  padding: 24px 0;
+  opacity: 0.6;
+  font-size: 0.9rem;
+}
+
+.ccs-archive-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 12px;
+  border-radius: 10px;
+  background: rgba(128, 128, 128, 0.08);
+  cursor: pointer;
+}
+
+.ccs-archive-check {
+  flex-shrink: 0;
+  margin: 0;
+}
+
+.ccs-archive-info {
+  flex: 1;
+  min-width: 0;
+}
+
+.ccs-archive-file {
+  font-size: 0.85rem;
+  font-weight: bold;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.ccs-archive-meta {
+  font-size: 0.75rem;
+  opacity: 0.65;
+  margin-top: 2px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+#ccs-archive-footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  margin-top: 14px;
+}
+
+.ccs-archive-selectall-label {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 0.85rem;
+  cursor: pointer;
+  opacity: 0.85;
+}
+
+.ccs-archive-selectall-label input {
+  margin: 0;
+}
+
+.ccs-archive-footer-btns {
+  display: flex;
+  gap: 6px;
 }
 
 .ccs-setting-text {

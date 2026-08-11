@@ -198,15 +198,67 @@
         </div>
       </div>
       <div class="ccs-advanced-body">
+        <div class="ccs-settings-section-title"><i class="fa-solid fa-flask"></i> 实验性功能</div>
         <div class="ccs-setting-row">
           <div class="ccs-setting-text">
             <label class="ccs-setting-name" for="ccs-exclude-checkpoints">排除检查点/分支聊天</label>
-            <div class="ccs-setting-desc">开启后，检查点/分支聊天将不计入统计，避免重复计数；注意在检查点里新聊的内容也会一并忽略，请酌情开启。</div>
+            <div class="ccs-setting-desc">同一聊天的检查点/分支只统计楼层最高的一份，避免重复计数。</div>
           </div>
           <label class="ccs-switch">
             <input type="checkbox" id="ccs-exclude-checkpoints">
             <span class="ccs-switch-slider"></span>
           </label>
+        </div>
+        <div class="ccs-setting-row">
+          <div class="ccs-setting-text">
+            <label class="ccs-setting-name" for="ccs-show-deleted">统计已删除的聊天</label>
+            <div class="ccs-setting-desc">已删除的聊天仍计入统计；重新导入不会重复计数。</div>
+          </div>
+          <label class="ccs-switch">
+            <input type="checkbox" id="ccs-show-deleted">
+            <span class="ccs-switch-slider"></span>
+          </label>
+        </div>
+        <div class="ccs-setting-row">
+          <div class="ccs-setting-text">
+            <div class="ccs-setting-name">已删除的聊天记录<span id="ccs-archive-count" class="ccs-setting-badge"></span></div>
+          </div>
+          <input id="ccs-archive-manage-btn" type="button" class="menu_button ccs-btn-secondary ccs-setting-btn" value="管理" />
+        </div>
+        <div class="ccs-settings-section-title"><i class="fa-solid fa-database"></i> 数据备份</div>
+        <div class="ccs-setting-row">
+          <div class="ccs-setting-text">
+            <div class="ccs-setting-name">导出 / 导入数据</div>
+            <div class="ccs-setting-desc">用于备份，或迁移到其他酒馆。</div>
+          </div>
+          <div class="ccs-setting-btns">
+            <input id="ccs-export-data" type="button" class="menu_button ccs-btn-secondary ccs-setting-btn" value="导出" />
+            <input id="ccs-import-data" type="button" class="menu_button ccs-btn-secondary ccs-setting-btn" value="导入" />
+          </div>
+        </div>
+        <input type="file" id="ccs-import-file" accept=".json,application/json" style="display: none;">
+      </div>
+    </div>
+  </div>
+
+  <!-- 存档管理模态框 -->
+  <div id="ccs-archive-modal" style="display: none;">
+    <div class="ccs-advanced-modal-content">
+      <div class="ccs-advanced-header">
+        <div class="ccs-advanced-title"><i class="fa-solid fa-box-archive ccs-advanced-title-icon"></i> <span>已删除的聊天记录</span></div>
+        <div class="ccs-advanced-actions">
+          <i id="ccs-archive-close" class="fa-solid fa-xmark ccs-advanced-icon-btn" title="关闭"></i>
+        </div>
+      </div>
+      <div class="ccs-advanced-body">
+        <div class="ccs-archive-hint">删除记录后，对应统计将不再计入。</div>
+        <div id="ccs-archive-list"></div>
+        <div id="ccs-archive-footer">
+          <label class="ccs-archive-selectall-label"><input type="checkbox" id="ccs-archive-select-all"> 全选</label>
+          <div class="ccs-archive-footer-btns">
+            <input id="ccs-archive-delete-selected" type="button" class="menu_button ccs-btn-secondary ccs-setting-btn" value="删除选中" />
+            <input id="ccs-archive-clear-all" type="button" class="menu_button ccs-btn-secondary ccs-setting-btn" value="清空全部" />
+          </div>
         </div>
       </div>
     </div>

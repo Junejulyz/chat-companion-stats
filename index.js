@@ -1,7 +1,7 @@
 console.log("[CCStats] Script source file loaded.");
 window.ccs_loaded = true;
-import { getContext } from "../../../extensions.js";
-import { getPastCharacterChats, getRequestHeaders } from '../../../../script.js';
+import { getContext, extension_settings } from "../../../extensions.js";
+import { getPastCharacterChats, getRequestHeaders, saveSettingsDebounced } from '../../../../script.js';
 
 const extensionName = "chat-companion-stats";
 const extensionWebPath = import.meta.url.split('?')[0].replace(/\/index\.js$/, '');
@@ -168,7 +168,7 @@ jQuery(async () => {
 
   // ---- 插件设置（localStorage 持久化，目前仅一项） ----
   const CCS_SETTINGS_KEY = 'ccs-settings-v1';
-  const ccsSettings = { excludeCheckpoints: false };
+  const ccsSettings = { excludeCheckpoints: false, showDeletedChats: false };
   try {
     const saved = JSON.parse(localStorage.getItem(CCS_SETTINGS_KEY) || '{}');
     if (saved && typeof saved === 'object') Object.assign(ccsSettings, saved);
@@ -214,15 +214,176 @@ jQuery(async () => {
     }
   }
 
-  // 按设置排除检查点/分支聊天。识别靠 metadata 而非文件名，改过名的检查点也能认出来。
-  // 父聊天已不存在（被删/改名）的不排除：此时它是仅存的记录，不构成重复计数。
+  // 按设置对检查点/分支去重。识别靠 metadata 而非文件名，改过名的检查点也能认出来。
+  // 规则：同一个"家族"（父聊天 + 其所有检查点/分支，含链式衍生）只统计楼层最高的一份——
+  // 分支聊得比父聊天更长时以分支为准，取的是"最长的那条故事线"。
+  // 父聊天已不存在（被删/改名）的孤儿自成家族，不受影响。
   function filterCheckpointChats(chats) {
     if (!ccsSettings.excludeCheckpoints || !Array.isArray(chats)) return chats;
-    const fileIds = new Set(chats.map(c => String(c.file_name || '').replace(/\.jsonl$/i, '')));
-    return chats.filter(c => {
-      const parent = c.chat_metadata?.main_chat;
-      return !(parent && fileIds.has(String(parent)));
-    });
+    const byId = new Map();
+    for (const c of chats) {
+      const id = String(c.file_name || '').replace(/\.jsonl$/i, '');
+      if (id) byId.set(id, c);
+    }
+    // 沿 main_chat 向上追根；父不在列表里时自己就是根；防脏数据成环
+    function rootOf(id) {
+      let cur = id;
+      const seen = new Set();
+      while (!seen.has(cur)) {
+        seen.add(cur);
+        const parent = byId.get(cur)?.chat_metadata?.main_chat;
+        const pid = parent ? String(parent) : null;
+        if (!pid || !byId.has(pid)) return cur;
+        cur = pid;
+      }
+      return cur;
+    }
+    // 每个家族只保留楼层最高的代表；同层数时优先根聊天，结果稳定
+    const best = new Map();
+    for (const [id, c] of byId) {
+      const root = rootOf(id);
+      const n = parseInt(c.chat_items) || 0;
+      const prev = best.get(root);
+      if (!prev || n > prev.n || (n === prev.n && id === root)) {
+        best.set(root, { id, n });
+      }
+    }
+    const keep = new Set();
+    for (const v of best.values()) keep.add(v.id);
+    return chats.filter(c => keep.has(String(c.file_name || '').replace(/\.jsonl$/i, '')));
+  }
+
+  // ---- 聊天存档账本（实验性：统计已删除的聊天） ----
+  // 常驻记录每个聊天文件的统计快照，存 extension_settings（ST 服务端 settings.json，
+  // 多设备共享、随 ST 备份迁移）。showDeletedChats 开关只控制"已删除聊天是否计入统计"，
+  // 不控制是否记录 —— 用户日后打开开关时，历史快照已经在账上。
+  function getChatArchive() {
+    if (!extension_settings[extensionName] || typeof extension_settings[extensionName] !== 'object') {
+      extension_settings[extensionName] = {};
+    }
+    const root = extension_settings[extensionName];
+    if (!root.archive || typeof root.archive !== 'object') root.archive = { chars: {} };
+    if (!root.archive.chars || typeof root.archive.chars !== 'object') root.archive.chars = {};
+    return root.archive;
+  }
+
+  function parseFileSizeToBytes(fileSize) {
+    if (typeof fileSize === 'number') return fileSize;
+    const s = String(fileSize || '');
+    const mb = s.match(/([\d.]+)\s*MB/i);
+    if (mb) return parseFloat(mb[1]) * 1024 * 1024;
+    const kb = s.match(/([\d.]+)\s*KB/i);
+    if (kb) return parseFloat(kb[1]) * 1024;
+    const n = parseFloat(s);
+    return isNaN(n) ? 0 : n;
+  }
+
+  // 拼 HTML 模板时用：角色名/文件名可能来自导入的备份，不可信
+  function escapeCcsHtml(s) {
+    return String(s ?? '').replace(/[&<>"']/g, ch => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[ch]));
+  }
+
+  // 角色卡是否仍存在（账本里可能残留已删除角色的记录）
+  function ccsCharExists(avatar) {
+    const chars = getContext()?.characters || window.characters || [];
+    const arr = Array.isArray(chars) ? chars : Object.values(chars);
+    return arr.some(c => c && c.avatar === avatar);
+  }
+
+  // 记录 + 合并：把当前在世文件的快照写入账本（脏检查，无实际变化不落盘），
+  // 已消失的文件标记冻结（gone）。开关开启时，把冻结记录合成为与 API 同构的条目
+  // 一并返回，让下游统计/检查点过滤对"已删除聊天"零感知地照常工作。
+  function applyChatArchive(avatarKey, charName, chats) {
+    if (!avatarKey || typeof avatarKey !== 'string' || !Array.isArray(chats)) return chats;
+    try {
+      const archive = getChatArchive();
+      const rec = archive.chars[avatarKey] = archive.chars[avatarKey] || { name: '', chats: {} };
+      if (!rec.chats || typeof rec.chats !== 'object') rec.chats = {};
+      let dirty = false;
+      if (charName && charName !== '未知角色' && rec.name !== charName) { rec.name = charName; dirty = true; }
+
+      // 先算出在世文件集合并冻结已消失的记录，认领检查才能看到"刚刚消失"的旧名
+      // （否则活文件被改名时，旧记录来不及冻结、认领不到，会产生永久双计）
+      const liveIds = new Set();
+      for (const chat of chats) {
+        const id = String(chat.file_name || '').replace(/\.jsonl$/i, '');
+        if (id) liveIds.add(id);
+      }
+      for (const [id, e] of Object.entries(rec.chats)) {
+        if (liveIds.has(id)) continue;
+        // 只有开场白（≤1 条）的废聊天不值得留档，删除后直接清出账本
+        if ((parseInt(e.n) || 0) <= 1) { delete rec.chats[id]; dirty = true; continue; }
+        if (!e.gone) { e.gone = Date.now(); dirty = true; }
+      }
+
+      for (const chat of chats) {
+        const id = String(chat.file_name || '').replace(/\.jsonl$/i, '');
+        if (!id) continue;
+        const itg = chat.chat_metadata?.integrity || null;
+        let old = rec.chats[id];
+        // 认领：文件名对不上、但 integrity（ST 写入文件内部的 UUID）与某条冻结记录
+        // 一致 → 判定为改名/重新导入，迁移旧记录避免重复计数。
+        // 检查点会继承父聊天的 integrity，存在多候选歧义时宁可当新文件，不合并。
+        if (!old && itg) {
+          const claims = Object.keys(rec.chats).filter(k => rec.chats[k].gone && rec.chats[k].itg === itg && !liveIds.has(k));
+          if (claims.length === 1) {
+            old = rec.chats[claims[0]];
+            delete rec.chats[claims[0]];
+            dirty = true;
+          }
+        }
+        const entry = {
+          itg: itg || old?.itg || null,
+          n: parseInt(chat.chat_items) || 0,
+          fs: chat.file_size || '',
+          lm: chat.last_mes || '',
+          mc: chat.chat_metadata?.main_chat ? String(chat.chat_metadata.main_chat) : (old?.mc || null),
+          gone: null,
+        };
+        if (!old || old.itg !== entry.itg || old.n !== entry.n || old.fs !== entry.fs || old.lm !== entry.lm || old.mc !== entry.mc || old.gone) {
+          rec.chats[id] = entry;
+          dirty = true;
+        }
+      }
+      if (dirty) saveSettingsDebounced();
+
+      if (!ccsSettings.showDeletedChats) return chats;
+      const merged = chats.slice();
+      for (const [id, e] of Object.entries(rec.chats)) {
+        if (!e.gone) continue;
+        merged.push({
+          file_name: `${id}.jsonl`,
+          chat_items: e.n,
+          file_size: e.fs,
+          last_mes: e.lm,
+          chat_metadata: { main_chat: e.mc || undefined, integrity: e.itg || undefined },
+          ccs_archived: true,
+        });
+      }
+      return merged;
+    } catch (err) {
+      if (DEBUG) console.warn('[StatsDebug] applyChatArchive failed:', err);
+      return chats;
+    }
+  }
+
+  // 初遇时间兜底：最早的聊天文件被删后，文件名和内容都不可考，只能靠账本里
+  // 记下的最早时间（fm）恢复。记录常驻进行；开关关闭时只记不用。
+  function mergeArchiveFirstMet(avatarKey, current) {
+    if (!avatarKey || typeof avatarKey !== 'string') return current;
+    try {
+      const rec = getChatArchive().chars[avatarKey];
+      if (!rec) return current;
+      const cur = current instanceof Date ? current : (current ? new Date(current) : null);
+      const curMs = (cur && !isNaN(cur.getTime())) ? cur.getTime() : null;
+      const best = (rec.fm && curMs) ? Math.min(rec.fm, curMs) : (rec.fm || curMs);
+      if (!best) return current;
+      if (best !== rec.fm) { rec.fm = best; saveSettingsDebounced(); }
+      return ccsSettings.showDeletedChats ? new Date(best) : current;
+    } catch (err) {
+      if (DEBUG) console.warn('[StatsDebug] mergeArchiveFirstMet failed:', err);
+      return current;
+    }
   }
 
   // 加载HTML using dynamic path with cache buster
@@ -231,11 +392,11 @@ jQuery(async () => {
   if (DEBUG) console.log("[CCStats] UI Template loaded.");
 
   // Move modals to body to prevent clipping by parent containers and fix fixed positioning
-  $("#ccs-preview-modal, #ccs-global-modal, #ccs-advanced-modal, #ccs-settings-modal").appendTo("body").removeClass('ccs-modal-visible').hide();
+  $("#ccs-preview-modal, #ccs-global-modal, #ccs-advanced-modal, #ccs-settings-modal, #ccs-archive-modal").appendTo("body").removeClass('ccs-modal-visible').hide();
 
   // 阻止事件冒泡，防止点击模态框时触发 ST 原生的“点击外部关闭扩展面板”逻辑
   // 仅拦截 pointerdown/mousedown/touchstart/click，允许 mouseup/touchend 冒泡以支持全局拖放释放
-  $("#ccs-preview-modal, #ccs-global-modal, #ccs-advanced-modal, #ccs-settings-modal").on('pointerdown mousedown touchstart click', function (e) {
+  $("#ccs-preview-modal, #ccs-global-modal, #ccs-advanced-modal, #ccs-settings-modal, #ccs-archive-modal").on('pointerdown mousedown touchstart click', function (e) {
     e.stopPropagation();
   });
 
@@ -910,8 +1071,7 @@ jQuery(async () => {
 
     try {
       // 1. 先尝试获取一次列表（带 metadata 以便识别检查点/分支）
-      const chats = filterCheckpointChats(await getCharacterChatsWithMeta(characterId));
-      const chatFilesCount = Array.isArray(chats) ? chats.length : 0;
+      let chats = await getCharacterChatsWithMeta(characterId);
 
       // 2. 如果当前 ID 是数字，尝试修复为正确的 avatar 文件名
       if (!isNaN(characterId) || characterId === '0') {
@@ -924,7 +1084,7 @@ jQuery(async () => {
         if (chars && chars[idx] && chars[idx].avatar) {
           characterId = chars[idx].avatar;
           if (DEBUG) console.log(`[StatsDebug] ID upscaled via context avatar: ${characterId}`);
-        } else if (chatFilesCount > 0 && chats[0].file_name) {
+        } else if (Array.isArray(chats) && chats.length > 0 && chats[0].file_name) {
           // 后备方案：从文件名提取（仅当文件名包含标准 " - " 分隔符时才可靠）
           const parts = chats[0].file_name.split(' - ');
           if (parts.length >= 2) {
@@ -935,6 +1095,12 @@ jQuery(async () => {
           }
         }
       }
+
+      // 3. 记入存档账本（常驻记录），按设置合并已删除聊天，再按设置过滤检查点
+      const avatarKey = (typeof characterId === 'string' && characterId.endsWith('.png')) ? characterId : null;
+      chats = applyChatArchive(avatarKey, getCurrentCharacterName(), chats);
+      chats = filterCheckpointChats(chats);
+      const chatFilesCount = Array.isArray(chats) ? chats.length : 0;
 
       let totalMessagesFromMetadata = 0;
       let totalSizeBytesRaw = 0;
@@ -971,13 +1137,13 @@ jQuery(async () => {
           const timeInfo = parseTimeFromFilename(chat.file_name);
           if (timeInfo && timeInfo.dateObject) {
             totalDurationSeconds += timeInfo.totalSeconds;
-            parseableFilesInfo.push({ name: chat.file_name, date: timeInfo.dateObject });
+            parseableFilesInfo.push({ name: chat.file_name, date: timeInfo.dateObject, archived: !!chat.ccs_archived });
 
             if (!earliestTime || timeInfo.dateObject < earliestTime) {
               earliestTime = timeInfo.dateObject;
             }
-          } else {
-            // 如果无法从名字解析出时间，作为存疑文件保留
+          } else if (!chat.ccs_archived) {
+            // 如果无法从名字解析出时间，作为存疑文件保留（存档合成的条目文件已删，不可探查）
             unparseableFiles.push(chat.file_name);
           }
         }
@@ -1006,9 +1172,9 @@ jQuery(async () => {
           // 方案B：直接调用曾经找到的那个锁定好的绝对真理，防止被回退
           earliestTime = cachedEncounter.date;
         } else {
-          // 方案A：扩大打击范围，获取名义上最老的3个文件（完整统计）
+          // 方案A：扩大打击范围，获取名义上最老的3个文件（完整统计；存档条目文件已删，跳过）
           parseableFilesInfo.sort((a, b) => a.date - b.date);
-          let filesToCheck = parseableFilesInfo.slice(0, 3).map(f => f.name);
+          let filesToCheck = parseableFilesInfo.filter(f => !f.archived).slice(0, 3).map(f => f.name);
 
           const charNameForApi = getCurrentCharacterName();
           if (filesToCheck.length > 0) {
@@ -1044,6 +1210,9 @@ jQuery(async () => {
           }
         }
 
+        // 与账本记录的最早初遇时间合并（最早文件被删后靠它兜底）
+        earliestTime = mergeArchiveFirstMet(avatarKey, earliestTime);
+
         return {
           messageCount: totalMessagesFromMetadata,
           wordCount: estimatedWords,
@@ -1066,17 +1235,27 @@ jQuery(async () => {
       let absoluteEarliestTime = null;
       const globalDayMap = {};
 
+      // 存档合成的条目文件已删，无法重读内容：跳过扫描，按快照补回条数/体积
+      const scanChats = chats.filter(c => !c.ccs_archived);
+      let archivedMsgs = 0;
+      let archivedBytes = 0;
+      chats.forEach(c => {
+        if (!c.ccs_archived) return;
+        archivedMsgs += parseInt(c.chat_items) || 0;
+        archivedBytes += parseFileSizeToBytes(c.file_size);
+      });
+
       const batchSize = 3; // 降低并发数量保护服务器
       let processedFiles = 0;
       let failedFiles = 0;
-      for (let i = 0; i < chats.length; i += batchSize) {
-        const batch = chats.slice(i, i + batchSize);
+      for (let i = 0; i < scanChats.length; i += batchSize) {
+        const batch = scanChats.slice(i, i + batchSize);
         const results = await Promise.all(batch.map(chat => getChatFileStats(chat.file_name, characterId, charNameForApi)));
 
         processedFiles += batch.length;
-        if (onProgress && chats.length > 0) {
-          const percent = Math.min(100, Math.floor((processedFiles / chats.length) * 100));
-          onProgress(percent, processedFiles, chats.length);
+        if (onProgress && scanChats.length > 0) {
+          const percent = Math.min(100, Math.floor((processedFiles / scanChats.length) * 100));
+          onProgress(percent, processedFiles, scanChats.length);
         }
 
         results.forEach(res => {
@@ -1109,15 +1288,20 @@ jQuery(async () => {
       }
 
       // 如果是一次完整的深度分析，记录这名角色专属的字数密度（字数 / 每KB体积）
-      if (forceDeepScan && totalSizeBytesRaw > 0 && totalWordsCalculated > 0) {
-        accurateWordRatioCache[characterId] = totalWordsCalculated / (totalSizeBytesRaw / 1024);
+      // 注意：密度只能用实际读到内容的活文件体积算，混入已删文件的体积会把密度稀释
+      const liveSizeBytes = totalSizeBytesRaw - archivedBytes;
+      if (forceDeepScan && liveSizeBytes > 0 && totalWordsCalculated > 0) {
+        accurateWordRatioCache[characterId] = totalWordsCalculated / (liveSizeBytes / 1024);
         schedulePersistCaches();
       }
 
+      // 已删文件的字数按密度估算（读不到内容，只能估）
+      const archivedWords = Math.round((archivedBytes / 1024) * (accurateWordRatioCache[characterId] || currentRatio));
+
       return {
-        messageCount: totalMessagesCalculated || totalMessagesFromMetadata,
-        wordCount: totalWordsCalculated || estimatedWords,
-        firstTime: absoluteEarliestTime || earliestTime,
+        messageCount: totalMessagesCalculated ? (totalMessagesCalculated + archivedMsgs) : totalMessagesFromMetadata,
+        wordCount: totalWordsCalculated ? (totalWordsCalculated + archivedWords) : estimatedWords,
+        firstTime: mergeArchiveFirstMet(avatarKey, absoluteEarliestTime || earliestTime),
         totalDuration: totalDurationSeconds,
         totalSizeBytes: totalSizeBytesRaw,
         chatFilesCount,
@@ -3341,7 +3525,8 @@ jQuery(async () => {
           defaultImg.onload = () => resolve(defaultImg);
           defaultImg.onerror = () => resolve(null);
         };
-        img.src = stat.avatar;
+        // 已删除角色没有头像，直接用默认占位图
+        img.src = stat.avatar || '../img/char-default.png';
       });
     }));
 
@@ -4476,8 +4661,44 @@ jQuery(async () => {
   });
 
   // ---- 设置模态框 ----
+  // 确认弹窗：优先用 ST 原生 Popup（样式统一、iOS 客户端表现更好），不可用时回退原生 confirm
+  async function ccsConfirm(text) {
+    try {
+      const ctx = getContext();
+      if (typeof ctx.callGenericPopup === 'function' && ctx.POPUP_TYPE) {
+        const r = await ctx.callGenericPopup(text, ctx.POPUP_TYPE.CONFIRM);
+        return r === (ctx.POPUP_RESULT?.AFFIRMATIVE ?? 1);
+      }
+    } catch (e) {
+      if (DEBUG) console.warn('[StatsDebug] ST popup unavailable, falling back to confirm():', e);
+    }
+    return confirm(text);
+  }
+
+  // 已删除聊天记录的数量徽标：无记录时禁用「管理」按钮。
+  // 角色卡已删除的角色，其全部记录（含未及冻结的）都视作删除记录；≤1 条的废记录不计。
+  function countFrozenArchiveEntries() {
+    let count = 0;
+    for (const [avatar, rec] of Object.entries(getChatArchive().chars)) {
+      const charDeleted = !ccsCharExists(avatar);
+      for (const e of Object.values(rec.chats || {})) {
+        if ((parseInt(e.n) || 0) <= 1) continue;
+        if (e.gone || charDeleted) count++;
+      }
+    }
+    return count;
+  }
+
+  function refreshArchiveManageRow() {
+    const count = countFrozenArchiveEntries();
+    $('#ccs-archive-manage-btn').prop('disabled', count === 0);
+    $('#ccs-archive-count').text(count > 0 ? `（${count} 条）` : '（暂无记录）');
+  }
+
   $(document).on('click', '#ccs-settings-btn', function () {
     $('#ccs-exclude-checkpoints').prop('checked', !!ccsSettings.excludeCheckpoints);
+    $('#ccs-show-deleted').prop('checked', !!ccsSettings.showDeletedChats);
+    refreshArchiveManageRow();
     $('#ccs-settings-modal').addClass('ccs-modal-visible').show();
     $('body').addClass('ccs-no-scroll');
   });
@@ -4498,6 +4719,292 @@ jQuery(async () => {
     ccsSettings.excludeCheckpoints = this.checked;
     saveCcsSettings();
     updateStats(); // 立即按新口径重算当前角色统计（全局排行下次打开时自动生效）
+  });
+
+  $(document).on('change', '#ccs-show-deleted', function () {
+    ccsSettings.showDeletedChats = this.checked;
+    saveCcsSettings();
+    updateStats();
+  });
+
+  // ---- 存档管理模态框 ----
+  // 按角色分组展示；角色卡已删除的角色，其全部记录都在列（含未及冻结的）
+  function renderArchiveList() {
+    const $list = $('#ccs-archive-list');
+    $list.empty();
+    const archive = getChatArchive();
+    const groups = [];
+    for (const [avatar, rec] of Object.entries(archive.chars)) {
+      const charDeleted = !ccsCharExists(avatar);
+      const entries = [];
+      for (const [id, e] of Object.entries(rec.chats || {})) {
+        if ((parseInt(e.n) || 0) <= 1) continue;
+        if (!e.gone && !charDeleted) continue;
+        entries.push({ id, n: e.n || 0, fs: e.fs || '', gone: e.gone });
+      }
+      if (entries.length === 0) continue;
+      entries.sort((a, b) => (b.gone || 0) - (a.gone || 0));
+      groups.push({ avatar, name: rec.name || avatar.replace(/\.png$/i, ''), charDeleted, entries });
+    }
+    if (groups.length === 0) {
+      $list.html('<div class="ccs-archive-empty">暂无记录</div>');
+      $('#ccs-archive-footer').hide();
+      return;
+    }
+    $('#ccs-archive-footer').show();
+    groups.sort((a, b) => a.name.localeCompare(b.name));
+    for (const g of groups) {
+      // 文件名/角色名来自用户数据，必须用 text() 注入防 XSS
+      const $head = $(
+        '<div class="ccs-archive-group-head">' +
+        '<div class="ccs-archive-group-name"></div>' +
+        '<i class="fa-solid fa-trash-can ccs-archive-char-delete" title="删除该角色的全部记录"></i>' +
+        '</div>'
+      );
+      $head.find('.ccs-archive-group-name').text(g.name + (g.charDeleted ? '（角色已删除）' : ''));
+      $head.find('.ccs-archive-char-delete').attr('data-avatar', g.avatar);
+      $list.append($head);
+      for (const row of g.entries) {
+        const goneDate = row.gone ? new Date(row.gone).toLocaleDateString() : '';
+        const $row = $(
+          '<label class="ccs-archive-row">' +
+          '<input type="checkbox" class="ccs-archive-check">' +
+          '<div class="ccs-archive-info">' +
+          '<div class="ccs-archive-file"></div>' +
+          '<div class="ccs-archive-meta"></div>' +
+          '</div>' +
+          '</label>'
+        );
+        $row.find('.ccs-archive-check').attr('data-avatar', g.avatar).attr('data-id', row.id);
+        $row.find('.ccs-archive-file').text(row.id);
+        $row.find('.ccs-archive-meta').text(`${row.n} 条${row.fs ? ` · ${row.fs}` : ''}${goneDate ? ` · 删除于 ${goneDate}` : ''}`);
+        $list.append($row);
+      }
+    }
+    $('#ccs-archive-select-all').prop('checked', false);
+  }
+
+  // 单角色一键删除（按钮动态生成，委托到列表容器上——modal 根有 stopPropagation，不能委托到 document）
+  $('#ccs-archive-list').on('click', '.ccs-archive-char-delete', async function () {
+    const avatar = $(this).attr('data-avatar');
+    const archive = getChatArchive();
+    const rec = archive.chars[avatar];
+    if (!rec) return;
+    const label = rec.name || String(avatar).replace(/\.png$/i, '');
+    if (!(await ccsConfirm(`删除「${label}」的全部已删除聊天记录？`))) return;
+    if (ccsCharExists(avatar)) {
+      for (const [id, e] of Object.entries(rec.chats || {})) {
+        if (e.gone) delete rec.chats[id];
+      }
+      delete rec.fm;
+    } else {
+      // 角色卡已不存在，整个账本节点一并移除
+      delete archive.chars[avatar];
+    }
+    saveSettingsDebounced();
+    renderArchiveList();
+    refreshArchiveManageRow();
+    updateStats();
+  });
+
+  // 注意：设置/存档 modal 根元素上有 stopPropagation(click) 拦截，modal 内部按钮
+  // 的点击冒泡不到 document，必须直接绑定，不能用事件委托
+  $('#ccs-archive-manage-btn').on('click', function () {
+    renderArchiveList();
+    $('#ccs-archive-modal').addClass('ccs-modal-visible').show();
+  });
+
+  // 存档管理叠在设置 modal 之上，关闭时设置仍开着，不动 body 的 ccs-no-scroll
+  function closeArchiveModal() {
+    $('#ccs-archive-modal').removeClass('ccs-modal-visible').hide();
+  }
+  $('#ccs-archive-close').on('click', closeArchiveModal);
+  $('#ccs-archive-modal').on('click', function (e) {
+    if (e.target === this) closeArchiveModal();
+  });
+
+  $(document).on('change', '#ccs-archive-select-all', function () {
+    $('#ccs-archive-list .ccs-archive-check').prop('checked', this.checked);
+  });
+
+  $('#ccs-archive-delete-selected').on('click', async function () {
+    const $checked = $('#ccs-archive-list .ccs-archive-check:checked');
+    if ($checked.length === 0) {
+      toastr.info('请先勾选要删除的记录');
+      return;
+    }
+    if (!(await ccsConfirm(`删除选中的 ${$checked.length} 条记录？对应统计将不再计入。`))) return;
+    const archive = getChatArchive();
+    $checked.each(function () {
+      const rec = archive.chars[$(this).attr('data-avatar')];
+      if (rec && rec.chats) delete rec.chats[$(this).attr('data-id')];
+    });
+    saveSettingsDebounced();
+    renderArchiveList();
+    refreshArchiveManageRow();
+    updateStats();
+  });
+
+  $('#ccs-archive-clear-all').on('click', async function () {
+    if (!(await ccsConfirm('清空全部已删除聊天的记录？此操作不可恢复。'))) return;
+    const archive = getChatArchive();
+    for (const [avatar, rec] of Object.entries(archive.chars)) {
+      // 角色卡已删除的，账本节点整体移除
+      if (!ccsCharExists(avatar)) {
+        delete archive.chars[avatar];
+        continue;
+      }
+      for (const [id, e] of Object.entries(rec.chats || {})) {
+        if (e.gone) delete rec.chats[id];
+      }
+      // 初遇兜底时间可能来自已删文件，一并清掉（活文件下次刷新会重新算回来）
+      delete rec.fm;
+    }
+    saveSettingsDebounced();
+    renderArchiveList();
+    refreshArchiveManageRow();
+    updateStats();
+  });
+
+  // ---- 数据导出 / 导入 ----
+  $('#ccs-export-data').on('click', function () {
+    try {
+      const encounters = {};
+      for (const [k, v] of Object.entries(accurateEncounterTimeCache)) {
+        if (v && v.date) encounters[k] = { t: v.date.getTime(), sig: v.sig || '' };
+      }
+      const payload = {
+        type: 'chat-companion-stats-backup',
+        version: 1,
+        exportedAt: new Date().toISOString(),
+        settings: ccsSettings,
+        archive: getChatArchive(),
+        encounters,
+        wordRatios: accurateWordRatioCache,
+      };
+      const blob = new Blob([JSON.stringify(payload, null, 2)], { type: 'application/json' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      const d = new Date();
+      const stamp = `${d.getFullYear()}${String(d.getMonth() + 1).padStart(2, '0')}${String(d.getDate()).padStart(2, '0')}`;
+      a.href = url;
+      a.download = `chat-companion-stats-backup-${stamp}.json`;
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      setTimeout(() => URL.revokeObjectURL(url), 1000);
+      toastr.success('已导出羁绊助手数据');
+    } catch (err) {
+      if (DEBUG) console.error('[StatsDebug] Export failed:', err);
+      toastr.error(`导出失败：${err?.message || err}`);
+    }
+  });
+
+  $('#ccs-import-data').on('click', function () {
+    $('#ccs-import-file').trigger('click');
+  });
+
+  $('#ccs-import-file').on('change', function () {
+    const file = this.files && this.files[0];
+    this.value = '';
+    if (!file) return;
+    const $btns = $('#ccs-import-data, #ccs-export-data');
+    const reader = new FileReader();
+    reader.onerror = () => toastr.error('导入失败：无法读取文件');
+    reader.onload = async function () {
+      try {
+        let data;
+        try {
+          data = JSON.parse(String(reader.result || ''));
+        } catch (parseErr) {
+          toastr.error('导入失败：不是有效的 JSON 文件');
+          return;
+        }
+        if (!data || data.type !== 'chat-companion-stats-backup' || !data.archive || typeof data.archive !== 'object') {
+          toastr.error('导入失败：不是羁绊助手导出的备份文件');
+          return;
+        }
+
+        const incCharCount = Object.keys(data.archive.chars || {}).length;
+        if (!(await ccsConfirm(`将合并 ${incCharCount} 个角色的聊天记录数据，并应用备份中的插件设置。继续？`))) return;
+
+        $btns.prop('disabled', true);
+        $('#ccs-import-data').val('导入中…');
+
+        // 合并规则：本机活文件以实时值为准不合并；两边都是已删除记录时取条数更多的一方；
+        // 初遇时间取更早（并做合法性校验）；≤1 条的废聊天记录不导入
+        const archive = getChatArchive();
+        const now = Date.now();
+        const MIN_VALID_TS = 1420070400000; // 2015-01-01，早于 ST 诞生的时间戳视为脏数据
+        let mergedCount = 0;
+        for (const [avatar, incRec] of Object.entries(data.archive.chars || {})) {
+          if (!incRec || typeof incRec !== 'object') continue;
+          const rec = archive.chars[avatar] = archive.chars[avatar] || { name: '', chats: {} };
+          if (!rec.chats || typeof rec.chats !== 'object') rec.chats = {};
+          if (!rec.name && incRec.name) rec.name = String(incRec.name);
+          const incFm = parseInt(incRec.fm) || 0;
+          if (incFm > MIN_VALID_TS && incFm <= now && (!rec.fm || incFm < rec.fm)) rec.fm = incFm;
+          for (const [id, e] of Object.entries(incRec.chats || {})) {
+            if (!e || typeof e !== 'object') continue;
+            const incN = parseInt(e.n) || 0;
+            if (incN <= 1) continue;
+            const cur = rec.chats[id];
+            // 本地是活文件的条目不合并：在世文件以实时值为准
+            if (cur && !cur.gone) continue;
+            if (!cur || incN > (parseInt(cur.n) || 0)) {
+              // 先按冻结处理；若文件在本机实际存在，下次刷新会自动解冻并回到实时值
+              rec.chats[id] = {
+                itg: e.itg ? String(e.itg) : (cur?.itg || null),
+                n: incN,
+                fs: e.fs ? String(e.fs) : '',
+                lm: e.lm ? String(e.lm) : '',
+                mc: e.mc ? String(e.mc) : (cur?.mc || null),
+                gone: parseInt(e.gone) || now,
+              };
+              mergedCount++;
+            }
+          }
+        }
+
+        // 设置：采用备份里的开关状态
+        if (data.settings && typeof data.settings === 'object') {
+          ccsSettings.excludeCheckpoints = !!data.settings.excludeCheckpoints;
+          ccsSettings.showDeletedChats = !!data.settings.showDeletedChats;
+          saveCcsSettings();
+          $('#ccs-exclude-checkpoints').prop('checked', ccsSettings.excludeCheckpoints);
+          $('#ccs-show-deleted').prop('checked', ccsSettings.showDeletedChats);
+        }
+
+        // 缓存：只补本地没有的（本地已有的更可信）
+        if (data.encounters && typeof data.encounters === 'object') {
+          for (const [k, v] of Object.entries(data.encounters)) {
+            if (!accurateEncounterTimeCache[k] && v && v.t) {
+              accurateEncounterTimeCache[k] = { date: new Date(v.t), sig: v.sig || '' };
+            }
+          }
+        }
+        if (data.wordRatios && typeof data.wordRatios === 'object') {
+          for (const [k, v] of Object.entries(data.wordRatios)) {
+            if (!accurateWordRatioCache[k] && typeof v === 'number' && v > 0) {
+              accurateWordRatioCache[k] = v;
+            }
+          }
+        }
+
+        saveSettingsDebounced();
+        schedulePersistCaches();
+        refreshArchiveManageRow();
+        await updateStats();
+        toastr.success(`导入完成，合并了 ${mergedCount} 条聊天记录数据`);
+      } catch (err) {
+        if (DEBUG) console.error('[StatsDebug] Import failed:', err);
+        toastr.error(`导入失败：${err?.message || err}`);
+      } finally {
+        $btns.prop('disabled', false);
+        $('#ccs-import-data').val('导入');
+      }
+    };
+    reader.readAsText(file);
   });
 
   // Add change listener to checkboxes to update share button state
@@ -4599,6 +5106,8 @@ jQuery(async () => {
           chats = await getCharacterChatsWithMeta(char.avatar);
         }
 
+        // 记入存档账本（常驻记录），按设置合并已删除聊天，再按设置过滤检查点
+        chats = applyChatArchive(char.avatar, char.name, chats);
         chats = filterCheckpointChats(chats);
 
         if (!chats || chats.length === 0) {
@@ -4644,11 +5153,11 @@ jQuery(async () => {
           if (chat.file_name) {
             const timeInfo = parseTimeFromFilename(chat.file_name);
             if (timeInfo && timeInfo.dateObject) {
-              parseableFilesInfo.push({ name: chat.file_name, date: timeInfo.dateObject });
+              parseableFilesInfo.push({ name: chat.file_name, date: timeInfo.dateObject, archived: !!chat.ccs_archived });
               if (!earliestTime || timeInfo.dateObject < earliestTime) {
                 earliestTime = timeInfo.dateObject;
               }
-            } else {
+            } else if (!chat.ccs_archived) {
               unparseableFiles.push(chat.file_name);
             }
           }
@@ -4674,8 +5183,8 @@ jQuery(async () => {
           const releaseHeavySlot = await acquireHeavyOpSlot();
           try {
             parseableFilesInfo.sort((a, b) => a.date - b.date);
-            // 全局扫描：对最老的2个可解析文件进行完整统计
-            let filesToCheck = parseableFilesInfo.slice(0, 2).map(f => f.name);
+            // 全局扫描：对最老的2个可解析文件进行完整统计（存档条目文件已删，跳过）
+            let filesToCheck = parseableFilesInfo.filter(f => !f.archived).slice(0, 2).map(f => f.name);
 
             if (filesToCheck.length > 0) {
               for (const file of filesToCheck) {
@@ -4708,6 +5217,9 @@ jQuery(async () => {
             schedulePersistCaches();
           }
         }
+
+        // 与账本记录的最早初遇时间合并（最早文件被删后靠它兜底）
+        earliestTime = mergeArchiveFirstMet(avatarForApi, earliestTime);
 
         let days = 0;
         if (earliestTime) {
@@ -4757,6 +5269,67 @@ jQuery(async () => {
       }
     }
     await Promise.all(Array.from({ length: Math.min(CONCURRENCY, charsEntries.length) }, poolWorker));
+
+    // 角色卡已删除但账本里还有记录的：开关开启时用记录合成上榜条目（头像用占位图标）。
+    // 不想看到的可以在设置的「已删除的聊天记录」里删掉对应记录。
+    if (ccsSettings.showDeletedChats) {
+      try {
+        const existingAvatars = new Set(charsEntries.map(([, c]) => c?.avatar).filter(Boolean));
+        for (const [avatar, rec] of Object.entries(getChatArchive().chars)) {
+          if (existingAvatars.has(avatar) || !rec || !rec.chats) continue;
+          const fakeChats = [];
+          for (const [id, e] of Object.entries(rec.chats)) {
+            if ((parseInt(e.n) || 0) <= 1) continue;
+            fakeChats.push({
+              file_name: `${id}.jsonl`,
+              chat_items: e.n,
+              file_size: e.fs,
+              last_mes: e.lm,
+              chat_metadata: { main_chat: e.mc || undefined, integrity: e.itg || undefined },
+              ccs_archived: true,
+            });
+          }
+          const kept = filterCheckpointChats(fakeChats);
+          let totalMessages = 0;
+          let totalSizeBytesRaw = 0;
+          let earliestTime = null;
+          for (const c of kept) {
+            totalMessages += parseInt(c.chat_items) || 0;
+            totalSizeBytesRaw += parseFileSizeToBytes(c.file_size);
+            const t = parseTimeFromFilename(c.file_name);
+            if (t && t.dateObject && (!earliestTime || t.dateObject < earliestTime)) earliestTime = t.dateObject;
+          }
+          if (rec.fm && (!earliestTime || rec.fm < earliestTime.getTime())) earliestTime = new Date(rec.fm);
+          if (totalMessages <= 1) continue;
+
+          let days = 0;
+          if (earliestTime && !isNaN(earliestTime.getTime())) {
+            const utcFirstTime = Date.UTC(earliestTime.getFullYear(), earliestTime.getMonth(), earliestTime.getDate());
+            days = Math.ceil(Math.abs(utcNow - utcFirstTime) / (1000 * 60 * 60 * 24)) + 1;
+          }
+          let formattedSize = '0 B';
+          if (totalSizeBytesRaw > 0) {
+            const kb = totalSizeBytesRaw / 1024;
+            const mb = kb / 1024;
+            if (mb >= 1) formattedSize = `${mb.toFixed(2)} MB`;
+            else if (kb >= 1) formattedSize = `${kb.toFixed(2)} KB`;
+            else formattedSize = `${Math.round(totalSizeBytesRaw)} B`;
+          }
+          statsList.push({
+            name: rec.name || avatar.replace(/\.png$/i, ''),
+            avatar: null,
+            deleted: true,
+            messages: totalMessages,
+            days: days,
+            sizeRaw: totalSizeBytesRaw,
+            formattedSize: formattedSize,
+            firstTimeRaw: earliestTime,
+          });
+        }
+      } catch (err) {
+        if (DEBUG) console.warn('[GlobalStats] Failed to synthesize deleted characters:', err);
+      }
+    }
 
     return statsList;
   }
@@ -4815,12 +5388,16 @@ jQuery(async () => {
         descHtml = `${stat.messages} 条对话`;
       }
 
+      const avatarHtml = stat.deleted
+        ? '<div class="ccs-rank-avatar ccs-rank-avatar-deleted" title="角色卡已删除"><i class="fa-solid fa-ghost"></i></div>'
+        : `<img class="ccs-rank-avatar" src="${stat.avatar}" onerror="this.src='../img/char-default.png'" />`;
+
       return `
         <div class="ccs-rank-item ${topClass}">
           <div class="ccs-rank-number">${index + 1}</div>
-          <img class="ccs-rank-avatar" src="${stat.avatar}" onerror="this.src='../img/char-default.png'" />
+          ${avatarHtml}
           <div class="ccs-rank-info">
-            <div class="ccs-rank-name">${stat.name}</div>
+            <div class="ccs-rank-name">${escapeCcsHtml(stat.name)}</div>
             <div class="ccs-rank-desc">${descHtml}</div>
           </div>
           <div class="ccs-rank-value">${valueHtml}</div>
