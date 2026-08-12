@@ -214,6 +214,24 @@ jQuery(async () => {
     }
   }
 
+  // 推断一个聊天的父聊天 id。优先用 chat_metadata.main_chat（权威，改过名也能识别）；
+  // TauriTavern 等第三方后端不认识 metadata:true 参数、不回传 chat_metadata，
+  // 此时退回文件名推断：ST 创建检查点/分支的默认命名是「父名 - Checkpoint #n / - Branch #n」
+  //（旧版还有「Checkpoint #n - 父名」前缀形式）。只在推断出的父名确实在列表里时才认。
+  // 局限：这类后端上改过名的检查点识别不了（数据源没给，无能为力）。
+  function inferParentId(chat, idsInList) {
+    const meta = chat?.chat_metadata;
+    if (meta && typeof meta === 'object') {
+      return meta.main_chat ? String(meta.main_chat) : null;
+    }
+    const id = String(chat?.file_name || '').replace(/\.jsonl$/i, '');
+    let m = id.match(/^(.+) - (?:Checkpoint|Branch) #\d+$/);
+    if (m && idsInList.has(m[1])) return m[1];
+    m = id.match(/^Checkpoint #\d+ - (.+)$/);
+    if (m && idsInList.has(m[1])) return m[1];
+    return null;
+  }
+
   // 按设置对检查点/分支去重。识别靠 metadata 而非文件名，改过名的检查点也能认出来。
   // 规则：同一个"家族"（父聊天 + 其所有检查点/分支，含链式衍生）只统计楼层最高的一份——
   // 分支聊得比父聊天更长时以分支为准，取的是"最长的那条故事线"。
@@ -225,14 +243,14 @@ jQuery(async () => {
       const id = String(c.file_name || '').replace(/\.jsonl$/i, '');
       if (id) byId.set(id, c);
     }
-    // 沿 main_chat 向上追根；父不在列表里时自己就是根；防脏数据成环
+    // 沿父链向上追根；父不在列表里时自己就是根；防脏数据成环
+    const allIds = new Set(byId.keys());
     function rootOf(id) {
       let cur = id;
       const seen = new Set();
       while (!seen.has(cur)) {
         seen.add(cur);
-        const parent = byId.get(cur)?.chat_metadata?.main_chat;
-        const pid = parent ? String(parent) : null;
+        const pid = inferParentId(byId.get(cur), allIds);
         if (!pid || !byId.has(pid)) return cur;
         cur = pid;
       }
@@ -337,7 +355,7 @@ jQuery(async () => {
           n: parseInt(chat.chat_items) || 0,
           fs: chat.file_size || '',
           lm: chat.last_mes || '',
-          mc: chat.chat_metadata?.main_chat ? String(chat.chat_metadata.main_chat) : (old?.mc || null),
+          mc: inferParentId(chat, liveIds) || old?.mc || null,
           gone: null,
         };
         if (!old || old.itg !== entry.itg || old.n !== entry.n || old.fs !== entry.fs || old.lm !== entry.lm || old.mc !== entry.mc || old.gone) {
