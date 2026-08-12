@@ -404,6 +404,39 @@ jQuery(async () => {
     }
   }
 
+  // 删除瞬间同步账本：ST 在 UI 删除聊天时广播 CHAT_DELETED（载荷是去掉 .jsonl 的文件名，
+  // 与账本主键一致），立即冻结对应条目，管理列表/徽标不用等下一次统计计算。
+  // 事件不带角色信息：优先当前角色，对不上时全账本找唯一匹配；有歧义不动（下次统计会兜底）。
+  function onCcsChatDeleted(fileName) {
+    try {
+      const id = String(fileName || '').replace(/\.jsonl$/i, '');
+      if (!id) return;
+      const archive = getChatArchive();
+      const ctx = getContext();
+      const curAvatar = ctx?.characters?.[ctx.characterId]?.avatar;
+      const hasLive = a => { const e = archive.chars[a]?.chats?.[id]; return e && !e.gone; };
+      const owners = (curAvatar && hasLive(curAvatar)) ? [curAvatar] : Object.keys(archive.chars).filter(hasLive);
+      if (owners.length !== 1) return;
+      const rec = archive.chars[owners[0]];
+      const e = rec.chats[id];
+      // 只有开场白（≤1 条）的废聊天不留档
+      if ((parseInt(e.n) || 0) <= 1) delete rec.chats[id];
+      else e.gone = Date.now();
+      saveSettingsDebounced();
+      refreshArchiveManageRow();
+    } catch (err) {
+      if (DEBUG) console.warn('[StatsDebug] onCcsChatDeleted failed:', err);
+    }
+  }
+
+  try {
+    const ctx = getContext();
+    const evt = ctx?.eventTypes?.CHAT_DELETED || ctx?.event_types?.CHAT_DELETED;
+    if (evt && ctx?.eventSource?.on) ctx.eventSource.on(evt, onCcsChatDeleted);
+  } catch (err) {
+    if (DEBUG) console.warn('[StatsDebug] CHAT_DELETED listener unavailable:', err);
+  }
+
   // 加载HTML using dynamic path with cache buster
   const settingsHtml = await $.get(`${extensionWebPath}/settings.html`);
   $("#extensions_settings").append(settingsHtml);
